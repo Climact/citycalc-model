@@ -180,7 +180,7 @@ def metanode_9109(port_01):
     # Hard-coded here 
     # => To move in google sheet ??
 
-    out_9207_1 = TableCreatorNode(df=pd.DataFrame(columns=['category-from', 'energy-carrier-from', 'category-to', 'energy-carrier-to'], data=[['fffuels', 'gaseous-ff-natural', 'biofuels', 'gaseous-bio'], ['fffuels', 'liquid-ff-oil', 'biofuels', 'liquid-bio'], ['fffuels', 'gaseous-ff-natural', 'hydrogen', 'hydrogen'], ['fffuels', 'gaseous-ff-natural', 'synfuels', 'gaseous-syn'], ['fffuels', 'liquid-ff-oil', 'synfuels', 'liquid-syn']]))()
+    out_9207_1 = pd.DataFrame(columns=['category-from', 'energy-carrier-from', 'category-to', 'energy-carrier-to'], data=[['fffuels', 'gaseous-ff-natural', 'biofuels', 'gaseous-bio'], ['fffuels', 'liquid-ff-oil', 'biofuels', 'liquid-bio'], ['fffuels', 'gaseous-ff-natural', 'hydrogen', 'hydrogen'], ['fffuels', 'gaseous-ff-natural', 'synfuels', 'gaseous-syn'], ['fffuels', 'liquid-ff-oil', 'synfuels', 'liquid-syn']])
     # ratio[-] = 1 (energy final, no need to  account for energy efficiency differences)
     ratio = out_9207_1.assign(**{'ratio[-]': 1.0})
 
@@ -190,17 +190,17 @@ def metanode_9109(port_01):
     # => New appliances
 
     # Note : others => phone  (in industry = smartphone??!!)
-    out_8231_1 = TableCreatorNode(df=pd.DataFrame(columns=['new_name', 'old_name'], data=[['new-appliances_computer[num]', 'bld_new_computer[num]'], ['new-appliances_dishwasher[num]', 'bld_new_dishwasher[num]'], ['new-appliances_dryer[num]', 'bld_new_dryer[num]'], ['new-appliances_freezer[num]', 'bld_new_freezer[num]'], ['new-appliances_fridge[num]', 'bld_new_fridge[num]'], ['new-appliances_others[num]', 'bld_new_phone[num]'], ['new-appliances_tv[num]', 'bld_new_tv[num]'], ['new-appliances_wmachine[num]', 'bld_new_wmachine[num]']]))()
+    out_8231_1 = pd.DataFrame(columns=['new_name', 'old_name'], data=[['new-appliances_computer[num]', 'bld_new_computer[num]'], ['new-appliances_dishwasher[num]', 'bld_new_dishwasher[num]'], ['new-appliances_dryer[num]', 'bld_new_dryer[num]'], ['new-appliances_freezer[num]', 'bld_new_freezer[num]'], ['new-appliances_fridge[num]', 'bld_new_fridge[num]'], ['new-appliances_others[num]', 'bld_new_phone[num]'], ['new-appliances_tv[num]', 'bld_new_tv[num]'], ['new-appliances_wmachine[num]', 'bld_new_wmachine[num]']])
 
     # For : Minerals
     # => Yearly floor area (new construction and new renovation)
 
-    out_8078_1 = TableCreatorNode(df=pd.DataFrame(columns=['new_name', 'old_name'], data=[['floor-area-yearly_non-residential_constructed[m2]', 'bld_floor-area_new_non-residential[m2]'], ['floor-area-yearly_residential_constructed[m2]', 'bld_floor-area_new_residential[m2]'], ['floor-area-yearly_non-residential_renovated[m2]', 'bld_floor-area_reno_non-residential[m2]'], ['floor-area-yearly_residential_renovated[m2]', 'bld_floor-area_reno_residential[m2]']]))()
+    out_8078_1 = pd.DataFrame(columns=['new_name', 'old_name'], data=[['floor-area-yearly_non-residential_constructed[m2]', 'bld_floor-area_new_non-residential[m2]'], ['floor-area-yearly_residential_constructed[m2]', 'bld_floor-area_new_residential[m2]'], ['floor-area-yearly_non-residential_renovated[m2]', 'bld_floor-area_reno_non-residential[m2]'], ['floor-area-yearly_residential_renovated[m2]', 'bld_floor-area_reno_residential[m2]']])
 
     # Input data 
     # + inject module name (flow variable)
 
-    out_5965_1 = InjectVariablesDataNode()(df=port_01)
+    out_5965_1 = port_01
 
     # Product / material / ressource demand
 
@@ -217,11 +217,11 @@ def metanode_9109(port_01):
     # Select Variables
 
     # product-substitution-rate [%] (from lifestyle)
-    product_substitution_rate_percent = UseVariableNode(selected_variable='product-substitution-rate[%]')(input_table=out_5965_1)
+    product_substitution_rate_percent = use_variable(input_table=out_5965_1, selected_variable='product-substitution-rate[%]')
     # Convert Unit [%] to [-] (* 0.01) ?
     product_substitution_rate_ = product_substitution_rate_percent.drop(columns='product-substitution-rate[%]').assign(**{'product-substitution-rate[-]': product_substitution_rate_percent['product-substitution-rate[%]'] * 0.01})
     # Select Years > baseyear
-    product_substitution_rate_, product_substitution_rate__excluded = FilterDimension(dimension='Years', operation_selection='>', value_years=Globals.get().base_year)(df=product_substitution_rate_)
+    product_substitution_rate_, product_substitution_rate__excluded = filter_dimension(df=product_substitution_rate_, dimension='Years', operation_selection='>', value_years=Globals.get().base_year)
     # product-substitution-factor[-] = 1
     product_substitution_factor = product_substitution_rate__excluded.assign(**{'product-substitution-factor[-]': 1.0})
     # product-substitution-factor[-] = 1 + product-substitution-rate[-]
@@ -229,40 +229,40 @@ def metanode_9109(port_01):
     # Historical and Future
     product_substitution_factor = pd.concat([product_substitution_factor_2, product_substitution_factor.set_index(product_substitution_factor.index.astype(str) + '_dup')])
     # product-substitution-factor [-]
-    product_substitution_factor = UseVariableNode(selected_variable='product-substitution-factor[-]')(input_table=product_substitution_factor)
+    product_substitution_factor = use_variable(input_table=product_substitution_factor, selected_variable='product-substitution-factor[-]')
 
     # Parameters
 
     # RCP appliance-lifetime [years]
-    appliance_lifetime_years = ImportDataNode(trigram='bld', variable_name='appliance-lifetime', variable_type='RCP')()
+    appliance_lifetime_years = import_data(trigram='bld', variable_name='appliance-lifetime', variable_type='RCP')
     # appliance-lifetime[years] (replace) = appliance-lifetime[years] * product-substitution-factor[-]
-    appliance_lifetime_years = MCDNode(operation_selection='x * y', output_name='appliance-lifetime[years]')(input_table_1=product_substitution_factor, input_table_2=appliance_lifetime_years)
+    appliance_lifetime_years = mcd(input_table_1=product_substitution_factor, input_table_2=appliance_lifetime_years, operation_selection='x * y', output_name='appliance-lifetime[years]')
     # new-appliance-ratio[-] = 1 / appliance-lifetime[years]
     new_appliance_ratio = appliance_lifetime_years.assign(**{'new-appliance-ratio[-]': 1.0/appliance_lifetime_years['appliance-lifetime[years]']})
 
     # Select Variables
 
     # new-appliance-ratio [-]
-    new_appliance_ratio = UseVariableNode(selected_variable='new-appliance-ratio[-]')(input_table=new_appliance_ratio)
+    new_appliance_ratio = use_variable(input_table=new_appliance_ratio, selected_variable='new-appliance-ratio[-]')
     # appliance-own [num] (from lifestyle)
-    appliance_own_num = UseVariableNode(selected_variable='appliance-own[num]')(input_table=out_5965_1)
+    appliance_own_num = use_variable(input_table=out_5965_1, selected_variable='appliance-own[num]')
     # new-appliances[num] = appliance-own[num] * new-appliance-ratio[-]
-    new_appliances_num = MCDNode(operation_selection='x * y', output_name='new-appliances[num]')(input_table_1=appliance_own_num, input_table_2=new_appliance_ratio)
+    new_appliances_num = mcd(input_table_1=appliance_own_num, input_table_2=new_appliance_ratio, operation_selection='x * y', output_name='new-appliances[num]')
     # new-appliances [num]
-    new_appliances_num = ExportVariableNode(selected_variable='new-appliances[num]')(input_table=new_appliances_num)
+    new_appliances_num = export_variable(input_table=new_appliances_num, selected_variable='new-appliances[num]')
 
     # For : Industry
     # => New appliances
 
     # new-appliances[num]
-    new_appliances_num = UseVariableNode(selected_variable='new-appliances[num]')(input_table=new_appliances_num)
+    new_appliances_num = use_variable(input_table=new_appliances_num, selected_variable='new-appliances[num]')
 
     # Pivot
 
     # by country, Years on appliances
-    out_8033_1, _, _ = PivotingNode(agg_dict={'new-appliances[num]': 'sum'}, column_name_option='Pivot name+Aggregation name', column_name_policy='Keep original name(s)', list_group_columns=['Country', 'Years'], list_pivots=['appliances'])(df=new_appliances_num)
-    out_8036_1 = MissingValueColumnFilterNode(missing_threshold=0.9, type_of_pattern='Manual')(df=out_8033_1)
-    out_8036_1 = ColumnRenameRegexNode(search_string='(.*)\\+(.*)(\\[.*)', replace_string='$2_$1$3')(df=out_8036_1)
+    out_8033_1, _, _ = pivoting(df=new_appliances_num, agg_dict={'new-appliances[num]': 'sum'}, column_name_option='Pivot name+Aggregation name', column_name_policy='Keep original name(s)', list_group_columns=['Country', 'Years'], list_pivots=['appliances'])
+    out_8036_1 = missing_value_column_filter(df=out_8033_1, missing_threshold=0.9, type_of_pattern='Manual')
+    out_8036_1 = column_rename_regex(df=out_8036_1, search_string='(.*)\\+(.*)(\\[.*)', replace_string='$2_$1$3')
 
     def helper_8232(input_table_1, input_table_2) -> pd.DataFrame:
         # Input tables
@@ -307,23 +307,23 @@ def metanode_9109(port_01):
     # Only new one => Capex
 
     # RCP costs-by-appliances [MEUR/unit] From TECH
-    costs_by_appliances_MEUR_per_unit = ImportDataNode(trigram='tec', variable_name='costs-by-appliances', variable_type='RCP')()
+    costs_by_appliances_MEUR_per_unit = import_data(trigram='tec', variable_name='costs-by-appliances', variable_type='RCP')
     # RCP price-indices [-] From TECH
-    price_indices_ = ImportDataNode(trigram='tec', variable_name='price-indices', variable_type='RCP')()
+    price_indices_ = import_data(trigram='tec', variable_name='price-indices', variable_type='RCP')
     # OTS/LL wacc [%] From TECH
-    wacc_percent = ImportDataNode(trigram='tec', variable_name='wacc')()
+    wacc_percent = import_data(trigram='tec', variable_name='wacc')
     # Keep sector = bld
     wacc_percent = wacc_percent.loc[wacc_percent['sector'].isin(['bld'])].copy()
     # Group by all except sector (sum)
-    wacc_percent = GroupByDimensions(groupby_dimensions=['Years', 'Country'], aggregation_method='Sum')(df=wacc_percent)
+    wacc_percent = group_by_dimensions(df=wacc_percent, groupby_dimensions=['Years', 'Country'], aggregation_method='Sum')
     # Compute capex for new-appliances[num]
-    out_9282_1 = ComputeCosts(activity_variable='new-appliances[num]')(df_activity=new_appliances_num, df_unit_costs=costs_by_appliances_MEUR_per_unit, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name)
+    out_9282_1 = compute_costs(df_activity=new_appliances_num, df_unit_costs=costs_by_appliances_MEUR_per_unit, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='new-appliances[num]')
     # RCP appliances-cost-user [-]
-    appliances_cost_user_ = ImportDataNode(trigram='bld', variable_name='appliances-cost-user', variable_type='RCP')()
+    appliances_cost_user_ = import_data(trigram='bld', variable_name='appliances-cost-user', variable_type='RCP')
     # Get cost-users capex[MEUR] = capex[MEUR] * appliances-cost-user[-]
-    capex_MEUR = MCDNode(operation_selection='x * y', output_name='capex[MEUR]')(input_table_1=out_9282_1, input_table_2=appliances_cost_user_)
+    capex_MEUR = mcd(input_table_1=out_9282_1, input_table_2=appliances_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by Country, Years (sum)
-    capex_MEUR = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=capex_MEUR)
+    capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # capex-by-appliances[MEUR]
     out_9320_1 = capex_MEUR.rename(columns={'capex[MEUR]': 'capex-by-appliances[MEUR]'})
 
@@ -334,53 +334,53 @@ def metanode_9109(port_01):
     # Select variables from Lifestyle module
 
     # population [cap]
-    population_cap = UseVariableNode(selected_variable='population[cap]')(input_table=out_5965_1)
+    population_cap = use_variable(input_table=out_5965_1, selected_variable='population[cap]')
 
     # Apply household-size levers (reduce)
     # => determine the nb of pers living in the same household
 
     # OTS/FTS household-size [cap/household] (from lifestyle)
-    household_size_cap_per_household = ImportDataNode(trigram='lfs', variable_name='household-size')()
+    household_size_cap_per_household = import_data(trigram='lfs', variable_name='household-size')
     # households[num] = population[cap] / household-size [cap/household]
-    households_num = MCDNode(operation_selection='x / y', output_name='households[num]')(input_table_1=population_cap, input_table_2=household_size_cap_per_household)
+    households_num = mcd(input_table_1=population_cap, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households[num]')
 
     # Apply floor-intensity levers (switch)
     # => determine the % of household that are house (mfh). The remaining % correspond to appartment
 
     # OTS/FTS household-share-appartment [%] (from lifestyle)
-    household_share_appartment_percent = ImportDataNode(trigram='lfs', variable_name='household-share-appartment')()
+    household_share_appartment_percent = import_data(trigram='lfs', variable_name='household-share-appartment')
     # households[num] (for mfh) = households-total[num] * household-share-appartment[%]
-    households_num_2 = MCDNode(operation_selection='x * y', output_name='households[num]')(input_table_1=households_num, input_table_2=household_share_appartment_percent)
+    households_num_2 = mcd(input_table_1=households_num, input_table_2=household_share_appartment_percent, operation_selection='x * y', output_name='households[num]')
     # add building-use = mfh
     households_num_2['building-use'] = "mfh"
     # households[num] (for sfh) = households-total[num] * (1 - household-share-appartment[%])
-    households_num_3 = MCDNode(operation_selection='x * (1-y)', output_name='households[num]')(input_table_1=households_num, input_table_2=household_share_appartment_percent)
+    households_num_3 = mcd(input_table_1=households_num, input_table_2=household_share_appartment_percent, operation_selection='x * (1-y)', output_name='households[num]')
     # add building-use = sfh
     households_num_3['building-use'] = "sfh"
     households_num_2 = pd.concat([households_num_2, households_num_3.set_index(households_num_3.index.astype(str) + '_dup')])
     # households [num]
-    households_num_2 = ExportVariableNode(selected_variable='households[num]')(input_table=households_num_2)
+    households_num_2 = export_variable(input_table=households_num_2, selected_variable='households[num]')
 
     # Apply household-surface levers (reduce)
     # => determine the m2 per household (mfh / sfh)
 
     # OTS/FTS building-size [m2/household]
-    building_size_m2_per_household = ImportDataNode(trigram='bld', variable_name='building-size')()
+    building_size_m2_per_household = import_data(trigram='bld', variable_name='building-size')
     # floor-area-demand[m2] = households[num] * building-size [m2/household]
-    floor_area_demand_m2 = MCDNode(operation_selection='x * y', output_name='floor-area-demand[m2]')(input_table_1=households_num_2, input_table_2=building_size_m2_per_household)
+    floor_area_demand_m2 = mcd(input_table_1=households_num_2, input_table_2=building_size_m2_per_household, operation_selection='x * y', output_name='floor-area-demand[m2]')
 
     # Calibration : floor-area-demand (residential)
 
     # Calibration floor-area [Mm2] (residential)
-    floor_area_Mm2 = ImportDataNode(trigram='bld', variable_name='floor-area', variable_type='Calibration')()
+    floor_area_Mm2 = import_data(trigram='bld', variable_name='floor-area', variable_type='Calibration')
     # Convert Unit 1000m2 to m2 (*1000)
     floor_area_m2 = floor_area_Mm2.drop(columns='floor-area[1000m2]').assign(**{'floor-area[m2]': floor_area_Mm2['floor-area[1000m2]'] * 1000.0})
     # Apply Calibration on floor-area-demand[m2]
-    floor_area_demand_m2_2, _, _ = CalibrationNode(data_to_be_cal='floor-area-demand[m2]', data_cal='floor-area[m2]')(input_table=floor_area_demand_m2, cal_table=floor_area_m2)
+    floor_area_demand_m2_2, _, _ = calibration(input_table=floor_area_demand_m2, cal_table=floor_area_m2, data_to_be_cal='floor-area-demand[m2]', data_cal='floor-area[m2]')
     # household-share[%] = households[num] / household[num] (total)
-    household_share_percent = MCDNode(operation_selection='x / y', output_name='household-share[%]')(input_table_1=households_num_2, input_table_2=households_num)
+    household_share_percent = mcd(input_table_1=households_num_2, input_table_2=households_num, operation_selection='x / y', output_name='household-share[%]')
     # household-share [%]
-    household_share_percent = ExportVariableNode(selected_variable='household-share[%]')(input_table=household_share_percent)
+    household_share_percent = export_variable(input_table=household_share_percent, selected_variable='household-share[%]')
 
     # Total energy demand per end-use
 
@@ -389,21 +389,21 @@ def metanode_9109(port_01):
     # => Apply share of mfh / sfh on energy-need to get the demand by building use
 
     # household-share [%]
-    household_share_percent = UseVariableNode(selected_variable='household-share[%]')(input_table=household_share_percent)
+    household_share_percent = use_variable(input_table=household_share_percent, selected_variable='household-share[%]')
 
     # Energy need : differents end-use linked to household (cooking / hotwater) (residential)
     # => Energy-demand = households[num] * energy-need-by-household[kWh/household]
 
     # households [num]
-    households_num = UseVariableNode(selected_variable='households[num]')(input_table=households_num_2)
+    households_num = use_variable(input_table=households_num_2, selected_variable='households[num]')
 
     # Apply energy-need (household) levers (reduce)
     # => determine the energy consumption by household for some specific end-use (hotwater, cooking, ...)
 
     # OTS/FTS energy-need-by-household [kWh/household]
-    energy_need_by_household_kWh_per_household = ImportDataNode(trigram='bld', variable_name='energy-need-by-household')()
+    energy_need_by_household_kWh_per_household = import_data(trigram='bld', variable_name='energy-need-by-household')
     # energy-demand[kWh] = households[num] * energy-need-by-household[kWh/household]
-    energy_demand_kWh = MCDNode(operation_selection='x * y', output_name='energy-demand[kWh]')(input_table_1=households_num, input_table_2=energy_need_by_household_kWh_per_household)
+    energy_demand_kWh = mcd(input_table_1=households_num, input_table_2=energy_need_by_household_kWh_per_household, operation_selection='x * y', output_name='energy-demand[kWh]')
     # kWh to GWh (*0.000001)
     energy_demand_GWh = energy_demand_kWh.drop(columns='energy-demand[kWh]').assign(**{'energy-demand[GWh]': energy_demand_kWh['energy-demand[kWh]'] * 1e-06})
 
@@ -414,27 +414,27 @@ def metanode_9109(port_01):
     # => determine the floor area demand for  residential area and so the share between sfh and mfh
 
     # OTS/FTS floor-area-demand [1000m2]
-    floor_area_demand_1000m2 = ImportDataNode(trigram='bld', variable_name='floor-area-demand')()
+    floor_area_demand_1000m2 = import_data(trigram='bld', variable_name='floor-area-demand')
     # Convert Unit 1000m2 to m2 (*1000)
     floor_area_demand_m2 = floor_area_demand_1000m2.drop(columns='floor-area-demand[1000m2]').assign(**{'floor-area-demand[m2]': floor_area_demand_1000m2['floor-area-demand[1000m2]'] * 1000.0})
     floor_area_demand_m2_2 = pd.concat([floor_area_demand_m2_2, floor_area_demand_m2.set_index(floor_area_demand_m2.index.astype(str) + '_dup')])
     # floor-area-demand [m2]
-    floor_area_demand_m2_2 = ExportVariableNode(selected_variable='floor-area-demand[m2]')(input_table=floor_area_demand_m2_2)
+    floor_area_demand_m2_2 = export_variable(input_table=floor_area_demand_m2_2, selected_variable='floor-area-demand[m2]')
 
     # Floor area : New building (construction)
     # Objective xx
 
     # floor-area-demand[m2]
-    floor_area_demand_m2_2 = UseVariableNode(selected_variable='floor-area-demand[m2]')(input_table=floor_area_demand_m2_2)
+    floor_area_demand_m2_2 = use_variable(input_table=floor_area_demand_m2_2, selected_variable='floor-area-demand[m2]')
 
     # Floor area : Offer
     # Objective Compute the floor area offer
     # It depends on the initial building stock + the demolition we apply to building stock
 
     # floor-area-demand [m2] (non-residential)
-    floor_area_demand_m2 = UseVariableNode(selected_variable='floor-area-demand[m2]')(input_table=floor_area_demand_m2)
+    floor_area_demand_m2 = use_variable(input_table=floor_area_demand_m2, selected_variable='floor-area-demand[m2]')
     # Keep Years == 2000
-    floor_area_Mm2, _ = FilterDimension(dimension='Years', operation_selection='=', value_years='2000')(df=floor_area_Mm2)
+    floor_area_Mm2, _ = filter_dimension(df=floor_area_Mm2, dimension='Years', operation_selection='=', value_years='2000')
     # Convert Unit 1000m2 to m2 (*1000)
     floor_area_m2 = floor_area_Mm2.drop(columns='floor-area[1000m2]').assign(**{'floor-area[m2]': floor_area_Mm2['floor-area[1000m2]'] * 1000.0})
 
@@ -442,15 +442,15 @@ def metanode_9109(port_01):
     # => determine the rate of demolition (example : allows to destroy bad EPC category and rebuild them with a good EPC label, instead of renovated them)
 
     # OTS/FTS building-demolition-rate [-]
-    building_demolition_rate_ = ImportDataNode(trigram='bld', variable_name='building-demolition-rate')()
+    building_demolition_rate_ = import_data(trigram='bld', variable_name='building-demolition-rate')
     # undemolition-rate[-] = 1 - building-demolition-rate[-]
     undemolition_rate = building_demolition_rate_.assign(**{'undemolition-rate[-]': 1.0-building_demolition_rate_['building-demolition-rate[%]']})
     # Compute timestep
-    _, out_9363_2 = LagVariable(in_var='building-demolition-rate[%]')(df=undemolition_rate)
+    _, out_9363_2 = lag_variable(df=undemolition_rate, in_var='building-demolition-rate[%]')
     # undemolition-rate [-]
-    undemolition_rate = UseVariableNode(selected_variable='undemolition-rate[-]')(input_table=undemolition_rate)
+    undemolition_rate = use_variable(input_table=undemolition_rate, selected_variable='undemolition-rate[-]')
     # undemolition-rate[-] (replace) = undemolition-rate[-] ** Timestep
-    undemolition_rate = MCDNode(operation_selection='x ^ y', output_name='undemolition-rate[-]')(input_table_1=undemolition_rate, input_table_2=out_9363_2)
+    undemolition_rate = mcd(input_table_1=undemolition_rate, input_table_2=out_9363_2, operation_selection='x ^ y', output_name='undemolition-rate[-]')
 
     def helper_7514(input_table) -> pd.DataFrame:
         # Copy input to output
@@ -474,57 +474,57 @@ def metanode_9109(port_01):
     # undemoliition-rate-acc[-] = Cum product of undemolished-rate[-]  By all categories (Years ascending sorting)
     out_7514_1 = helper_7514(input_table=undemolition_rate)
     # undemolition-rate-acc [-]
-    undemolition_rate_acc = ExportVariableNode(selected_variable='undemolition-rate-acc[-]')(input_table=out_7514_1)
+    undemolition_rate_acc = export_variable(input_table=out_7514_1, selected_variable='undemolition-rate-acc[-]')
     # Keep Years == 2000
-    floor_area_demand_m2, _ = FilterDimension(dimension='Years', operation_selection='=', value_years='2000')(df=floor_area_demand_m2)
+    floor_area_demand_m2, _ = filter_dimension(df=floor_area_demand_m2, dimension='Years', operation_selection='=', value_years='2000')
     # to floor-area[m2]
     out_9381_1 = floor_area_demand_m2.rename(columns={'floor-area-demand[m2]': 'floor-area[m2]'})
     out_9380_1 = pd.concat([floor_area_m2, out_9381_1.set_index(out_9381_1.index.astype(str) + '_dup')])
-    out_9380_1 = ColumnFilterNode(columns_to_drop=['Years'])(df=out_9380_1)
+    out_9380_1 = column_filter(df=out_9380_1, columns_to_drop=['Years'])
     # floor-area-offer[m2] = floora-area[m2] * undemolition-rate-acc[-]
-    floor_area_offer_m2 = MCDNode(operation_selection='x * y', output_name='floor-area-offer[m2]')(input_table_1=out_9380_1, input_table_2=undemolition_rate_acc)
+    floor_area_offer_m2 = mcd(input_table_1=out_9380_1, input_table_2=undemolition_rate_acc, operation_selection='x * y', output_name='floor-area-offer[m2]')
     # floor-area-offer [m2]
-    floor_area_offer_m2 = ExportVariableNode(selected_variable='floor-area-offer[m2]')(input_table=floor_area_offer_m2)
+    floor_area_offer_m2 = export_variable(input_table=floor_area_offer_m2, selected_variable='floor-area-offer[m2]')
 
     # Floor area : Renovation demand (EPC switch)
     # Objective Compute the floor area offer
     # It depends on the initial building stock + the demolition we apply to building stock
 
     # floor-area-offer [m2]
-    floor_area_offer_m2 = UseVariableNode(selected_variable='floor-area-offer[m2]')(input_table=floor_area_offer_m2)
+    floor_area_offer_m2 = use_variable(input_table=floor_area_offer_m2, selected_variable='floor-area-offer[m2]')
     # CP (bld_)renovation-category [%]
-    bld_renovation_category_percent = ImportDataNode(trigram='bld', variable_name='bld_renovation-category', variable_type='CP')()
+    bld_renovation_category_percent = import_data(trigram='bld', variable_name='bld_renovation-category', variable_type='CP')
     # Remove module and data-type
-    bld_renovation_category_percent = ColumnFilterNode(columns_to_drop=['data_type', 'module'])(df=bld_renovation_category_percent)
+    bld_renovation_category_percent = column_filter(df=bld_renovation_category_percent, columns_to_drop=['data_type', 'module'])
     # CP (bld_)epc-order [%]
-    bld_epc_order_percent = ImportDataNode(trigram='bld', variable_name='bld_epc-order', variable_type='CP')()
+    bld_epc_order_percent = import_data(trigram='bld', variable_name='bld_epc-order', variable_type='CP')
     # Remove module and data-type
-    bld_epc_order_percent = ColumnFilterNode(columns_to_drop=['data_type', 'module'])(df=bld_epc_order_percent)
+    bld_epc_order_percent = column_filter(df=bld_epc_order_percent, columns_to_drop=['data_type', 'module'])
     # OTS (only) epc-mix [%]
-    epc_mix_percent = ImportDataNode(trigram='bld', variable_name='epc-mix', variable_type='OTS (only)')()
+    epc_mix_percent = import_data(trigram='bld', variable_name='epc-mix', variable_type='OTS (only)')
 
     # Apply trigger-point linked levers (reduce)
     # => determine rate of each trigger point
     # => determine if we activate or not this trigger point
 
     # OTS/FTS building-renovation-rate [%]
-    building_renovation_rate_percent = ImportDataNode(trigram='bld', variable_name='building-renovation-rate')()
+    building_renovation_rate_percent = import_data(trigram='bld', variable_name='building-renovation-rate')
     # OTS/FTS trigger-point-activation [-]
-    trigger_point_activation_ = ImportDataNode(trigram='bld', variable_name='trigger-point-activation')()
+    trigger_point_activation_ = import_data(trigram='bld', variable_name='trigger-point-activation')
     # building-renovation-rate[%] (replace) = building-renovation-rate [%] * trigger-point-activation[-]
-    building_renovation_rate_percent_2 = MCDNode(operation_selection='x * y', output_name='building-renovation-rate[%]')(input_table_1=building_renovation_rate_percent, input_table_2=trigger_point_activation_)
+    building_renovation_rate_percent_2 = mcd(input_table_1=building_renovation_rate_percent, input_table_2=trigger_point_activation_, operation_selection='x * y', output_name='building-renovation-rate[%]')
 
     # Apply epc-switch levers (switch)
     # => determine to which epc category the building goes after renovation
 
     # OTS/FTS renovation-category-switch [%]
-    renovation_category_switch_percent = ImportDataNode(trigram='bld', variable_name='renovation-category-switch')()
+    renovation_category_switch_percent = import_data(trigram='bld', variable_name='renovation-category-switch')
     # Same as last available year (for historic-mean)
-    renovation_category_switch_percent = AddMissingYearsNode()(df_data=renovation_category_switch_percent)
+    renovation_category_switch_percent = add_missing_years(df_data=renovation_category_switch_percent)
     # RCP renovation-delay [years]
-    renovation_delay_years = ImportDataNode(trigram='bld', variable_name='renovation-delay', variable_type='RCP')()
+    renovation_delay_years = import_data(trigram='bld', variable_name='renovation-delay', variable_type='RCP')
     # OTS/FTS ban-values [years]
-    ban_values_years = ImportDataNode(trigram='bld', variable_name='ban-values')()
+    ban_values_years = import_data(trigram='bld', variable_name='ban-values')
 
     # Reformat values (depends on lever position)
 
@@ -578,38 +578,38 @@ def metanode_9109(port_01):
     # ban-values[years]  Get start-year = last years with 0 value end-year = first year with 1 value steady-year = half year (between start- and end-year) 
     out_9376_1 = helper_9376(input_table=ban_values_years)
     # 1) Building stock initial 2) Order for switch 3) PEB-mix 4) Status-change 5) PEB-switch 6) Delay in switch 7) BAN (end-year/start-year)  POUR MIX : METTRE VALEUR 100% pour la dernière categories !  Rajouter les année manquantes ? (pas de 1 an au lieu de 5 ?)
-    out_9508_1, out_9508_2 = BuildingStockLogicNode()(demand_df=floor_area_offer_m2, order_df=bld_epc_order_percent, mix_df=epc_mix_percent, status_change_df=building_renovation_rate_percent_2, switch_df=renovation_category_switch_percent, switch_delay_df=renovation_delay_years, ban_df=out_9376_1)
+    out_9508_1, out_9508_2 = buildings_stock_logic(demand_df=floor_area_offer_m2, order_df=bld_epc_order_percent, mix_df=epc_mix_percent, status_change_df=building_renovation_rate_percent_2, switch_df=renovation_category_switch_percent, switch_delay_df=renovation_delay_years, ban_df=out_9376_1)
     # yearly-change [m2]
-    yearly_change_m2 = UseVariableNode(selected_variable='yearly-change[m2]')(input_table=out_9508_1)
+    yearly_change_m2 = use_variable(input_table=out_9508_1, selected_variable='yearly-change[m2]')
     # yearly-change[m2] = yearly-change[m2] * ratio[-] (we associate renovation-category)
-    yearly_change_m2 = MCDNode(operation_selection='x * y', output_name='yearly-change[m2]')(input_table_1=bld_renovation_category_percent, input_table_2=yearly_change_m2)
+    yearly_change_m2 = mcd(input_table_1=bld_renovation_category_percent, input_table_2=yearly_change_m2, operation_selection='x * y', output_name='yearly-change[m2]')
     # Group by all except trigger-point, category-from and category-to (sum)
-    yearly_change_m2 = GroupByDimensions(groupby_dimensions=['renovation-category', 'Country', 'Years', 'building-type', 'building-use'], aggregation_method='Sum')(df=yearly_change_m2)
+    yearly_change_m2 = group_by_dimensions(df=yearly_change_m2, groupby_dimensions=['renovation-category', 'Country', 'Years', 'building-type', 'building-use'], aggregation_method='Sum')
     # area-type = renovated
     yearly_change_m2['area-type'] = "renovated"
     # yearly-change [m2] (renovated)
-    yearly_change_m2 = ExportVariableNode(selected_variable='yearly-change[m2]')(input_table=yearly_change_m2)
+    yearly_change_m2 = export_variable(input_table=yearly_change_m2, selected_variable='yearly-change[m2]')
     # Group by  all dimensions (sum)
-    out_9508_2 = GroupByDimensions(groupby_dimensions=['Years', 'Country', 'building-type', 'building-use', 'epc-category', 'area-type'], aggregation_method='Sum')(df=out_9508_2)
+    out_9508_2 = group_by_dimensions(df=out_9508_2, groupby_dimensions=['Years', 'Country', 'building-type', 'building-use', 'epc-category', 'area-type'], aggregation_method='Sum')
 
     # Remove unoccupied buildings from existing / renovated buildings
     # Future improvement : allows switch from residential to non-residentail (and vice-versa) 
     # when some of them are unoccupied to avoid new construction
 
     #  buidling-stock [m2]
-    building_stock_m2_2 = UseVariableNode(selected_variable='building-stock[m2]')(input_table=out_9508_2)
+    building_stock_m2_2 = use_variable(input_table=out_9508_2, selected_variable='building-stock[m2]')
     # Group by all dimensions (sum)
-    building_stock_m2_4 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'epc-category', 'area-type'], aggregation_method='Sum')(df=building_stock_m2_2)
+    building_stock_m2_4 = group_by_dimensions(df=building_stock_m2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'epc-category', 'area-type'], aggregation_method='Sum')
     # Group by all dimensions except area-type / epc-cat (sum)
-    building_stock_m2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use'], aggregation_method='Sum')(df=building_stock_m2_2)
+    building_stock_m2_3 = group_by_dimensions(df=building_stock_m2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use'], aggregation_method='Sum')
     # Group by all dimensions except area-type (sum)
-    building_stock_m2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'epc-category'], aggregation_method='Sum')(df=building_stock_m2_2)
+    building_stock_m2 = group_by_dimensions(df=building_stock_m2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'epc-category'], aggregation_method='Sum')
     # pct-epc-by-area-type[%] = building-stock[m2] (total except area-type) / building-stock[m2] (total except area-type / epc-cat)
-    pct_epc_by_area_type_percent = MCDNode(operation_selection='x / y', output_name='pct-epc-by-area-type[%]')(input_table_1=building_stock_m2_4, input_table_2=building_stock_m2)
+    pct_epc_by_area_type_percent = mcd(input_table_1=building_stock_m2_4, input_table_2=building_stock_m2, operation_selection='x / y', output_name='pct-epc-by-area-type[%]')
     # pct-epc-by-area-type-epc[%] = building-stock[m2] (total except area-type) / building-stock[m2] (total except area-type / epc-cat)
-    pct_epc_by_area_type_epc_percent = MCDNode(operation_selection='x / y', output_name='pct-epc-by-area-type-epc[%]')(input_table_1=building_stock_m2, input_table_2=building_stock_m2_3)
+    pct_epc_by_area_type_epc_percent = mcd(input_table_1=building_stock_m2, input_table_2=building_stock_m2_3, operation_selection='x / y', output_name='pct-epc-by-area-type-epc[%]')
     # missing-floor-area [m2] = floor-area-demand[m2] - floor-area-offer[m2]
-    missing_floor_area_m2 = MCDNode(operation_selection='x - y', output_name='missing-floor-area[m2]')(input_table_1=floor_area_demand_m2_2, input_table_2=floor_area_offer_m2)
+    missing_floor_area_m2 = mcd(input_table_1=floor_area_demand_m2_2, input_table_2=floor_area_offer_m2, operation_selection='x - y', output_name='missing-floor-area[m2]')
 
     # Future improvment !
     # Attention : we shoul flag area-type that switch from sfh to mfh (or sfh to mfh) in order to attribute sepcific renovation there !!!
@@ -665,17 +665,17 @@ def metanode_9109(port_01):
     # area-type = unoccupied
     missing_floor_area_m2['area-type'] = "unoccupied"
     # building-stock[m2] (replace) = missing-floor-area[m2] * pct-epc-by-area-type-epc[%]
-    building_stock_m2 = MCDNode(operation_selection='x * y', output_name='building-stock[m2]')(input_table_1=pct_epc_by_area_type_epc_percent, input_table_2=missing_floor_area_m2)
+    building_stock_m2 = mcd(input_table_1=pct_epc_by_area_type_epc_percent, input_table_2=missing_floor_area_m2, operation_selection='x * y', output_name='building-stock[m2]')
     # buidling-stock [m2] (unoccupied)
-    building_stock_m2 = ExportVariableNode(selected_variable='building-stock[m2]')(input_table=building_stock_m2)
+    building_stock_m2 = export_variable(input_table=building_stock_m2, selected_variable='building-stock[m2]')
     # Group by all dimensions except area-type (sum)
-    building_stock_m2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'epc-category'], aggregation_method='Sum')(df=building_stock_m2)
+    building_stock_m2_3 = group_by_dimensions(df=building_stock_m2, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'epc-category'], aggregation_method='Sum')
     # building-stock[m2] (replace) = building-stock[m2] * pct-epc-by-area-type[%] (distribute building removals  by area-type)
-    building_stock_m2_3 = MCDNode(operation_selection='x * y', output_name='building-stock[m2]')(input_table_1=pct_epc_by_area_type_percent, input_table_2=building_stock_m2_3)
+    building_stock_m2_3 = mcd(input_table_1=pct_epc_by_area_type_percent, input_table_2=building_stock_m2_3, operation_selection='x * y', output_name='building-stock[m2]')
     # buidling-stock[m2] (replace) = buidling-stock[m2] (initial) - buidling-stock[m2] (unoccupied)
-    building_stock_m2_2 = MCDNode(operation_selection='x - y', output_name='building-stock[m2]')(input_table_1=building_stock_m2_2, input_table_2=building_stock_m2_3)
+    building_stock_m2_2 = mcd(input_table_1=building_stock_m2_2, input_table_2=building_stock_m2_3, operation_selection='x - y', output_name='building-stock[m2]')
     # buidling-stock [m2] (renovated and existing-occupied)
-    building_stock_m2_2 = ExportVariableNode(selected_variable='building-stock[m2]')(input_table=building_stock_m2_2)
+    building_stock_m2_2 = export_variable(input_table=building_stock_m2_2, selected_variable='building-stock[m2]')
     # If < 0 : set 0 (no need for new building)
     missing_floor_area_m2 = out_9505_1.copy()
     mask = missing_floor_area_m2['missing-floor-area[m2]']<0
@@ -718,28 +718,28 @@ def metanode_9109(port_01):
     # area-type = constructed
     out_9398_1['area-type'] = "constructed"
     #  buidling-stock [m2]
-    building_stock_m2_3 = UseVariableNode(selected_variable='building-stock[m2]')(input_table=out_9398_1)
+    building_stock_m2_3 = use_variable(input_table=out_9398_1, selected_variable='building-stock[m2]')
     # yearly-change [m2]
-    yearly_change_m2_2 = UseVariableNode(selected_variable='yearly-change[m2]')(input_table=out_9398_1)
+    yearly_change_m2_2 = use_variable(input_table=out_9398_1, selected_variable='yearly-change[m2]')
     # CP (bld_)construction-category [%]
-    bld_construction_category_percent = ImportDataNode(trigram='bld', variable_name='bld_construction-category', variable_type='CP')()
+    bld_construction_category_percent = import_data(trigram='bld', variable_name='bld_construction-category', variable_type='CP')
     # Remove module and data-type
-    bld_construction_category_percent = ColumnFilterNode(columns_to_drop=['data_type', 'module'])(df=bld_construction_category_percent)
+    bld_construction_category_percent = column_filter(df=bld_construction_category_percent, columns_to_drop=['data_type', 'module'])
     # OTS / FTS construction-epc-mix [%]
-    construction_epc_mix_percent = ImportDataNode(trigram='bld', variable_name='construction-epc-mix')()
+    construction_epc_mix_percent = import_data(trigram='bld', variable_name='construction-epc-mix')
     # yearly-change[m2] (replace) = yearly-change[m2] * construction-epc-mix [%]
-    yearly_change_m2_2 = MCDNode(operation_selection='x * y', output_name='yearly-change[m2]')(input_table_1=yearly_change_m2_2, input_table_2=construction_epc_mix_percent)
+    yearly_change_m2_2 = mcd(input_table_1=yearly_change_m2_2, input_table_2=construction_epc_mix_percent, operation_selection='x * y', output_name='yearly-change[m2]')
     # yearly-change[m2] = yearly-change[m2] * ratio[-] (we associate renovation-category)
-    yearly_change_m2_2 = MCDNode(operation_selection='x * y', output_name='yearly-change[m2]')(input_table_1=bld_construction_category_percent, input_table_2=yearly_change_m2_2)
+    yearly_change_m2_2 = mcd(input_table_1=bld_construction_category_percent, input_table_2=yearly_change_m2_2, operation_selection='x * y', output_name='yearly-change[m2]')
     # Group by  all except epc-category (sum)
-    yearly_change_m2_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type', 'renovation-category'], aggregation_method='Sum')(df=yearly_change_m2_2)
+    yearly_change_m2_2 = group_by_dimensions(df=yearly_change_m2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type', 'renovation-category'], aggregation_method='Sum')
     # yearly-change [m2] (constructed)
-    yearly_change_m2_2 = ExportVariableNode(selected_variable='yearly-change[m2]')(input_table=yearly_change_m2_2)
+    yearly_change_m2_2 = export_variable(input_table=yearly_change_m2_2, selected_variable='yearly-change[m2]')
     yearly_change_m2 = pd.concat([yearly_change_m2, yearly_change_m2_2.set_index(yearly_change_m2_2.index.astype(str) + '_dup')])
     # Convert Unit m2 to Mm2
     yearly_change_Mm2 = yearly_change_m2.drop(columns='yearly-change[m2]').assign(**{'yearly-change[Mm2]': yearly_change_m2['yearly-change[m2]'] * 1e-06})
     # yearly-change [Mm2]
-    yearly_change_Mm2 = ExportVariableNode(selected_variable='yearly-change[Mm2]')(input_table=yearly_change_Mm2)
+    yearly_change_Mm2 = export_variable(input_table=yearly_change_Mm2, selected_variable='yearly-change[Mm2]')
 
     # Product DEMAND
 
@@ -755,7 +755,7 @@ def metanode_9109(port_01):
     # material surface for the renovation and construction of buildings
 
     # yearly-change [Mm2]
-    yearly_change_Mm2 = UseVariableNode(selected_variable='yearly-change[Mm2]')(input_table=yearly_change_Mm2)
+    yearly_change_Mm2 = use_variable(input_table=yearly_change_Mm2, selected_variable='yearly-change[Mm2]')
 
     # New heating systems capacity
     # For constructed and renovated (existing : no need of new capacities)
@@ -769,39 +769,39 @@ def metanode_9109(port_01):
     # power of individual heating systems in residential / non-residential park [kW]
 
     # yearly-change [Mm2]
-    yearly_change_Mm2_2 = UseVariableNode(selected_variable='yearly-change[Mm2]')(input_table=yearly_change_Mm2)
+    yearly_change_Mm2_2 = use_variable(input_table=yearly_change_Mm2, selected_variable='yearly-change[Mm2]')
 
 
     # yearly-change [Mm2]
-    yearly_change_Mm2_2 = UseVariableNode(selected_variable='yearly-change[Mm2]')(input_table=yearly_change_Mm2_2)
+    yearly_change_Mm2_2 = use_variable(input_table=yearly_change_Mm2_2, selected_variable='yearly-change[Mm2]')
     # keep area-type = renovated
     yearly_change_Mm2_3 = yearly_change_Mm2_2.loc[yearly_change_Mm2_2['area-type'].isin(['renovated'])].copy()
     # Group by  Country, Years, building-type, building-use, end-use
-    yearly_change_Mm2_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')(df=yearly_change_Mm2_3)
+    yearly_change_Mm2_2 = group_by_dimensions(df=yearly_change_Mm2_3, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')
     # keep renovation-category = dep
     yearly_change_Mm2_3 = yearly_change_Mm2_3.loc[yearly_change_Mm2_3['renovation-category'].isin(['dep'])].copy()
     # Group by  Country, Years, building-type, building-use, end-use
-    yearly_change_Mm2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')(df=yearly_change_Mm2_3)
+    yearly_change_Mm2_3 = group_by_dimensions(df=yearly_change_Mm2_3, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')
     # deep-renovation[m2/m2] = yearly-change[Mm2] (renovated, dep) * energy-need (renovated, all)
-    deep_renovation_m2_per_m2 = MCDNode(operation_selection='x / y', output_name='deep-renovation[m2/m2]')(input_table_1=yearly_change_Mm2_3, input_table_2=yearly_change_Mm2_2)
+    deep_renovation_m2_per_m2 = mcd(input_table_1=yearly_change_Mm2_3, input_table_2=yearly_change_Mm2_2, operation_selection='x / y', output_name='deep-renovation[m2/m2]')
     # If no renovation, we've just divided by 0.
-    deep_renovation_m2_per_m2 = MissingValueNode(DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')(df=deep_renovation_m2_per_m2)
+    deep_renovation_m2_per_m2 = missing_value(df=deep_renovation_m2_per_m2, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
     # RCP energy-need [kWh/m2]
-    energy_need_kWh_per_m2 = ImportDataNode(trigram='bld', variable_name='energy-need', variable_type='RCP')()
+    energy_need_kWh_per_m2 = import_data(trigram='bld', variable_name='energy-need', variable_type='RCP')
     # to floor-area-yearly [Mm2]
     out_9473_1 = yearly_change_Mm2.rename(columns={'yearly-change[Mm2]': 'floor-area-yearly[Mm2]'})
     # Mm2 to m2 (*1.000.000)
     floor_area_yearly_m2 = out_9473_1.drop(columns='floor-area-yearly[Mm2]').assign(**{'floor-area-yearly[m2]': out_9473_1['floor-area-yearly[Mm2]'] * 1000000.0})
     # Group by  Country, Years, area-type, building-type (sum)
-    floor_area_yearly_m2_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'renovation-category', 'area-type'], aggregation_method='Sum')(df=floor_area_yearly_m2)
+    floor_area_yearly_m2_2 = group_by_dimensions(df=floor_area_yearly_m2, groupby_dimensions=['Country', 'Years', 'building-type', 'renovation-category', 'area-type'], aggregation_method='Sum')
     out_8495_1 = pd.concat([new_appliances_num, floor_area_yearly_m2_2.set_index(floor_area_yearly_m2_2.index.astype(str) + '_dup')])
 
     # Pivot
 
     # on building-type area-type
-    out_8212_1, _, _ = PivotingNode(agg_dict={'floor-area-yearly[m2]': 'sum'}, column_name_option='Pivot name+Aggregation name', column_name_policy='Keep original name(s)', list_group_columns=['Country', 'Years'], list_pivots=['building-type', 'area-type'])(df=floor_area_yearly_m2)
-    out_8213_1 = MissingValueColumnFilterNode(missing_threshold=0.9, type_of_pattern='Manual')(df=out_8212_1)
-    out_8213_1 = ColumnRenameRegexNode(search_string='(.*)\\+(.*)(\\[.*)', replace_string='$2_$1$3')(df=out_8213_1)
+    out_8212_1, _, _ = pivoting(df=floor_area_yearly_m2, agg_dict={'floor-area-yearly[m2]': 'sum'}, column_name_option='Pivot name+Aggregation name', column_name_policy='Keep original name(s)', list_group_columns=['Country', 'Years'], list_pivots=['building-type', 'area-type'])
+    out_8213_1 = missing_value_column_filter(df=out_8212_1, missing_threshold=0.9, type_of_pattern='Manual')
+    out_8213_1 = column_rename_regex(df=out_8213_1, search_string='(.*)\\+(.*)(\\[.*)', replace_string='$2_$1$3')
 
     def helper_8079(input_table_1, input_table_2) -> pd.DataFrame:
         # Input tables
@@ -827,8 +827,8 @@ def metanode_9109(port_01):
     # rename based on table creator
     out_8079_1 = helper_8079(input_table_1=out_8078_1, input_table_2=out_8213_1)
     # Keep only renovation and construction
-    out_8079_1 = ColumnFilterNode(pattern='^Country$|^Years$|^.*reno.*$|^.*new.*$')(df=out_8079_1)
-    out_8233_1 = JoinerNode(joiner='inner', left_input=['Country', 'Years'], right_input=['Country', 'Years'])(df_left=out_8079_1, df_right=out_8232_1)
+    out_8079_1 = column_filter(df=out_8079_1, pattern='^Country$|^Years$|^.*reno.*$|^.*new.*$')
+    out_8233_1 = joiner(df_left=out_8079_1, df_right=out_8232_1, joiner='inner', left_input=['Country', 'Years'], right_input=['Country', 'Years'])
     # Mm2 to m2 (*1.000.000)
     yearly_change_m2 = yearly_change_Mm2.drop(columns='yearly-change[Mm2]').assign(**{'yearly-change[m2]': yearly_change_Mm2['yearly-change[Mm2]'] * 1000000.0})
 
@@ -837,41 +837,41 @@ def metanode_9109(port_01):
     # Note : Windows, roof and walls : not in the actual scope
 
     # RCP costs-for-building [MEUR/m2] From TECH
-    costs_for_building_MEUR_per_m2 = ImportDataNode(trigram='tec', variable_name='costs-for-building', variable_type='RCP')()
+    costs_for_building_MEUR_per_m2 = import_data(trigram='tec', variable_name='costs-for-building', variable_type='RCP')
     # Compute capex for yearly-change[m2]
-    out_9310_1 = ComputeCosts(activity_variable='yearly-change[m2]')(df_activity=yearly_change_m2, df_unit_costs=costs_for_building_MEUR_per_m2, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name)
+    out_9310_1 = compute_costs(df_activity=yearly_change_m2, df_unit_costs=costs_for_building_MEUR_per_m2, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='yearly-change[m2]')
     # RCP building-cost-user [-]
-    building_cost_user_ = ImportDataNode(trigram='bld', variable_name='building-cost-user', variable_type='RCP')()
+    building_cost_user_ = import_data(trigram='bld', variable_name='building-cost-user', variable_type='RCP')
     # Get cost-users capex[MEUR] = capex[MEUR] * building-cost-user[-]
-    capex_MEUR = MCDNode(operation_selection='x * y', output_name='capex[MEUR]')(input_table_1=out_9310_1, input_table_2=building_cost_user_)
+    capex_MEUR = mcd(input_table_1=out_9310_1, input_table_2=building_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by Country, Years, building-type, area-type (sum)
-    capex_MEUR_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'area-type'], aggregation_method='Sum')(df=capex_MEUR)
+    capex_MEUR_2 = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'Years', 'building-type', 'area-type'], aggregation_method='Sum')
     # capex-by-area-type[MEUR]
     out_9323_1 = capex_MEUR_2.rename(columns={'capex[MEUR]': 'capex-by-area-type[MEUR]'})
     #  buidling-stock[m2] (replace) =  buidling-stock[m2] * construction-epc-mix [%]
-    building_stock_m2_3 = MCDNode(operation_selection='x * y', output_name='building-stock[m2]')(input_table_1=building_stock_m2_3, input_table_2=construction_epc_mix_percent)
+    building_stock_m2_3 = mcd(input_table_1=building_stock_m2_3, input_table_2=construction_epc_mix_percent, operation_selection='x * y', output_name='building-stock[m2]')
     # buidling-stock [m2] (constructed)
-    building_stock_m2_3 = ExportVariableNode(selected_variable='building-stock[m2]')(input_table=building_stock_m2_3)
+    building_stock_m2_3 = export_variable(input_table=building_stock_m2_3, selected_variable='building-stock[m2]')
     building_stock_m2 = pd.concat([building_stock_m2, building_stock_m2_3.set_index(building_stock_m2_3.index.astype(str) + '_dup')])
     building_stock_m2 = pd.concat([building_stock_m2_2, building_stock_m2.set_index(building_stock_m2.index.astype(str) + '_dup')])
     # Convert Unit m2 to Mm2
     building_stock_Mm2 = building_stock_m2.drop(columns='building-stock[m2]').assign(**{'building-stock[Mm2]': building_stock_m2['building-stock[m2]'] * 1e-06})
     # buidling-stock [Mm2]
-    building_stock_Mm2 = ExportVariableNode(selected_variable='building-stock[Mm2]')(input_table=building_stock_Mm2)
+    building_stock_Mm2 = export_variable(input_table=building_stock_Mm2, selected_variable='building-stock[Mm2]')
 
     # KPI's (require extra computation)
 
     # building-stock [Mm2]
-    building_stock_Mm2_2 = UseVariableNode(selected_variable='building-stock[Mm2]')(input_table=building_stock_Mm2)
+    building_stock_Mm2_2 = use_variable(input_table=building_stock_Mm2, selected_variable='building-stock[Mm2]')
 
     # Average floor area per capita 
     # m²/cap
 
     # building-stock  [Mm2]
-    building_stock_Mm2 = UseVariableNode(selected_variable='building-stock[Mm2]')(input_table=building_stock_Mm2_2)
+    building_stock_Mm2 = use_variable(input_table=building_stock_Mm2_2, selected_variable='building-stock[Mm2]')
     building_stock_Mm2_3 = building_stock_Mm2.loc[~building_stock_Mm2['building-use'].isin(['offices-all'])].copy()
     # Group by  Country, Years (SUM)
-    building_stock_Mm2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=building_stock_Mm2_3)
+    building_stock_Mm2_3 = group_by_dimensions(df=building_stock_Mm2_3, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # Convert Unit Mm2 to m2
     building_stock_m2 = building_stock_Mm2_3.drop(columns='building-stock[Mm2]').assign(**{'building-stock[m2]': building_stock_Mm2_3['building-stock[Mm2]'] * 1000000.0})
 
@@ -879,11 +879,11 @@ def metanode_9109(port_01):
     # => Total/residential/services
 
     # Group by  Country, Years, building-type, area-type (SUM)
-    building_stock_Mm2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'renovation-category', 'area-type'], aggregation_method='Sum')(df=building_stock_Mm2_2)
+    building_stock_Mm2_3 = group_by_dimensions(df=building_stock_Mm2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'renovation-category', 'area-type'], aggregation_method='Sum')
     # keep  renovated
     building_stock_Mm2_3 = building_stock_Mm2_3.loc[building_stock_Mm2_3['area-type'].isin(['renovated'])].copy()
     # Group by  Country, Years, building-type, area-type (SUM)
-    building_stock_Mm2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')(df=building_stock_Mm2_3)
+    building_stock_Mm2_3 = group_by_dimensions(df=building_stock_Mm2_3, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # renovated area
     out_9258_1 = building_stock_Mm2_3.rename(columns={'building-stock[Mm2]': 'renovated-area-by-type[Mm2]'})
 
@@ -892,24 +892,24 @@ def metanode_9109(port_01):
     # per renovation category, per building-type
 
     # Group by  Country, Years, building-type, area-type (SUM)
-    building_stock_Mm2_4 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'area-type'], aggregation_method='Sum')(df=building_stock_Mm2_2)
+    building_stock_Mm2_4 = group_by_dimensions(df=building_stock_Mm2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'area-type'], aggregation_method='Sum')
     # Group by  Country, Years, building-type, area-type (SUM)
-    building_stock_Mm2_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=building_stock_Mm2_4)
+    building_stock_Mm2_3 = group_by_dimensions(df=building_stock_Mm2_4, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # keep  renovated
     building_stock_Mm2_4 = building_stock_Mm2_4.loc[building_stock_Mm2_4['area-type'].isin(['renovated'])].copy()
     # Group by  Country, Years, aera-type (SUM)
-    building_stock_Mm2_5 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'area-type'], aggregation_method='Sum')(df=building_stock_Mm2_4)
+    building_stock_Mm2_5 = group_by_dimensions(df=building_stock_Mm2_4, groupby_dimensions=['Country', 'Years', 'area-type'], aggregation_method='Sum')
     # renovated share[%] = renovated-area[Mm2] / total-area[Mm2]
-    renovated_share_percent = MCDNode(operation_selection='x / y', output_name='renovated-share[%]')(input_table_1=building_stock_Mm2_5, input_table_2=building_stock_Mm2_3)
+    renovated_share_percent = mcd(input_table_1=building_stock_Mm2_5, input_table_2=building_stock_Mm2_3, operation_selection='x / y', output_name='renovated-share[%]')
     # renovated share-by-category[%] = renovated-area-by-category[Mm2] / total-area[Mm2]
-    renovated_share_by_category_percent = MCDNode(operation_selection='x / y', output_name='renovated-share-by-category[%]')(input_table_1=building_stock_Mm2_4, input_table_2=building_stock_Mm2_3)
+    renovated_share_by_category_percent = mcd(input_table_1=building_stock_Mm2_4, input_table_2=building_stock_Mm2_3, operation_selection='x / y', output_name='renovated-share-by-category[%]')
     renovated_share_percent = pd.concat([renovated_share_percent, renovated_share_by_category_percent.set_index(renovated_share_by_category_percent.index.astype(str) + '_dup')])
 
     # Renovation depth 
     # Average final energy consumption for space heating [kWh/m²]
 
     # Group by  Country, Years, building-type, area-type (SUM)
-    building_stock_Mm2_5 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=building_stock_Mm2)
+    building_stock_Mm2_5 = group_by_dimensions(df=building_stock_Mm2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     building_stock_Mm2_3 = building_stock_Mm2_2.loc[~building_stock_Mm2_2['area-type'].isin(['unoccupied'])].copy()
 
     # Energy need : differents end-use linked to m2 (lighting / others / cooling) (residential & non-residential) + (cooking / hotwater for non-residential) 
@@ -918,26 +918,26 @@ def metanode_9109(port_01):
     #       => Cooled-area[Mm2] = floor-area-demand[Mm2] * cooled-penetration-rate[%]
 
     # Group by  all dimensions except epc-category  (sum)
-    building_stock_Mm2_4 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')(df=building_stock_Mm2_3)
+    building_stock_Mm2_4 = group_by_dimensions(df=building_stock_Mm2_3, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')
 
     # Apply energy-need (by m2) levers (reduce)
     # => determine the energy consumption for cooling by m2
 
     # OTS/FTS energy-need-by-m2 [kWh / m2 year]
-    energy_need_by_m2_kWh__per__m2_year = ImportDataNode(trigram='bld', variable_name='energy-need-by-m2')()
+    energy_need_by_m2_kWh__per__m2_year = import_data(trigram='bld', variable_name='energy-need-by-m2')
     # Remove end-use = cooling
     energy_need_by_m2_kWh__per__m2_year_excluded = energy_need_by_m2_kWh__per__m2_year.loc[energy_need_by_m2_kWh__per__m2_year['end-use'].isin(['cooling'])].copy()
     energy_need_by_m2_kWh__per__m2_year = energy_need_by_m2_kWh__per__m2_year.loc[~energy_need_by_m2_kWh__per__m2_year['end-use'].isin(['cooling'])].copy()
     # energy-demand[GWh] = building-stock[Mm2] * energy-need-by-m2[kWh/m2]
-    energy_demand_GWh_3 = MCDNode(operation_selection='x * y', output_name='energy-demand[GWh]')(input_table_1=building_stock_Mm2_4, input_table_2=energy_need_by_m2_kWh__per__m2_year)
+    energy_demand_GWh_3 = mcd(input_table_1=building_stock_Mm2_4, input_table_2=energy_need_by_m2_kWh__per__m2_year, operation_selection='x * y', output_name='energy-demand[GWh]')
 
     # Apply cooled-penetration-rate levers (reduce ?)
     # => determine the % of m2 that need to be cooled
 
     # OTS/FTS cooled-penetration-rate [%]
-    building_cooled_penetration_rate_percent = ImportDataNode(trigram='bld', variable_name='building-cooled-penetration-rate')()
+    building_cooled_penetration_rate_percent = import_data(trigram='bld', variable_name='building-cooled-penetration-rate')
     # cooled-area[Mm2] = building-stock[Mm2] * cooled-penetration-rate[%]
-    cooled_area_Mm2 = MCDNode(operation_selection='x * y', output_name='cooled-area[Mm2]')(input_table_1=building_stock_Mm2_4, input_table_2=building_cooled_penetration_rate_percent)
+    cooled_area_Mm2 = mcd(input_table_1=building_stock_Mm2_4, input_table_2=building_cooled_penetration_rate_percent, operation_selection='x * y', output_name='cooled-area[Mm2]')
     # to floor-area-acc [Mm2]
     out_9474_1 = building_stock_Mm2_2.rename(columns={'building-stock[Mm2]': 'floor-area-acc[Mm2]'})
 
@@ -945,42 +945,42 @@ def metanode_9109(port_01):
     # => Area-accumulated (distinction between constructed / renovated / existing) by buidling-type
 
     # Group by  Country, Years, building-type, area-type (SUM)
-    out_9474_1 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'area-type'], aggregation_method='Sum')(df=out_9474_1)
+    out_9474_1 = group_by_dimensions(df=out_9474_1, groupby_dimensions=['Country', 'Years', 'building-type', 'area-type'], aggregation_method='Sum')
 
     # For : Pathway Explorer
     # => Area-accumulated (distinction between EPC label) by buidling-type (residential and non-residential)
 
     # Keep Years >= baseyear
-    building_stock_Mm2, _ = FilterDimension(dimension='Years', operation_selection='≥', value_years=Globals.get().base_year)(df=building_stock_Mm2)
+    building_stock_Mm2, _ = filter_dimension(df=building_stock_Mm2, dimension='Years', operation_selection='≥', value_years=Globals.get().base_year)
     # to epc-floor-area-acc [Mm2]
     out_9512_1 = building_stock_Mm2.rename(columns={'building-stock[Mm2]': 'epc-floor-area-acc[Mm2]'})
     # Group by  Country, Years, building-type, epc-category (SUM)
-    out_9512_1 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'epc-category'], aggregation_method='Sum')(df=out_9512_1)
+    out_9512_1 = group_by_dimensions(df=out_9512_1, groupby_dimensions=['Country', 'Years', 'building-type', 'epc-category'], aggregation_method='Sum')
     out_1 = pd.concat([out_9474_1, out_9512_1.set_index(out_9512_1.index.astype(str) + '_dup')])
     # appliance-use [h]
-    appliance_use_h = UseVariableNode(selected_variable='appliance-use[h]')(input_table=out_5965_1)
+    appliance_use_h = use_variable(input_table=out_5965_1, selected_variable='appliance-use[h]')
 
     # Apply energy-need (appliances) levers (reduce)
     # => determine the performance of each appliances (how much energy consumption is made by hour of use)
 
     # OTS/FTS energy-need-appliances [kWh/h]
-    energy_need_appliances_kWh_per_h = ImportDataNode(trigram='bld', variable_name='energy-need-appliances')()
+    energy_need_appliances_kWh_per_h = import_data(trigram='bld', variable_name='energy-need-appliances')
     # energy-demand[kWh] = appliance-use[h] * appliance-energy-need[kWh/h]
-    energy_demand_kWh = MCDNode(operation_selection='x * y', output_name='energy-demand[kWh]')(input_table_1=appliance_use_h, input_table_2=energy_need_appliances_kWh_per_h)
+    energy_demand_kWh = mcd(input_table_1=appliance_use_h, input_table_2=energy_need_appliances_kWh_per_h, operation_selection='x * y', output_name='energy-demand[kWh]')
     # kWh to GWh (*0.000001)
     energy_demand_GWh_2 = energy_demand_kWh.drop(columns='energy-demand[kWh]').assign(**{'energy-demand[GWh]': energy_demand_kWh['energy-demand[kWh]'] * 1e-06})
     # energy-demand[GWh] (replace) = energy-demand[GWh] * household-share[%]
-    energy_demand_GWh_2 = MCDNode(operation_selection='x * y', output_name='energy-demand[GWh]')(input_table_1=energy_demand_GWh_2, input_table_2=household_share_percent)
+    energy_demand_GWh_2 = mcd(input_table_1=energy_demand_GWh_2, input_table_2=household_share_percent, operation_selection='x * y', output_name='energy-demand[GWh]')
     # Group by Country, Years, building-type, building-use, end-use
-    energy_demand_GWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'building-use'], aggregation_method='Sum')(df=energy_demand_GWh_2)
+    energy_demand_GWh_2 = group_by_dimensions(df=energy_demand_GWh_2, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'building-use'], aggregation_method='Sum')
 
     # Add ventilation :
     # Set to 1
 
     # heating-cooling-behaviour-index [-]
-    heating_cooling_behaviour_index = UseVariableNode(selected_variable='heating-cooling-behaviour-index[-]')(input_table=out_5965_1)
+    heating_cooling_behaviour_index = use_variable(input_table=out_5965_1, selected_variable='heating-cooling-behaviour-index[-]')
     # Group by  Years, Country
-    heating_cooling_behaviour_index_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=heating_cooling_behaviour_index)
+    heating_cooling_behaviour_index_2 = group_by_dimensions(df=heating_cooling_behaviour_index, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # end-use = ventilation
     heating_cooling_behaviour_index_2['end-use'] = "ventilation"
     # Set value to 1
@@ -988,9 +988,9 @@ def metanode_9109(port_01):
     # Node 7821
     heating_cooling_behaviour_index = pd.concat([heating_cooling_behaviour_index, heating_cooling_behaviour_index_2.set_index(heating_cooling_behaviour_index_2.index.astype(str) + '_dup')])
     # energy-need-by-m2[kWh/m2] (replace) = energy-need-by-m2[kWh/m2] * heating-cooling-behaviour-index[-]  LEFT OUTER JOIN If behaviour-index missing, set to 1 (no change in energy-need)
-    energy_need_by_m2_kWh_per_m2 = MCDNode(operation_selection='x * y', output_name='energy-need-by-m2[kWh/m2]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)(input_table_1=energy_need_by_m2_kWh__per__m2_year_excluded, input_table_2=heating_cooling_behaviour_index)
+    energy_need_by_m2_kWh_per_m2 = mcd(input_table_1=energy_need_by_m2_kWh__per__m2_year_excluded, input_table_2=heating_cooling_behaviour_index, operation_selection='x * y', output_name='energy-need-by-m2[kWh/m2]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
     # energy-demand[GWh] = cooled-area[Mm2] * energy-need-by-m2[kWh/m2]
-    energy_demand_GWh_4 = MCDNode(operation_selection='x * y', output_name='energy-demand[GWh]')(input_table_1=cooled_area_Mm2, input_table_2=energy_need_by_m2_kWh_per_m2)
+    energy_demand_GWh_4 = mcd(input_table_1=cooled_area_Mm2, input_table_2=energy_need_by_m2_kWh_per_m2, operation_selection='x * y', output_name='energy-demand[GWh]')
     # Join cooling and other end-use
     energy_demand_GWh_3 = pd.concat([energy_demand_GWh_3, energy_demand_GWh_4.set_index(energy_demand_GWh_4.index.astype(str) + '_dup')])
 
@@ -1001,19 +1001,19 @@ def metanode_9109(port_01):
     # => Energy-demand = floor-area-acc[Mm2] * energy-need[kWh/m2]
 
     # energy-need[kWh/m2] (replace) = energy-need[kWh/m2] * heating-cooling-behaviour-index[-]  LEFT OUTER JOIN If behaviour-index missing, set to 1 (no change in energy-need)
-    energy_need_kWh_per_m2 = MCDNode(operation_selection='x * y', output_name='energy-need[kWh/m2]', fill_value_bool='Inner Join')(input_table_1=heating_cooling_behaviour_index, input_table_2=energy_need_kWh_per_m2)
+    energy_need_kWh_per_m2 = mcd(input_table_1=heating_cooling_behaviour_index, input_table_2=energy_need_kWh_per_m2, operation_selection='x * y', output_name='energy-need[kWh/m2]', fill_value_bool='Inner Join')
     # energy-demand[GWh] = building-stock[Mm2] * energy-need[kWh/m2]
-    energy_demand_GWh_4 = MCDNode(operation_selection='x * y', output_name='energy-demand[GWh]')(input_table_1=building_stock_Mm2_3, input_table_2=energy_need_kWh_per_m2)
+    energy_demand_GWh_4 = mcd(input_table_1=building_stock_Mm2_3, input_table_2=energy_need_kWh_per_m2, operation_selection='x * y', output_name='energy-demand[GWh]')
     # Group by  Country, Years, building-type, building-use, end-use
-    energy_demand_GWh_4 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type', 'end-use'], aggregation_method='Sum')(df=energy_demand_GWh_4)
+    energy_demand_GWh_4 = group_by_dimensions(df=energy_demand_GWh_4, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type', 'end-use'], aggregation_method='Sum')
     energy_demand_GWh_3 = pd.concat([energy_demand_GWh_3, energy_demand_GWh_4.set_index(energy_demand_GWh_4.index.astype(str) + '_dup')])
     energy_demand_GWh = pd.concat([energy_demand_GWh, energy_demand_GWh_3.set_index(energy_demand_GWh_3.index.astype(str) + '_dup')])
     energy_demand_GWh = pd.concat([energy_demand_GWh_2, energy_demand_GWh.set_index(energy_demand_GWh.index.astype(str) + '_dup')])
     # If missing (string) set to "" (renovation-category)
-    energy_demand_GWh = MissingValueNode(dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')(df=energy_demand_GWh)
+    energy_demand_GWh = missing_value(df=energy_demand_GWh, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     energy_demand_GWh = energy_demand_GWh.loc[~energy_demand_GWh['building-use'].isin(['offices-private', 'offices-public'])].copy()
     # Export energy-demand [GWh]
-    energy_demand_GWh = ExportVariableNode(selected_variable='energy-demand[GWh]')(input_table=energy_demand_GWh)
+    energy_demand_GWh = export_variable(input_table=energy_demand_GWh, selected_variable='energy-demand[GWh]')
 
     # District heating / hotwater
     # => A part of the energy-demand for heating and hotwater can be furnished by district heating
@@ -1021,7 +1021,7 @@ def metanode_9109(port_01):
     # => energy-demand[GWh] (remaining after district heating) = energy-demand[GWh] - district-energy-demand[GWh]
 
     # Energy-demand [GWh]
-    energy_demand_GWh = UseVariableNode(selected_variable='energy-demand[GWh]')(input_table=energy_demand_GWh)
+    energy_demand_GWh = use_variable(input_table=energy_demand_GWh, selected_variable='energy-demand[GWh]')
 
     # District heating / hotwater energy-demand
 
@@ -1029,19 +1029,19 @@ def metanode_9109(port_01):
     # => determine the % of energy-demand (heating / cooling) which is achieved with district heating
 
     # OTS/FTS district-heating-share [%]
-    district_heating_share_percent = ImportDataNode(trigram='bld', variable_name='district-heating-share')()
+    district_heating_share_percent = import_data(trigram='bld', variable_name='district-heating-share')
     # district-energy-demand[GWh] = energy-need[GWh] * district-heating-share[%]
-    district_energy_demand_GWh = MCDNode(operation_selection='x * y', output_name='district-energy-demand[GWh]')(input_table_1=energy_demand_GWh, input_table_2=district_heating_share_percent)
+    district_energy_demand_GWh = mcd(input_table_1=energy_demand_GWh, input_table_2=district_heating_share_percent, operation_selection='x * y', output_name='district-energy-demand[GWh]')
     # energy-demand[GWh]  (replace) = energy-demand[GWh]  -  district-energy-demand[GWh]  LEFT OUTER JOIN If missing district-energy-need, set to 0
-    energy_demand_GWh = MCDNode(operation_selection='x - y', output_name='energy-demand[GWh]', fill_value_bool='Left [x] Outer Join')(input_table_1=energy_demand_GWh, input_table_2=district_energy_demand_GWh)
+    energy_demand_GWh = mcd(input_table_1=energy_demand_GWh, input_table_2=district_energy_demand_GWh, operation_selection='x - y', output_name='energy-demand[GWh]', fill_value_bool='Left [x] Outer Join')
     # Export energy-demand[GWh] (without district heating)
-    energy_demand_GWh = ExportVariableNode(selected_variable='energy-demand[GWh]')(input_table=energy_demand_GWh)
+    energy_demand_GWh = export_variable(input_table=energy_demand_GWh, selected_variable='energy-demand[GWh]')
 
     # Final DECENTRALISED energy demand ( = without heating / hotwater coming from District heating)
     # => Determine the energy-carrier used to reach the energy-demand
 
     # energy-demand [GWh] (without district-heating)
-    energy_demand_GWh = UseVariableNode(selected_variable='energy-demand[GWh]')(input_table=energy_demand_GWh)
+    energy_demand_GWh = use_variable(input_table=energy_demand_GWh, selected_variable='energy-demand[GWh]')
 
     # Recompute technology-mix to account for solid-biomass energy-carrier
     # => technology-mix = technology-mix * (1 - solid-biomass-share)
@@ -1050,126 +1050,127 @@ def metanode_9109(port_01):
     # => determine which energy-carrier is used to reach the energy-demand
 
     # OTS/FTS technology-mix [%]
-    technology_mix_percent = ImportDataNode(trigram='bld', variable_name='technology-mix')()
+    technology_mix_percent = import_data(trigram='bld', variable_name='technology-mix')
 
     # Apply solid-biomass-share levers (switch)
     # => determine which amount of energy-demand is provided by solid-biomass
 
     # OTS/FTS solid-biomass-share [%]
-    solid_biomass_share_percent = ImportDataNode(trigram='bld', variable_name='solid-biomass-share')()
+    solid_biomass_share_percent = import_data(trigram='bld', variable_name='solid-biomass-share')
     # energy-demand[GWh] (replace) = energy-demand[GWh] * solid-biomass-share[%]
-    energy_demand_GWh_2 = MCDNode(operation_selection='x * y', output_name='energy-demand[GWh]')(input_table_1=energy_demand_GWh, input_table_2=solid_biomass_share_percent)
+    energy_demand_GWh_2 = mcd(input_table_1=energy_demand_GWh, input_table_2=solid_biomass_share_percent, operation_selection='x * y', output_name='energy-demand[GWh]')
     # add solid biomass  as energy-carrier
-    out_7970_1 = ConstantValueColumnNode(column_value='solid-biomass', new_column_name='energy-way-of-prod', column_type='STRING')(df=energy_demand_GWh_2)
+    out_7970_1 = energy_demand_GWh_2.copy()
+    out_7970_1['energy-way-of-prod'] = 'solid-biomass'
     # technology-mix[%] (replace) = technology-mix[%] * (1 - solid-biomass-share[%])   Left outer join if missing value for solid-biomass-share set 0
-    technology_mix_percent = MCDNode(operation_selection='x * (1-y)', output_name='technology-mix[%]', fill_value_bool='Left [x] Outer Join')(input_table_1=technology_mix_percent, input_table_2=solid_biomass_share_percent)
+    technology_mix_percent = mcd(input_table_1=technology_mix_percent, input_table_2=solid_biomass_share_percent, operation_selection='x * (1-y)', output_name='technology-mix[%]', fill_value_bool='Left [x] Outer Join')
     # energy-demand[GWh] (replace) = energy-demand[GWh] * technology-mix[%]
-    energy_demand_GWh = MCDNode(operation_selection='x * y', output_name='energy-demand[GWh]', fill_value_bool='Inner Join')(input_table_1=energy_demand_GWh, input_table_2=technology_mix_percent)
+    energy_demand_GWh = mcd(input_table_1=energy_demand_GWh, input_table_2=technology_mix_percent, operation_selection='x * y', output_name='energy-demand[GWh]', fill_value_bool='Inner Join')
     out_7732_1 = pd.concat([energy_demand_GWh, out_7970_1.set_index(out_7970_1.index.astype(str) + '_dup')])
 
     # Apply energy-efficiency levers (improve)
     # => determine which amount of energy-demand is provided by solid-biomass
 
     # OTS/FTS energy-efficiency [%]
-    energy_efficiency_percent = ImportDataNode(trigram='bld', variable_name='energy-efficiency')()
+    energy_efficiency_percent = import_data(trigram='bld', variable_name='energy-efficiency')
     # energy demand[GWh] = energy-demand[GWh] / energy-efficiency[%]
-    energy_demand_GWh = MCDNode(operation_selection='x / y', output_name='energy-demand[GWh]', fill_value_bool='Inner Join')(input_table_1=out_7732_1, input_table_2=energy_efficiency_percent)
+    energy_demand_GWh = mcd(input_table_1=out_7732_1, input_table_2=energy_efficiency_percent, operation_selection='x / y', output_name='energy-demand[GWh]', fill_value_bool='Inner Join')
     # Set 0 (when divide by 0)
-    energy_demand_GWh = MissingValueNode(DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')(df=energy_demand_GWh)
+    energy_demand_GWh = missing_value(df=energy_demand_GWh, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
     # GWh to TWh (*0.001)
     energy_demand_TWh = energy_demand_GWh.drop(columns='energy-demand[GWh]').assign(**{'energy-demand[TWh]': energy_demand_GWh['energy-demand[GWh]'] * 0.001})
     # energy demand [TWh] (before calibration)
-    energy_demand_TWh = ExportVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh = export_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
 
     # Calibration
 
     # energy demand [TWh]
-    energy_demand_TWh = UseVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
 
     # Calibration
 
     # Calibration energy-demand [TWh]
-    energy_demand_TWh_2 = ImportDataNode(trigram='bld', variable_name='energy-demand', variable_type='Calibration')()
+    energy_demand_TWh_2 = import_data(trigram='bld', variable_name='energy-demand', variable_type='Calibration')
     # Advenced row filter
     energy_demand_TWh_3 = energy_demand_TWh_2.loc[energy_demand_TWh_2['building-type'].isin(['heat-district'])].copy()
     # Group by  Country, Years, end-use, building-type, energy-carrier
-    energy_demand_TWh_3 = GroupByDimensions(groupby_dimensions=['Years', 'Country', 'end-use'], aggregation_method='Sum')(df=energy_demand_TWh_3)
+    energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh_3, groupby_dimensions=['Years', 'Country', 'end-use'], aggregation_method='Sum')
     # Add by end-use to variable
     out_9344_1 = energy_demand_TWh_3.rename(columns={'energy-demand[TWh]': 'district-energy-demand[TWh]'})
     # Convert Unit GWh to TWh
     district_energy_demand_GWh_2 = out_9344_1.drop(columns='district-energy-demand[TWh]').assign(**{'district-energy-demand[GWh]': out_9344_1['district-energy-demand[TWh]'] * 1000.0})
     # Group by  Country, Years, end-use, building-type, energy-carrier
-    energy_demand_TWh_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'energy-carrier'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'energy-carrier'], aggregation_method='Sum')
     # Apply Calibration on energy-demand[TWh]
-    _, out_7751_2, out_7751_3 = CalibrationNode(data_to_be_cal='energy-demand[TWh]', data_cal='energy-demand[TWh]')(input_table=energy_demand_TWh_3, cal_table=energy_demand_TWh_2)
+    _, out_7751_2, out_7751_3 = calibration(input_table=energy_demand_TWh_3, cal_table=energy_demand_TWh_2, data_to_be_cal='energy-demand[TWh]', data_cal='energy-demand[TWh]')
 
     # Calibration RATES
 
     # Cal_rate for energy-demand[TWh]
 
     # cal_rate for energy-demand
-    cal_rate_energy_demand_TWh = UseVariableNode(selected_variable='cal_rate_energy-demand[TWh]')(input_table=out_7751_3)
+    cal_rate_energy_demand_TWh = use_variable(input_table=out_7751_3, selected_variable='cal_rate_energy-demand[TWh]')
     # apply cal-rate to energy demand[TWh]
-    energy_demand_TWh = MCDNode(operation_selection='x * y', output_name='energy-demand[TWh]')(input_table_1=energy_demand_TWh, input_table_2=out_7751_2)
+    energy_demand_TWh = mcd(input_table_1=energy_demand_TWh, input_table_2=out_7751_2, operation_selection='x * y', output_name='energy-demand[TWh]')
     # energy demand [TWh] (after calibration before fuel switch)
-    energy_demand_TWh = ExportVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh = export_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # energy-demand [TWh]  (calibrated)
-    energy_demand_TWh_2 = UseVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh_2 = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
 
     # Apply fuel-switch levers (switch)
     # => switch one fuel to another one (usually less GHG emitter)
 
     # fuel-switch [%]
-    fuel_switch_percent = ImportDataNode(trigram='bld', variable_name='fuel-switch')()
+    fuel_switch_percent = import_data(trigram='bld', variable_name='fuel-switch')
     # Fuel switch ffuels to biofuels
-    out_0_1 = XSwitchNode()(demand_table=energy_demand_TWh_2, switch_table=fuel_switch_percent, correlation_table=ratio)
+    out_0_1 = x_switch(demand_table=energy_demand_TWh_2, switch_table=fuel_switch_percent, correlation_table=ratio)
     # Fuel switch ffuels to hydrogen
-    out_8468_1 = XSwitchNode(category_to_selected='hydrogen')(demand_table=out_0_1, switch_table=fuel_switch_percent, correlation_table=ratio)
+    out_8468_1 = x_switch(demand_table=out_0_1, switch_table=fuel_switch_percent, correlation_table=ratio, category_to_selected='hydrogen')
     # Fuel switch ffuels to synfuels
-    out_8469_1 = XSwitchNode(category_to_selected='synfuels')(demand_table=out_8468_1, switch_table=fuel_switch_percent, correlation_table=ratio)
+    out_8469_1 = x_switch(demand_table=out_8468_1, switch_table=fuel_switch_percent, correlation_table=ratio, category_to_selected='synfuels')
     # Export energy-demand [TWh] (calibrated and after fuel switch)
-    energy_demand_TWh = ExportVariableNode(selected_variable='energy-demand[TWh]')(input_table=out_8469_1)
+    energy_demand_TWh = export_variable(input_table=out_8469_1, selected_variable='energy-demand[TWh]')
 
     # Emissions
     # => Emissions = energy-demand x emission-factor
 
     # energy-demand [TWh]  (calibrated and after fuel switch)
-    energy_demand_TWh = UseVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # RCP bld-emission-factor [g/kWh]
-    bld_emission_factor_g_per_kWh = ImportDataNode(trigram='bld', variable_name='bld-emission-factor', variable_type='RCP')()
+    bld_emission_factor_g_per_kWh = import_data(trigram='bld', variable_name='bld-emission-factor', variable_type='RCP')
     # emissions[kt] = energy-demand[TWh] * bld-emission-factor[g/kWh]
-    emissions_kt = MCDNode(operation_selection='x * y', output_name='emissions[kt]')(input_table_1=energy_demand_TWh, input_table_2=bld_emission_factor_g_per_kWh)
+    emissions_kt = mcd(input_table_1=energy_demand_TWh, input_table_2=bld_emission_factor_g_per_kWh, operation_selection='x * y', output_name='emissions[kt]')
 
     # Calibration - emissions
 
     # Group by  Years, Country, building-type, gaes (SUM)
-    emissions_kt_2 = GroupByDimensions(groupby_dimensions=['gaes', 'building-type', 'Country', 'Years'], aggregation_method='Sum')(df=emissions_kt)
+    emissions_kt_2 = group_by_dimensions(df=emissions_kt, groupby_dimensions=['gaes', 'building-type', 'Country', 'Years'], aggregation_method='Sum')
     # Calibration emissions [kt]
-    emissions_kt_3 = ImportDataNode(trigram='bld', variable_name='emissions', variable_type='Calibration')()
+    emissions_kt_3 = import_data(trigram='bld', variable_name='emissions', variable_type='Calibration')
     # Apply Calibration on emissions[kt]
-    _, out_7979_2, out_7979_3 = CalibrationNode(data_to_be_cal='emissions[kt]', data_cal='emissions[kt]')(input_table=emissions_kt_2, cal_table=emissions_kt_3)
+    _, out_7979_2, out_7979_3 = calibration(input_table=emissions_kt_2, cal_table=emissions_kt_3, data_to_be_cal='emissions[kt]', data_cal='emissions[kt]')
 
     # Cal_rate for emissions[kt]
 
     # cal-rate for emissions
-    cal_rate_emissions_kt = UseVariableNode(selected_variable='cal_rate_emissions[kt]')(input_table=out_7979_3)
+    cal_rate_emissions_kt = use_variable(input_table=out_7979_3, selected_variable='cal_rate_emissions[kt]')
     # apply cal-rate on emissions[kt]
-    emissions_kt = MCDNode(operation_selection='x * y', output_name='emissions[kt]')(input_table_1=emissions_kt, input_table_2=out_7979_2)
+    emissions_kt = mcd(input_table_1=emissions_kt, input_table_2=out_7979_2, operation_selection='x * y', output_name='emissions[kt]')
     # kt to Mt (*0.001)
     emissions_Mt = emissions_kt.drop(columns='emissions[kt]').assign(**{'emissions[Mt]': emissions_kt['emissions[kt]'] * 0.001})
     # Export emissions[Mt]
-    emissions_Mt = ExportVariableNode(selected_variable='emissions[Mt]')(input_table=emissions_Mt)
+    emissions_Mt = export_variable(input_table=emissions_Mt, selected_variable='emissions[Mt]')
 
     # For : Climate emission
 
     # emissions [Mt]
-    emissions_Mt = UseVariableNode(selected_variable='emissions[Mt]')(input_table=emissions_Mt)
+    emissions_Mt = use_variable(input_table=emissions_Mt, selected_variable='emissions[Mt]')
     # Group by  Country, Years, end-use,  gaes, building-type energy-carrier (SUM)
-    emissions_Mt = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'end-use', 'building-type', 'energy-carrier', 'gaes'], aggregation_method='Sum')(df=emissions_Mt)
+    emissions_Mt = group_by_dimensions(df=emissions_Mt, groupby_dimensions=['Country', 'Years', 'end-use', 'building-type', 'energy-carrier', 'gaes'], aggregation_method='Sum')
     # Add emissions-or-capture
     emissions_Mt['emissions-or-capture'] = "emissions"
     # Module = Climate Emissions
-    emissions_Mt = ColumnFilterNode(pattern='^.*$')(df=emissions_Mt)
+    emissions_Mt = column_filter(df=emissions_Mt, pattern='^.*$')
     # keep heating
     energy_demand_TWh_3 = energy_demand_TWh.loc[energy_demand_TWh['end-use'].isin(['heating'])].copy()
     # TWh to kW Assumption : heating during 4 full months (=122 days = 2928 hours) (1 kWh = 3.41E-4)
@@ -1181,24 +1182,24 @@ def metanode_9109(port_01):
     # Note : shared systems = not included here as energy-demand for district heating is separated from the rest of energy-demand
 
     # Group by  Country, Years, building-type, building-use, energy-way-of-prod
-    energy_demand_kWh = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')(df=energy_demand_kWh)
+    energy_demand_kWh = group_by_dimensions(df=energy_demand_kWh, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type'], aggregation_method='Sum')
     # RCP costs-for-building-energy [MEUR/kW] From TECH
-    costs_for_building_energy_MEUR_per_kW = ImportDataNode(trigram='tec', variable_name='costs-for-building-energy', variable_type='RCP')()
+    costs_for_building_energy_MEUR_per_kW = import_data(trigram='tec', variable_name='costs-for-building-energy', variable_type='RCP')
     # Compute opex for energy-demand [kW]
-    out_9293_1 = ComputeCosts(activity_variable='energy-demand[kWh]', cost_type='OPEX')(df_activity=energy_demand_kWh, df_unit_costs=costs_for_building_energy_MEUR_per_kW, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name)
+    out_9293_1 = compute_costs(df_activity=energy_demand_kWh, df_unit_costs=costs_for_building_energy_MEUR_per_kW, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='energy-demand[kWh]', cost_type='OPEX')
     # RCP building-energy-cost-user [-]
-    building_energy_cost_user_ = ImportDataNode(trigram='bld', variable_name='building-energy-cost-user', variable_type='RCP')()
+    building_energy_cost_user_ = import_data(trigram='bld', variable_name='building-energy-cost-user', variable_type='RCP')
     # Get cost-users opex[MEUR] = opex[MEUR] * building-energy-cost-user[-]
-    opex_MEUR = MCDNode(operation_selection='x * y', output_name='opex[MEUR]')(input_table_1=out_9293_1, input_table_2=building_energy_cost_user_)
+    opex_MEUR = mcd(input_table_1=out_9293_1, input_table_2=building_energy_cost_user_, operation_selection='x * y', output_name='opex[MEUR]')
 
     # Costs by user
     # - Capex: Pipes, Heating Systems, Buildings enveloppe
     # - Opex: Heating Systems
 
     # Group by Country, Years (sum)
-    opex_MEUR_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')(df=opex_MEUR)
+    opex_MEUR_2 = group_by_dimensions(df=opex_MEUR, groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')
     # Group by Country, Years, building-type (sum)
-    opex_MEUR = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')(df=opex_MEUR)
+    opex_MEUR = group_by_dimensions(df=opex_MEUR, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # opex-by-heating-system [MEUR]
     out_9327_1 = opex_MEUR.rename(columns={'capex[MEUR]': 'capex-by-heating-system[MEUR]'})
     # keep end-use = heating
@@ -1209,10 +1210,10 @@ def metanode_9109(port_01):
     # keep area-type = renovated
     energy_demand_TWh_excluded = energy_demand_TWh_excluded.loc[energy_demand_TWh_excluded['area-type'].isin(['renovated'])].copy()
     # energy-demand[TWh] = energy-demand[TWh] * deep-renovation[m2/m2]
-    energy_demand_TWh_2 = MCDNode(operation_selection='x * y', output_name='energy-demand[TWh]')(input_table_1=energy_demand_TWh_excluded, input_table_2=deep_renovation_m2_per_m2)
+    energy_demand_TWh_2 = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=deep_renovation_m2_per_m2, operation_selection='x * y', output_name='energy-demand[TWh]')
     energy_demand_TWh_2 = pd.concat([energy_demand_TWh_3, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
     # Group by  Country, Years, building-type, building-use, end-use, energy-way-of-prod, energy-carrier
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'building-use', 'energy-way-of-prod', 'energy-carrier'], aggregation_method='Sum')(df=energy_demand_TWh_2)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'building-use', 'energy-way-of-prod', 'energy-carrier'], aggregation_method='Sum')
     # TWh to TW Assumption : heating during 4 full months (=122 days = 2928 hours) (1 kWh = 3.41E-4)
     energy_demand_TW = energy_demand_TWh_2.drop(columns='energy-demand[TWh]').assign(**{'energy-demand[TW]': energy_demand_TWh_2['energy-demand[TWh]'] * 0.000341})
     # TW to kW (*10^6)
@@ -1220,37 +1221,37 @@ def metanode_9109(port_01):
     # new-heating-capacity [kW]
     out_9493_1 = energy_demand_kW.rename(columns={'energy-demand[kW]': 'new-heating-capacity[kW]'})
     # new-heating-capacity [kW]
-    new_heating_capacity_kW = ExportVariableNode(selected_variable='new-heating-capacity[kW]')(input_table=out_9493_1)
+    new_heating_capacity_kW = export_variable(input_table=out_9493_1, selected_variable='new-heating-capacity[kW]')
     # new-heating-capacity [kW]
-    new_heating_capacity_kW = UseVariableNode(selected_variable='new-heating-capacity[kW]')(input_table=new_heating_capacity_kW)
+    new_heating_capacity_kW = use_variable(input_table=new_heating_capacity_kW, selected_variable='new-heating-capacity[kW]')
     new_heating_capacity_kW = new_heating_capacity_kW.loc[~new_heating_capacity_kW['energy-way-of-prod'].isin(['solid-biomass'])].copy()
     # Compute capex for new-heating-capacity[kW]
-    out_9299_1 = ComputeCosts(activity_variable='new-heating-capacity[kW]')(df_activity=new_heating_capacity_kW, df_unit_costs=costs_for_building_energy_MEUR_per_kW, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name)
+    out_9299_1 = compute_costs(df_activity=new_heating_capacity_kW, df_unit_costs=costs_for_building_energy_MEUR_per_kW, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='new-heating-capacity[kW]')
     # Get cost-users capex[MEUR] = capex[MEUR] * building-energy-cost-user[-]
-    capex_MEUR_3 = MCDNode(operation_selection='x * y', output_name='capex[MEUR]')(input_table_1=out_9299_1, input_table_2=building_energy_cost_user_)
+    capex_MEUR_3 = mcd(input_table_1=out_9299_1, input_table_2=building_energy_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by Country, Years, energy-way-of-prod (sum)
-    capex_MEUR_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-way-of-prod'], aggregation_method='Sum')(df=capex_MEUR_3)
+    capex_MEUR_2 = group_by_dimensions(df=capex_MEUR_3, groupby_dimensions=['Country', 'Years', 'energy-way-of-prod'], aggregation_method='Sum')
     # capex-by-energy-carrier [MEUR]
     out_9330_1 = capex_MEUR_2.rename(columns={'capex[MEUR]': 'capex-by-energy-carrier[MEUR]'})
     out_1_2 = pd.concat([out_9330_1, out_9323_1.set_index(out_9323_1.index.astype(str) + '_dup')])
     # Group by Country, Years, building-type (sum)
-    capex_MEUR_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')(df=capex_MEUR_3)
+    capex_MEUR_2 = group_by_dimensions(df=capex_MEUR_3, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # capex-by-heating-system [MEUR]
     out_9328_1 = capex_MEUR_2.rename(columns={'capex[MEUR]': 'capex-by-heating-system[MEUR]'})
     out_1_2 = pd.concat([out_9328_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
     out_1_2 = pd.concat([out_9327_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
     # Export district-energy-demand [GWh] (before calibration)
-    district_energy_demand_GWh = ExportVariableNode(selected_variable='district-energy-demand[GWh]')(input_table=district_energy_demand_GWh)
+    district_energy_demand_GWh = export_variable(input_table=district_energy_demand_GWh, selected_variable='district-energy-demand[GWh]')
     # district-energy-demand [GWh]
-    district_energy_demand_GWh = UseVariableNode(selected_variable='district-energy-demand[GWh]')(input_table=district_energy_demand_GWh)
+    district_energy_demand_GWh = use_variable(input_table=district_energy_demand_GWh, selected_variable='district-energy-demand[GWh]')
     # Group by  Country, Years, end-use, building-type, energy-carrier
-    district_energy_demand_GWh_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')(df=district_energy_demand_GWh)
+    district_energy_demand_GWh_3 = group_by_dimensions(df=district_energy_demand_GWh, groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')
     # Apply Calibration on energy-demand[GWh]
-    _, out_9347_2, out_9347_3 = CalibrationNode(data_to_be_cal='district-energy-demand[GWh]', data_cal='district-energy-demand[GWh]')(input_table=district_energy_demand_GWh_3, cal_table=district_energy_demand_GWh_2)
+    _, out_9347_2, out_9347_3 = calibration(input_table=district_energy_demand_GWh_3, cal_table=district_energy_demand_GWh_2, data_to_be_cal='district-energy-demand[GWh]', data_cal='district-energy-demand[GWh]')
     # apply cal-rate to district-energy-demand[TWh]
-    district_energy_demand_GWh = MCDNode(operation_selection='x * y', output_name='district-energy-demand[GWh]')(input_table_1=out_9347_2, input_table_2=district_energy_demand_GWh)
+    district_energy_demand_GWh = mcd(input_table_1=out_9347_2, input_table_2=district_energy_demand_GWh, operation_selection='x * y', output_name='district-energy-demand[GWh]')
     # districti-energy-demand [GWh] (after calibration)
-    district_energy_demand_GWh = ExportVariableNode(selected_variable='district-energy-demand[GWh]')(input_table=district_energy_demand_GWh)
+    district_energy_demand_GWh = export_variable(input_table=district_energy_demand_GWh, selected_variable='district-energy-demand[GWh]')
 
     # Pipes (for district heating)
     # constructed each year
@@ -1267,25 +1268,25 @@ def metanode_9109(port_01):
     # new construction of pipes[km]
 
     # district-energy-demand [GWh]
-    district_energy_demand_GWh = UseVariableNode(selected_variable='district-energy-demand[GWh]')(input_table=district_energy_demand_GWh)
+    district_energy_demand_GWh = use_variable(input_table=district_energy_demand_GWh, selected_variable='district-energy-demand[GWh]')
     # keep end-use = heating
     district_energy_demand_GWh_2 = district_energy_demand_GWh.loc[district_energy_demand_GWh['end-use'].isin(['heating'])].copy()
     # Hypothesis pipes-length[km] = district-energy-demand[GWh] * 0.33[km/GWh]
     pipes_length_km = district_energy_demand_GWh_2.assign(**{'pipes-length[km]': district_energy_demand_GWh_2['district-energy-demand[GWh]']*0.33})
     # pipes-length [km]
-    pipes_length_km = UseVariableNode(selected_variable='pipes-length[km]')(input_table=pipes_length_km)
+    pipes_length_km = use_variable(input_table=pipes_length_km, selected_variable='pipes-length[km]')
     # Group by Country, Years (SUM)
-    pipes_length_km = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=pipes_length_km)
+    pipes_length_km = group_by_dimensions(df=pipes_length_km, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
 
     # pipes-overtimestep[km]
     # => determine new need of pipes to reach the pipes demand (for district heating demand)
 
     # Lag variable pipes-length [km]
-    out_8196_1, _ = LagVariable(in_var='pipes-length[km]')(df=pipes_length_km)
+    out_8196_1, _ = lag_variable(df=pipes_length_km, in_var='pipes-length[km]')
     # pipes-length-overtimestep[km] = pipes-length[km] - pipes-length-lagged[km]
-    pipes_length_overtimestep_km = MCDNode(operation_selection='x - y', output_name='pipes-length-overtimestep[km]')(input_table_1=pipes_length_km, input_table_2=out_8196_1)
+    pipes_length_overtimestep_km = mcd(input_table_1=pipes_length_km, input_table_2=out_8196_1, operation_selection='x - y', output_name='pipes-length-overtimestep[km]')
     # Years <= baseyear
-    pipes_length_overtimestep_km, pipes_length_overtimestep_km_excluded = FilterDimension(dimension='Years', operation_selection='≤', value_years=Globals.get().base_year)(df=pipes_length_overtimestep_km)
+    pipes_length_overtimestep_km, pipes_length_overtimestep_km_excluded = filter_dimension(df=pipes_length_overtimestep_km, dimension='Years', operation_selection='≤', value_years=Globals.get().base_year)
     # Force to be = 0
     pipes_length_overtimestep_km['pipes-length-overtimestep[km]'] = 0.0
     # if < 0 => set to 0
@@ -1299,27 +1300,27 @@ def metanode_9109(port_01):
     # => Hypothesis : 2% of pipes are renewed each year
 
     # renewal-pipes-length[km] = pipes-length[km] - pipes-length-overtimestep[km]
-    renewal_pipes_length_km = MCDNode(operation_selection='x - y', output_name='renewal-pipes-length[km]', fill_value_bool='Inner Join')(input_table_1=pipes_length_km, input_table_2=pipes_length_overtimestep_km)
+    renewal_pipes_length_km = mcd(input_table_1=pipes_length_km, input_table_2=pipes_length_overtimestep_km, operation_selection='x - y', output_name='renewal-pipes-length[km]', fill_value_bool='Inner Join')
     # factor 0.02
     renewal_pipes_length_km['renewal-pipes-length[km]'] = renewal_pipes_length_km['renewal-pipes-length[km]']*0.02
     # new-pipes-length[km] = renewal-pipes-length[km] + pipes-length-overtimestep[km]
-    new_pipes_length_km = MCDNode(operation_selection='x + y', output_name='new-pipes-length[km]')(input_table_1=renewal_pipes_length_km, input_table_2=pipes_length_overtimestep_km)
+    new_pipes_length_km = mcd(input_table_1=renewal_pipes_length_km, input_table_2=pipes_length_overtimestep_km, operation_selection='x + y', output_name='new-pipes-length[km]')
     # Export new-pipes-length [km]
-    new_pipes_length_km = ExportVariableNode(selected_variable='new-pipes-length[km]')(input_table=new_pipes_length_km)
+    new_pipes_length_km = export_variable(input_table=new_pipes_length_km, selected_variable='new-pipes-length[km]')
 
     # For : Industry
     # => New pipes length (for district heating)
 
     # new-pipes-length [km]
-    new_pipes_length_km = UseVariableNode(selected_variable='new-pipes-length[km]')(input_table=new_pipes_length_km)
+    new_pipes_length_km = use_variable(input_table=new_pipes_length_km, selected_variable='new-pipes-length[km]')
     out_8496_1 = pd.concat([new_pipes_length_km, out_8495_1.set_index(out_8495_1.index.astype(str) + '_dup')])
     # Module = Industry
-    out_8496_1 = ColumnFilterNode(pattern='^.*$')(df=out_8496_1)
+    out_8496_1 = column_filter(df=out_8496_1, pattern='^.*$')
     # As it was in old module : bld_new_dhg_pipe[km]
     out_8234_1 = new_pipes_length_km.rename(columns={'new-pipes-length[km]': 'bld_new_dhg_pipe[km]'})
-    out_8235_1 = JoinerNode(joiner='inner', left_input=['Country', 'Years'], right_input=['Country', 'Years'])(df_left=out_8234_1, df_right=out_8233_1)
+    out_8235_1 = joiner(df_left=out_8234_1, df_right=out_8233_1, joiner='inner', left_input=['Country', 'Years'], right_input=['Country', 'Years'])
     # Module = Minerals
-    out_8235_1 = ColumnFilterNode(pattern='^.*$')(df=out_8235_1)
+    out_8235_1 = column_filter(df=out_8235_1, pattern='^.*$')
     # Years
     out_7502_1 = out_8235_1.assign(Years=out_8235_1['Years'].astype(str))
 
@@ -1327,23 +1328,23 @@ def metanode_9109(port_01):
     # Only new one => Capex
 
     # RCP costs-by-building-infra [MEUR/km] From TECH
-    costs_by_building_infra_MEUR_per_km = ImportDataNode(trigram='tec', variable_name='costs-by-building-infra', variable_type='RCP')()
+    costs_by_building_infra_MEUR_per_km = import_data(trigram='tec', variable_name='costs-by-building-infra', variable_type='RCP')
     # Compute capex for new-pipes-length[km]
-    out_9286_1 = ComputeCosts(activity_variable='new-pipes-length[km]')(df_activity=new_pipes_length_km, df_unit_costs=costs_by_building_infra_MEUR_per_km, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name)
+    out_9286_1 = compute_costs(df_activity=new_pipes_length_km, df_unit_costs=costs_by_building_infra_MEUR_per_km, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='new-pipes-length[km]')
     # RCP building-infra-cost-user [-]
-    building_infra_cost_user_ = ImportDataNode(trigram='bld', variable_name='building-infra-cost-user', variable_type='RCP')()
+    building_infra_cost_user_ = import_data(trigram='bld', variable_name='building-infra-cost-user', variable_type='RCP')
     # Get cost-users capex[MEUR] = capex[MEUR] * appliances-cost-user[-]
-    capex_MEUR_2 = MCDNode(operation_selection='x * y', output_name='capex[MEUR]')(input_table_1=out_9286_1, input_table_2=building_infra_cost_user_)
+    capex_MEUR_2 = mcd(input_table_1=out_9286_1, input_table_2=building_infra_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
     capex_MEUR_3 = pd.concat([capex_MEUR_2, capex_MEUR_3.set_index(capex_MEUR_3.index.astype(str) + '_dup')])
     capex_MEUR = pd.concat([capex_MEUR_3, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
 
     # CAPEX
 
     # Group by Country, Years (sum)
-    capex_MEUR = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')(df=capex_MEUR)
+    capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')
     MEUR = pd.concat([capex_MEUR, opex_MEUR_2.set_index(opex_MEUR_2.index.astype(str) + '_dup')])
     # Group by Country, Years (sum)
-    capex_MEUR = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=capex_MEUR_2)
+    capex_MEUR = group_by_dimensions(df=capex_MEUR_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # capex-by-dh-pipe[MEUR]
     out_9322_1 = capex_MEUR.rename(columns={'capex[MEUR]': 'capex-by-dh-pipe[MEUR]'})
     out_1_2 = pd.concat([out_9322_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
@@ -1354,7 +1355,7 @@ def metanode_9109(port_01):
     # => division hotwater, space heating
 
     # Group by  Country, Years, building-type, end-use (SUM)
-    district_energy_demand_GWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'end-use'], aggregation_method='Sum')(df=district_energy_demand_GWh)
+    district_energy_demand_GWh_2 = group_by_dimensions(df=district_energy_demand_GWh, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use'], aggregation_method='Sum')
     # Convert Unit GWh to TWh
     district_energy_demand_TWh = district_energy_demand_GWh_2.drop(columns='district-energy-demand[GWh]').assign(**{'district-energy-demand[TWh]': district_energy_demand_GWh_2['district-energy-demand[GWh]'] * 0.001})
 
@@ -1362,13 +1363,13 @@ def metanode_9109(port_01):
     # => division hotwater, space heating
 
     # Group by  Country, Years, end-use (SUM)
-    district_energy_demand_TWh_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')(df=district_energy_demand_TWh)
+    district_energy_demand_TWh_3 = group_by_dimensions(df=district_energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')
 
     # Final energy consumption
     # => division residential/services
 
     # Group by  Country, Years, building-type (SUM)
-    district_energy_demand_GWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')(df=district_energy_demand_GWh)
+    district_energy_demand_GWh_2 = group_by_dimensions(df=district_energy_demand_GWh, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # Convert Unit GWh to TWh
     district_energy_demand_TWh_4 = district_energy_demand_GWh_2.drop(columns='district-energy-demand[GWh]').assign(**{'district-energy-demand[TWh]': district_energy_demand_GWh_2['district-energy-demand[GWh]'] * 0.001})
     # GWh to TWh (*0.001)
@@ -1378,14 +1379,14 @@ def metanode_9109(port_01):
     # => Energy demand for district-heating
 
     # Group by  Country, Years, building-type (SUM)
-    district_energy_demand_TWh_5 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')(df=district_energy_demand_TWh_2)
+    district_energy_demand_TWh_5 = group_by_dimensions(df=district_energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     out_9184_1 = pd.concat([district_energy_demand_TWh_5, out_1.set_index(out_1.index.astype(str) + '_dup')])
 
     # For : Power supply
     # => Energy demand for district-heating
 
     # Group by  Country, Years (SUM)
-    district_energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=district_energy_demand_TWh_2)
+    district_energy_demand_TWh_2 = group_by_dimensions(df=district_energy_demand_TWh_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # district-energy-demand[TWh] to energy-demand[TWh]
     out_8279_1 = district_energy_demand_TWh_2.rename(columns={'district-energy-demand[TWh]': 'energy-demand[TWh]'})
     out_8279_1['energy-carrier'] = "heat"
@@ -1393,13 +1394,13 @@ def metanode_9109(port_01):
     # Cal_rate for district-energy-demand[TWh]
 
     # cal_rate for district-energy-demand
-    cal_rate_district_energy_demand_GWh = UseVariableNode(selected_variable='cal_rate_district-energy-demand[GWh]')(input_table=out_9347_3)
+    cal_rate_district_energy_demand_GWh = use_variable(input_table=out_9347_3, selected_variable='cal_rate_district-energy-demand[GWh]')
     cal_rate_energy_demand = pd.concat([cal_rate_energy_demand_TWh, cal_rate_district_energy_demand_GWh.set_index(cal_rate_district_energy_demand_GWh.index.astype(str) + '_dup')])
     cal_rate = pd.concat([cal_rate_energy_demand, cal_rate_emissions_kt.set_index(cal_rate_emissions_kt.index.astype(str) + '_dup')])
     # Module = CALIBRATION
-    cal_rate = ColumnFilterNode(pattern='^.*$')(df=cal_rate)
+    cal_rate = column_filter(df=cal_rate, pattern='^.*$')
     # floor-per-cap [m2/cap]
-    floor_per_cap_m2_per_cap = MCDNode(operation_selection='x / y', output_name='floor-per-cap[m2/cap]')(input_table_1=building_stock_m2, input_table_2=population_cap)
+    floor_per_cap_m2_per_cap = mcd(input_table_1=building_stock_m2, input_table_2=population_cap, operation_selection='x / y', output_name='floor-per-cap[m2/cap]')
     out_9278_1 = pd.concat([building_renovation_rate_percent, floor_per_cap_m2_per_cap.set_index(floor_per_cap_m2_per_cap.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_9258_1, out_9278_1.set_index(out_9278_1.index.astype(str) + '_dup')])
     out_9250_1 = pd.concat([renovated_share_percent, out_1.set_index(out_1.index.astype(str) + '_dup')])
@@ -1418,7 +1419,7 @@ def metanode_9109(port_01):
     # energy-way-of-prod = elec-direct
     energy_demand_TWh_2['energy-way-of-prod'] = "elec-direct"
     # Export energy-demand [TWh] (for servers)
-    energy_demand_TWh_2 = ExportVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh_2)
+    energy_demand_TWh_2 = export_variable(input_table=energy_demand_TWh_2, selected_variable='energy-demand[TWh]')
 
     # Add energy demand for servers
     # 
@@ -1427,10 +1428,10 @@ def metanode_9109(port_01):
     # If yes, pay attention calibration data should be adapted !
 
     # energy-demand [TWh] (for servers)
-    energy_demand_TWh_2 = UseVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh_2)
+    energy_demand_TWh_2 = use_variable(input_table=energy_demand_TWh_2, selected_variable='energy-demand[TWh]')
     energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
     # energy-demand [TWh]
-    energy_demand_TWh = UseVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # Advenced row filter
     energy_demand_TWh_2 = energy_demand_TWh.loc[energy_demand_TWh['end-use'].isin(['hotwater', 'heating'])].copy()
     energy_demand_TWh_excluded = energy_demand_TWh.loc[~energy_demand_TWh['end-use'].isin(['hotwater', 'heating'])].copy()
@@ -1439,27 +1440,27 @@ def metanode_9109(port_01):
     # => total final energy consumption
 
     # Group by  Country, Years (SUM)
-    energy_demand_TWh_excluded = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=energy_demand_TWh_excluded)
+    energy_demand_TWh_excluded = group_by_dimensions(df=energy_demand_TWh_excluded, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # Group by  Country, Years, building-type, end-use (SUM)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'end-use'], aggregation_method='Sum')(df=energy_demand_TWh_2)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use'], aggregation_method='Sum')
     # energy-demand-incl-dh[TWh] decentralized energy [TWh]  + district heating TWh]
-    energy_demand_incl_district_heating_TWh = MCDNode(operation_selection='x + y', output_name='energy-demand-incl-district-heating[TWh]')(input_table_1=energy_demand_TWh_2, input_table_2=district_energy_demand_TWh)
+    energy_demand_incl_district_heating_TWh = mcd(input_table_1=energy_demand_TWh_2, input_table_2=district_energy_demand_TWh, operation_selection='x + y', output_name='energy-demand-incl-district-heating[TWh]')
     # Group by  Country, Years (SUM)
-    energy_demand_incl_district_heating_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=energy_demand_incl_district_heating_TWh)
+    energy_demand_incl_district_heating_TWh_2 = group_by_dimensions(df=energy_demand_incl_district_heating_TWh, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # total-energy-incl-dh[TWh]
-    total_energy_incl_dh_TWh = MCDNode(operation_selection='x + y', output_name='total-energy-incl-dh[TWh]')(input_table_1=energy_demand_TWh_excluded, input_table_2=energy_demand_incl_district_heating_TWh_2)
+    total_energy_incl_dh_TWh = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=energy_demand_incl_district_heating_TWh_2, operation_selection='x + y', output_name='total-energy-incl-dh[TWh]')
     # keep space heating
     energy_demand_incl_district_heating_TWh_2 = energy_demand_incl_district_heating_TWh.loc[energy_demand_incl_district_heating_TWh['end-use'].isin(['heating'])].copy()
     # Group by  Country, Years (SUM)
-    energy_demand_incl_district_heating_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=energy_demand_incl_district_heating_TWh_2)
+    energy_demand_incl_district_heating_TWh_2 = group_by_dimensions(df=energy_demand_incl_district_heating_TWh_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # Convert Unit Gpkm to pkm
     energy_demand_incl_district_heating_GWh = energy_demand_incl_district_heating_TWh_2.drop(columns='energy-demand-incl-district-heating[TWh]').assign(**{'energy-demand-incl-district-heating[GWh]': energy_demand_incl_district_heating_TWh_2['energy-demand-incl-district-heating[TWh]'] * 1000.0})
     # renovation depth [kWh/m²] = energy-space-heating[GWh] / Surface area [Mm²]
-    renovation_depth_kWh_per_m2 = MCDNode(operation_selection='x / y', output_name='renovation-depth[kWh/m2]')(input_table_1=energy_demand_incl_district_heating_GWh, input_table_2=building_stock_Mm2_5)
+    renovation_depth_kWh_per_m2 = mcd(input_table_1=energy_demand_incl_district_heating_GWh, input_table_2=building_stock_Mm2_5, operation_selection='x / y', output_name='renovation-depth[kWh/m2]')
     # Group by  Country, Years, end-use (SUM)
-    energy_demand_incl_district_heating_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')(df=energy_demand_incl_district_heating_TWh)
+    energy_demand_incl_district_heating_TWh_2 = group_by_dimensions(df=energy_demand_incl_district_heating_TWh, groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')
     # dh-share[%] = energy-demand-dh[TWh]/ energy-demand-incl-dh[TWh]
-    district_heating_share_by_end_use_percent = MCDNode(operation_selection='x / y', output_name='district-heating-share-by-end-use[%]')(input_table_1=district_energy_demand_TWh_3, input_table_2=energy_demand_incl_district_heating_TWh_2)
+    district_heating_share_by_end_use_percent = mcd(input_table_1=district_energy_demand_TWh_3, input_table_2=energy_demand_incl_district_heating_TWh_2, operation_selection='x / y', output_name='district-heating-share-by-end-use[%]')
     # keep  electricity
     energy_demand_TWh_2 = energy_demand_TWh.loc[energy_demand_TWh['energy-carrier'].isin(['electricity'])].copy()
 
@@ -1467,15 +1468,15 @@ def metanode_9109(port_01):
     # => total final energy consumption
 
     # Group by  Country, Years (SUM)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=energy_demand_TWh_2)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # electricity-share[%]
-    electricity_share_percent = MCDNode(operation_selection='x / y', output_name='electricity-share[%]')(input_table_1=energy_demand_TWh_2, input_table_2=total_energy_incl_dh_TWh)
+    electricity_share_percent = mcd(input_table_1=energy_demand_TWh_2, input_table_2=total_energy_incl_dh_TWh, operation_selection='x / y', output_name='electricity-share[%]')
     # keep  ambiant
     energy_demand_TWh_2 = energy_demand_TWh.loc[energy_demand_TWh['energy-carrier'].isin(['ambiant'])].copy()
     # Group by  Country, Years (SUM)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=energy_demand_TWh_2)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # ambiant-share[%]
-    ambiant_share_percent = MCDNode(operation_selection='x / y', output_name='ambiant-share[%]')(input_table_1=energy_demand_TWh_2, input_table_2=total_energy_incl_dh_TWh)
+    ambiant_share_percent = mcd(input_table_1=energy_demand_TWh_2, input_table_2=total_energy_incl_dh_TWh, operation_selection='x / y', output_name='ambiant-share[%]')
     share_percent = pd.concat([electricity_share_percent, ambiant_share_percent.set_index(ambiant_share_percent.index.astype(str) + '_dup')])
     share_percent = pd.concat([district_heating_share_by_end_use_percent, share_percent.set_index(share_percent.index.astype(str) + '_dup')])
 
@@ -1483,12 +1484,12 @@ def metanode_9109(port_01):
     # => per end-use, per vector, and per residential/services (full granularity)
 
     # Group by  Country, Years, building-type, area-type (SUM)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'energy-carrier'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'energy-carrier'], aggregation_method='Sum')
     out_9340_1 = pd.concat([share_percent, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
     # Group by  Country, Years, building-type (SUM)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # energy-demand-by-type[TWh] decentralized energy [TWh]  + district heating TWh]
-    energy_demand_by_type_TWh = MCDNode(operation_selection='x + y', output_name='energy-demand-by-type[TWh]')(input_table_1=energy_demand_TWh_2, input_table_2=district_energy_demand_TWh_4)
+    energy_demand_by_type_TWh = mcd(input_table_1=energy_demand_TWh_2, input_table_2=district_energy_demand_TWh_4, operation_selection='x + y', output_name='energy-demand-by-type[TWh]')
     energy_demand_TWh_2 = pd.concat([energy_demand_by_type_TWh, energy_demand_incl_district_heating_TWh.set_index(energy_demand_incl_district_heating_TWh.index.astype(str) + '_dup')])
     out_9223_1 = pd.concat([energy_demand_TWh_2, out_9340_1.set_index(out_9340_1.index.astype(str) + '_dup')])
     out_9251_1 = pd.concat([out_9223_1, renovation_depth_kWh_per_m2.set_index(renovation_depth_kWh_per_m2.index.astype(str) + '_dup')])
@@ -1498,18 +1499,18 @@ def metanode_9109(port_01):
     # => Energy demand by vector
 
     # Group by  Country, Years, energy-carrier (SUM)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     out_8498_1 = pd.concat([out_8279_1, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
     # Module = Power supply
-    out_8498_1 = ColumnFilterNode(pattern='^.*$')(df=out_8498_1)
+    out_8498_1 = column_filter(df=out_8498_1, pattern='^.*$')
     # Module = Air Quality
-    energy_demand_TWh_3 = ColumnFilterNode(pattern='^.*$')(df=energy_demand_TWh)
+    energy_demand_TWh_3 = column_filter(df=energy_demand_TWh, pattern='^.*$')
 
     # For : Pathway Explorer
     # => Energy demand by end-use & building-type + by vector
 
     # Group by  Country, Years, building-type, end-use (SUM)
-    energy_demand_TWh = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'end-use', 'building-type'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'end-use', 'building-type'], aggregation_method='Sum')
     # Add by end-use to variable
     out_9188_1 = energy_demand_TWh.rename(columns={'energy-demand[TWh]': 'energy-demand-by-end-use[TWh]'})
     # Add by end-use to vector
@@ -1520,9 +1521,9 @@ def metanode_9109(port_01):
     out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
     # Add  Costs
     out_1 = pd.concat([out_1, out_9338_1.set_index(out_9338_1.index.astype(str) + '_dup')])
-    out_9191_1 = AddTrigram()(module_name=module_name, df=out_1)
+    out_9191_1 = add_trigram(module_name=module_name, df=out_1)
     # Module = Pathway Explorer
-    out_9191_1 = ColumnFilterNode(pattern='^.*$')(df=out_9191_1)
+    out_9191_1 = column_filter(df=out_9191_1, pattern='^.*$')
 
     return out_9191_1, cal_rate, out_8496_1, out_8498_1, emissions_Mt, energy_demand_TWh_3, out_7502_1
 

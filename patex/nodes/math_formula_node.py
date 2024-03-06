@@ -159,571 +159,502 @@ FUN_DICT = {
 }
 
 
-class MathFormulaNode(PythonNode, NativeNode):
-    knime_name = "Math Formula"
+def math_formula(
+    df: pd.DataFrame,
+    convert_to_int: bool,
+    replaced_column: str,
+    splitted: str,
+    list_flow_vars: list[str] = [],
+    **kwargs,
+) -> pd.DataFrame:
+    col_rename_dict = {}
+    exp_rename_dict = {}
 
-    def __init__(
-        self,
-        convert_to_int: bool,
-        replaced_column: str,
-        splitted: str,
-        list_flow_vars: list[str] = [],
-    ):
-        super().__init__()
-        self.convert_to_int = convert_to_int
-        self.list_flow_vars = list_flow_vars
-        self.replaced_column = replaced_column
-        self.splitted = splitted
+    if splitted not in SPECIFIC_EXPRESSIONS:
+        splitted = copy(splitted)
 
-    def init_ports(self):
-        self.in_ports = {1: None}
-        self.out_ports = {1: None}
+        for var, value in kwargs.items():
+            var_name = '@' + var
+            splitted = [x if x != var_name else str(value) for x in splitted]
+            
+        col_id = 0
+        for op in splitted:
+            if op in df.columns:
+                col_name = 'col' + str(col_id)
+                col_rename_dict[op] = col_name
+                exp_rename_dict[col_name] = op
+                col_id += 1
+        splitted = [col_rename_dict.get(item, item) for item in splitted]  # rename the column name of the splitted expression with the new col names
 
-    @classmethod
-    def from_knime(cls, ctx: Context, id, xml_root, xmlns, flow_vars_params):
-        model = xml_root.find(xmlns + "config[@key='model']")
-        append_column = model.find(xmlns + "entry[@key='append_column']").get('value')
-        replaced_column = model.find(xmlns + "entry[@key='replaced_column']").get('value')
-        expression = model.find(xmlns + "entry[@key='expression']").get('value')
-        convert_to_int = model.find(xmlns + "entry[@key='convert_to_int']").get('value') == 'true'
-        list_flow_vars = []
+        expression = ''.join(splitted)
+        # renaming the columns of the dataframe to avoid errors in the eval() function (see below)
+        # cols = [col for col in col_rename_dict]
+        # pd.to_numeric(df[cols])
+        df = df.rename(columns=col_rename_dict)
 
-        expression = expression.replace('%%00009', '') # Line break (kiffe de Michel :))
-        expression = expression.replace('%%00010', '')
-        expression = expression.replace("^","**")
 
         # ------------------------------------------------------
-        # Preparing the evaluation of the expression by renaming columns and validate math operations
+        # Evaluation of the expression using pandas.DataFrame.eval() function
         # ------------------------------------------------------
-        raise_error_list = ['ROW_COUNT', 'ROW_INDEX', 'log(', 'pow(','log1p(', 'exp(', 'abs(', 'sqrt(', 'rand(', 'mod(', 'if(',
-                            'round(', 'roundHalfUp(', 'ceil(', 'floor(', 'binom(', 'sin(', 'cos(', 'tan(', 'asin(',
-                            'acos(', 'atan(', 'atan(', 'atan2(', 'sinh(', 'cosh(', 'min_in_args(','max_in_args(', 'argmin(',
-                            'armax(', 'colMin(', 'colMax(', 'average(', 'median(', 'signum(', 'between(', 'isNaN(',
-                            'isInfinite', '|rffrererfrrrer|', '&&', '==', '!=', '>', '<', '>=', '<=']
-
-        if expression not in SPECIFIC_EXPRESSIONS:
-            if append_column == 'false':
-                expression = '$NEW_COLUMN$' + "=" + expression
-            else:
-                expression = '$' + replaced_column + '$' + "=" + expression
-            splitted = expression.split('$')
-            for i, op in enumerate(splitted):
-                if op in ['ROWINDEX', 'ROWCOUNT']:
-                    raise cls.knime_exception(id, "ROWINDEX and ROWCOUNT are not handled")
-                elif op.startswith('{'):
-                    splitted[i] = splitted[i].replace('{', '')
-                    splitted[i] = splitted[i].replace('}', '')
-                    splitted[i] = '@' + splitted[i][1:]  # variables should be mentionned by @ in the expression
-                    list_flow_vars.append(splitted[i][1:])
-                elif op != replaced_column:
-                    for unsafe in raise_error_list:
-                        if unsafe in op:
-                            cls.knime_error(id, f"The operation {unsafe} has not been implemented yet")
-                    for safe in FUN_DICT:
-                        if safe in op and ("_"+safe) not in op and "capita" not in op:
-                            splitted[i] = splitted[i].replace(safe, "@" + safe)  # variables should be mentionned by @ in
-                            # the expression
-        else:
-            splitted = expression
-
-        self = PythonNode.init_wrapper(cls,
-            convert_to_int=convert_to_int,
-            list_flow_vars=list_flow_vars,
-            replaced_column=replaced_column,
-            splitted=splitted,
-        )
-        self.init_knime(ctx, id, xml_root, xmlns, flow_vars_params)
-        return self
-
-    def apply(self, df, **kwargs) -> pd.DataFrame:
-        col_rename_dict = {}
-        exp_rename_dict = {}
-
-        if self.splitted not in SPECIFIC_EXPRESSIONS:
-            splitted = copy(self.splitted)
-
-            for var, value in kwargs.items():
-                var_name = '@' + var
-                splitted = [x if x != var_name else str(value) for x in splitted]
-                
-            col_id = 0
-            for op in splitted:
-                if op in df.columns:
-                    col_name = 'col' + str(col_id)
-                    col_rename_dict[op] = col_name
-                    exp_rename_dict[col_name] = op
-                    col_id += 1
-            splitted = [col_rename_dict.get(item, item) for item in splitted]  # rename the column name of the splitted expression with the new col names
-
-            expression = ''.join(splitted)
-            # renaming the columns of the dataframe to avoid errors in the eval() function (see below)
-            # cols = [col for col in col_rename_dict]
-            # pd.to_numeric(df[cols])
-            df = df.rename(columns=col_rename_dict)
+        # NOTE: pandas.DataFrame.eval() doesn't allow to access numeric column names or columns names with brackets
+        # (e.g. '2011', 'col_var_[unit]'). This is the reason why we are renaming all the columns before the evaluation
 
 
-            # ------------------------------------------------------
-            # Evaluation of the expression using pandas.DataFrame.eval() function
-            # ------------------------------------------------------
-            # NOTE: pandas.DataFrame.eval() doesn't allow to access numeric column names or columns names with brackets
-            # (e.g. '2011', 'col_var_[unit]'). This is the reason why we are renaming all the columns before the evaluation
+        df.eval(expression, inplace=True, local_dict={**FUN_DICT, **kwargs})
 
 
-            df.eval(expression, inplace=True, local_dict={**FUN_DICT, **kwargs})
+        df = df.rename(columns={**exp_rename_dict, **{'NEW_COLUMN' : replaced_column}})
+
+        if convert_to_int:
+            df[replaced_column] = df[replaced_column].round(0)
+    else:
+        if splitted == "if($vehicle-fleet-historical[number]$ >= 0,$vehicle-fleet-historical[number]$,$veh-fleet-future[number]$)": # New : transport prototype
+            df[replaced_column] = df["vehicle-fleet-historical[number]"]
+            mask = (df["vehicle-fleet-historical[number]"] < 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "veh-fleet-future[number]"]
+        elif splitted == "if($new-veh-fleet[number]$ < 0, 0, $new-veh-fleet[number]$)": # New : transport prototype
+            df[replaced_column] = df["new-veh-fleet[number]"]
+            mask = (df["new-veh-fleet[number]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($veh-fleet-need[number]$<0, 0, $veh-fleet-need[number]$)": # New : transport prototype
+            df[replaced_column] = df["veh-fleet-need[number]"]
+            mask = (df["veh-fleet-need[number]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($new-veh-fleet[number]$ > 0, 0, $new-veh-fleet[number]$)": # New : transport prototype
+            df[replaced_column] = df["new-veh-fleet[number]"]
+            mask = (df["new-veh-fleet[number]"] > 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($new-capacities[kW]$ < 0, 0, $new-capacities[kW]$)":  # New : power prototype
+            df[replaced_column] = df["new-capacities[kW]"]
+            mask = (df["new-capacities[kW]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($heat-energy-production[TWh]$<0,0,$heat-energy-production[TWh]$)":  # New : power prototype
+            df[replaced_column] = df["heat-energy-production[TWh]"]
+            mask = (df["heat-energy-production[TWh]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($intermitency-share[%]$<0.15,8,$transmission-capacity[GW]$)":  # New : power prototype
+            df[replaced_column] = df["transmission-capacity[GW]"]
+            mask = (df["intermitency-share[%]"] < 0.15)
+            df.loc[mask, replaced_column] = 8
+        elif splitted == "if($energy-imported[TWh]$ < 0, 0, $energy-imported[TWh]$)":  # New : power prototype
+            df[replaced_column] = df["energy-imported[TWh]"]
+            mask = (df["energy-imported[TWh]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($annual-backup-growth[GW]$ < 0, 0, $annual-backup-growth[GW]$)":  # New : power prototype
+            df[replaced_column] = df["annual-backup-growth[GW]"]
+            mask = (df["annual-backup-growth[GW]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($annual-transmission-growth[GW]$ < 0, 0, $annual-transmission-growth[GW]$)":  # New : power prototype
+            df[replaced_column] = df["annual-transmission-growth[GW]"]
+            mask = (df["annual-transmission-growth[GW]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($net-energy-production[TWh]$ * (0.2812 * $intermitency-share[%]$ - 0.0228) < 0,0,$net-energy-production[TWh]$ * (0.2812 * $intermitency-share[%]$ - 0.0228))":  # New : power prototype
+            df[replaced_column] = df["net-energy-production[TWh]"] * (0.2812 * df["intermitency-share[%]"] - 0.0228)
+            mask = (df["net-energy-production[TWh]"] * (0.2812 * df["intermitency-share[%]"] - 0.0228) < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($energy-imported[TWh]$ < 0, abs($energy-imported[TWh]$), 0)":  # New : power prototype
+            df[replaced_column] = df["energy-imported[TWh]"].abs()
+            mask = (df["energy-imported[TWh]"] >= 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "energy-imported[TWh]$=if($energy-imported[TWh]$ < 0, 0, $energy-imported[TWh]$)":  # New : power prototype
+            df[replaced_column] = df["energy-imported[TWh]"]
+            mask = (df["energy-imported[TWh]"] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "abs($energy-imported[GW]$)":  # New : power prototype
+            df[replaced_column] = df["energy-imported[GW]"].abs()
+        elif splitted == "-abs($direct-air-capture[Mt]$)":  # New : power prototype
+            df[replaced_column] = -df["direct-air-capture[Mt]"].abs()
+        elif splitted == "if($EE-saving-delta[TWh]$<0, 0, 15*$EE-saving-delta[TWh]$)": # New : industry prototype
+            mask = (df["EE-saving-delta[TWh]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = 15 * df.loc[~mask, "EE-saving-delta[TWh]"]
+        elif splitted == "if($disable_product_calibration$==1,0,1)": # New : industry prototype
+            mask = (df["disable_product_calibration"] == 1)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = 1
+        elif splitted == "min_in_args($product-import-share[%demand]$,1)":  # New : industry prototype
+            mask = (df["product-import-share[%demand]"] > 1)
+            df.loc[mask, replaced_column] = 1
+        elif splitted == "min_in_args($subproduct-import-share[%demand]$,1)":  # New : industry prototype
+            mask = (df["subproduct-import-share[%demand]"] > 1)
+            df.loc[mask, replaced_column] = 1
+        elif splitted == "min_in_args($material-import-share[%demand]$,1)":  # New : industry prototype
+            mask = (df["material-import-share[%demand]"] > 1)
+            df.loc[mask, replaced_column] = 1
+        elif splitted == "if($renovation-rate-overtimestep[%]$>1,1,$renovation-rate-overtimestep[%]$)":  # New : building prototype
+            mask = (df["renovation-rate-overtimestep[%]"] > 1)
+            df.loc[mask, replaced_column] = 1
+            df.loc[~mask, replaced_column] = df.loc[~mask, "renovation-rate-overtimestep[%]"]
+        elif splitted == "if($pipes-length-overtimestep[km]$<0, 0, $pipes-length-overtimestep[km]$)":  # New : building prototype
+            mask = (df["pipes-length-overtimestep[km]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "pipes-length-overtimestep[km]"]
+        elif splitted == "if($missing-floor-area[m2]$ < 0, 0, $missing-floor-area[m2]$)":  # New : building prototype
+            mask = (df["missing-floor-area[m2]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "missing-floor-area[m2]"]
+        elif splitted == "if($missing-floor-area[m2]$>=0,0,-$missing-floor-area[m2]$)":  # New : building prototype
+            mask = (df["missing-floor-area[m2]"] >= 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "missing-floor-area[m2]"]*-1
+        elif splitted == "if($heating-capacity[KW]$<0,0,$heating-capacity[KW]$)":  # New : building prototype
+            mask = (df["heating-capacity[KW]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "heating-capacity[KW]"]
+        elif splitted == "if($land-variation[ha]$> 0, $land-variation[ha]$ * 5000 / 1000000, 0)":  # New : agriculture prototype
+            mask = (df["land-variation[ha]"] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "land-variation[ha]"] * 5000 / 1000000
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($land-area[ha]$> 0, $land-area[ha]$ * 5000 / 1000000, 0)":
+            mask = (df["land-area[ha]"] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "land-area[ha]"] * 5000 / 1000000
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($buffer-land[ha]$>0,0,abs($buffer-land[ha]$))":  # New : agriculture prototype
+            mask = (df["buffer-land[ha]"] > 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "buffer-land[ha]"].abs()
+        elif splitted == "if($buffer-land[ha]$<0,0,$buffer-land[ha]$)":  # New : agriculture prototype
+            mask = (df["buffer-land[ha]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "buffer-land[ha]"]
+        elif splitted == "if($buffer[TWh]$>0,0,abs($buffer[TWh]$))":  # New : agriculture prototype
+            mask = (df["buffer[TWh]"] > 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "buffer[TWh]"].abs()
+        elif splitted == "if($buffer[TWh]$<0,0,$buffer[TWh]$)":  # New : agriculture prototype
+            mask = (df["buffer[TWh]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "buffer[TWh]"]
+        elif splitted == "if($${Ioverride_electricity_calibration}$$==0, 1, $cal_rate_energy-demand[TWh]$)": # New : BLD / TRA electricity calibration
+            if kwargs["override_electricity_calibration"] == 0:
+                df["cal_rate_energy-demand[TWh]"] = 1.0
+        elif splitted == "if($domestic-production[kcal]$<0,0,$domestic-production[kcal]$)":  # New : agriculture prototype
+            mask = (df["domestic-production[kcal]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "domestic-production[kcal]"]
+        elif splitted == "if($domestic-crop-production[kcal]$<0,0,$domestic-crop-production[kcal]$)":  # New : agriculture prototype
+            mask = (df["domestic-crop-production[kcal]"] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "domestic-crop-production[kcal]"]
+        elif splitted == "$gwp-100[-]$":  # New climate
+            df[replaced_column] = df[replaced_column].astype(float)
+        elif splitted == "if($value$==1,0,1)":  # New industry
+            mask = (df["value"] == 1)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = 1
+        elif splitted == "-abs($CC[Mt]$)":  # New industry
+            df[replaced_column] = -np.abs(df[replaced_column])
+        elif splitted == "-abs($emissions[Mt]$)":  # New Power
+            df[replaced_column] = -np.abs(df[replaced_column])
+        elif splitted == "if($emissions[MtCO2e]$>0, 0, $emissions[MtCO2e]$)":  # New climate
+            mask = (df["emissions[MtCO2e]"] > 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "$water-losses[%]$+1":  # Water
+            df.loc[:, replaced_column] = df.loc[:, "water-losses[%]"] + 1
+        elif splitted == "round($buffer-land[ha]$, 3)":  # LUS
+            df.loc[:, replaced_column] = df.loc[:, "buffer-land[ha]"].round(3)
 
 
-            df = df.rename(columns={**exp_rename_dict, **{'NEW_COLUMN' : self.replaced_column}})
+        # ------------------------------------------- OLD MODULES --------------------------------------------------------------------------------- #
+        elif splitted == "max_in_args(0,($dhg_energy-demand[TWh/year]$-$dhg_energy-demand_heat-contribution[TWh/year]$)/$dhg_energy-demand[TWh/year]$)":
+            df[replaced_column] = (df["dhg_energy-demand[TWh/year]"]-df["dhg_energy-demand_heat-contribution[TWh/year]"])/df["dhg_energy-demand[TWh/year]"]
+            df[replaced_column] = df[replaced_column].fillna(0)
+            mask = (df[replaced_column]<0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "max_in_args(0,$floor-area-increase[Mm2]$+$demolished-area[Mm2]$)":
+            df[replaced_column] = df["floor-area-increase[Mm2]"]+df["demolished-area[Mm2]"]
+            mask = (df[replaced_column]<0)
+            df.loc[mask, replaced_column] = 0
+        # elif splitted == "pow($floor-area[Mm2]$/$floor-area_previousperiod[Mm2]$,1/$period-duration$)":
+        #     df[replaced_column] = (df["floor-area[Mm2]"]/df["floor-area_previousperiod[Mm2]"])**(1/df["period-duration"])
+        # elif splitted == "$floor-area-previous[Mm2]$*(pow(1+$demolition-rate_exi$,$period-duration$)-1)":
+        #     df[replaced_column] = df["floor-area-previous[Mm2]"]*((1+df["demolition-rate_exi"]**df["period-duration"])-1)
+        # elif splitted == "$floor-area[Mm2]$/pow($growth-factor$,$period-duration$)":
+        #     df[replaced_column] = df["floor-area[Mm2]"]/(df["growth-factor"]**df["period-duration"])
+        elif splitted == "max_in_args(0,$floor-area-old-stock[Mm2]$-$floor-area-old-stock-renovated[Mm2]$)":
+            df[replaced_column] = df["floor-area-old-stock[Mm2]"] - df["floor-area-old-stock-renovated[Mm2]"]
+            mask = (df[replaced_column]<0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "$floor-area-previous[Mm2]$*((1+$demolition-rate_exi$)**($period-duration$)-1)+-min_in_args(0,$floor-area-increase[Mm2]$)":
+            df_min_in_args = df["floor-area-increase[Mm2]"].copy()
+            df_min_in_args[df_min_in_args > 0] = 0
+            df[replaced_column] = df["floor-area-previous[Mm2]"]*((1+df["demolition-rate_exi"])**df["period-duration"]-1)-df_min_in_args
+        elif splitted == "min_in_args(1,$floor-area[Mm2]$/($constructed-area-acc[Mm2]$+$renovated-area-acc[Mm2]$))":
+            df[replaced_column] = df["floor-area[Mm2]"]/(df["constructed-area-acc[Mm2]"]+df["renovated-area-acc[Mm2]"])
+            mask = (df[replaced_column] > 1)
+            df.loc[mask, replaced_column] = 1
+            df[replaced_column] = df[replaced_column].replace(np.inf,1)
+            df[replaced_column] = df[replaced_column].fillna(1)
+        elif splitted == "if($Years_number$<= 2015,$floor-area-demand[Mm2]$* $demolition-rate_exi$ ,0 )":
+            df[replaced_column] = df["floor-area-demand[Mm2]"]*df["demolition-rate_exi"]
+            mask = (df['Years_number'] > 2015)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "max_in_args($undemolished_area[m2]$*$renovation-rate_exi$,$undemolished_area_2015[m2]$*$renovation-rate_exi$)":
+            temp_1 = df["undemolished_area[m2]"]*df['renovation-rate_exi']
+            temp_2 = df["undemolished_area_2015[m2]"]*df["renovation-rate_exi"]
+            df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
+            df[replaced_column] = df_temp.max(axis=1)
+        elif splitted == "if($Years_number$>2015, $undemolished-area-2015[m2]$*((1-$demolition-rate_exi$)**($Years_number$-2015)),$floor-area-demand[Mm2]$-$demolished-area-before2015[m2]$)":
+            df[replaced_column] = df["floor-area-demand[Mm2]"]-df["demolished-area-before2015[m2]"]
+            mask = (df['Years_number'] > 2015)
+            df.loc[mask, replaced_column] = df.loc[mask,"undemolished-area-2015[m2]"] * ((1-df.loc[mask,"demolition-rate_exi"])**(df.loc[mask,"Years_number"]-2015))
+        elif splitted == "max_in_args($constructed_area[Mm2]$,$Limit_constructed area$)":
+            df[replaced_column] = df[["constructed_area[Mm2]","Limit_constructed area"]].max(axis=1)
+        elif splitted == "max_in_args(($floor-area-demand[Mm2]$-$previous-floor-area-demand[Mm2]$)-($floor-area-demand[Mm2]$*$demolition-rate_exi$), $floor-area-demand[Mm2]$*$demolition-rate_exi$  )":
+            temp_1 = (df["floor-area-demand[Mm2]"]-df['previous-floor-area-demand[Mm2]'])-(df["floor-area-demand[Mm2]"]*df["demolition-rate_exi"])
+            temp_2 = df["floor-area-demand[Mm2]"]*df["demolition-rate_exi"]
+            df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
+            df[replaced_column] = df_temp.max(axis=1)
+        elif splitted == "if($Years_number$>=2015,$undemolished_area[m2]$,$floor-area-demand[Mm2]$)":
+            df[replaced_column] = df["undemolished_area[m2]"]
+            mask = (df['Years_number'] < 2015)
+            df.loc[mask, replaced_column] = df.loc[mask,"floor-area-demand[Mm2]"]
+        elif splitted == "if($Years_number$>=2015,$undemolished-area[m2]$,$floor-area-demand[Mm2]$)":
+            df[replaced_column] = df["undemolished-area[m2]"]
+            mask = (df['Years_number'] < 2015)
+            df.loc[mask, replaced_column] = df.loc[mask,"floor-area-demand[Mm2]"]
+        elif splitted == "abs(0-$sim_poultry[%]$)":
+            df[replaced_column] = 0 - df["sim_poultry[%]"]
+            df[replaced_column] = df[replaced_column].abs()
+        elif splitted == "max_in_args($yearly-constructed-area[Mm2]$,$Limit_constructed_area$)":
+            df[replaced_column] = df[["yearly-constructed-area[Mm2]","Limit_constructed_area"]].max(axis=1)
+        elif splitted == "max_in_args($undemolished-area[m2]$*$renovation-rate_exi$,$undemolished-area-2015[m2]$*$renovation-rate_exi$)":
+            temp_1 = df["undemolished-area[m2]"]*df['renovation-rate_exi']
+            temp_2 = df["undemolished-area-2015[m2]"]*df["renovation-rate_exi"]
+            df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
+            df[replaced_column] = df_temp.max(axis=1)
+        elif splitted == "if($Years$<=2015,$Years$-1,$Years$-5)":
+            mask = (df['Years'] > 2015)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"Years"]-1
+            df.loc[mask, replaced_column] = df.loc[mask,"Years"]-5
+        elif splitted == "if($Years$<2025,$constructed-area_2025[Mm2]$,$constructed-area[Mm2]$)":
+            mask = (df['Years'] < 2025)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"constructed-area[Mm2]"]
+            df.loc[mask, replaced_column] = df.loc[mask,"constructed-area_2025[Mm2]"]
+        elif splitted == "if($Years$<2025,$renovated-area_2025[Mm2]$,$renovated-area[Mm2]$)":
+            mask = (df['Years'] < 2025)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"renovated-area[Mm2]"]
+            df.loc[mask, replaced_column] = df.loc[mask,"renovated-area_2025[Mm2]"]
+        elif splitted == "if($Years_number$<= 2015,0,0 )":
+            mask = (df['Years_number'] > 2015)
+            df.loc[~mask, replaced_column] = 0
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "max_in_args($yearly-constructed-area[Mm2]$,0)":
+            mask = (df['yearly-constructed-area[Mm2]'] >= 0)
+            df.loc[~mask, replaced_column] = 0
+            df.loc[mask, replaced_column] = df.loc[mask,"yearly-constructed-area[Mm2]"]
+        elif splitted ==  "max_in_args($constructed-area-over-timestep[Mm2]$,0)":
+            mask = (df['constructed-area-over-timestep[Mm2]'] >= 0)
+            df.loc[~mask, replaced_column] = 0
+            df.loc[mask, replaced_column] = df.loc[mask, "constructed-area-over-timestep[Mm2]"]
+        elif splitted =="if($Years_number$==2020,$constructed-area-over-timestep[Mm2]$/2,$constructed-area-over-timestep[Mm2]$/$period-duration$)":
+            mask = (df['Years_number'] == 2020)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"constructed-area-over-timestep[Mm2]"]/df.loc[~mask,"period-duration"]
+            df.loc[mask, replaced_column] = df.loc[mask,"constructed-area-over-timestep[Mm2]"]/2
+        elif splitted =="if($Years$==2015,$Years$,$Years$-5)":
+            mask = (df['Years'] == 2015)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"Years"]-5
+            df.loc[mask, replaced_column] = df.loc[mask,"Years"]
+        elif splitted =="if($Years$<=2020,$constructed-area_2020[Mm2]$,$constructed-area[Mm2]$)":
+            mask = (df['Years'] <= 2020)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"constructed-area[Mm2]"]
+            df.loc[mask, replaced_column] = df.loc[mask,"constructed-area_2020[Mm2]"]
+        elif splitted =="if($Years$<=2020,$renovated-area_2020[Mm2]$,$renovated-area[Mm2]$)":
+            mask = (df['Years'] <= 2020)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"renovated-area[Mm2]"]
+            df.loc[mask, replaced_column] = df.loc[mask,"renovated-area_2020[Mm2]"]
+        elif splitted == "max_in_args($ccu_ccus_hydrogen-demand[TWh]$-$sto_hydrogen[TWh]$,0)":
+            mask = (df['ccu_ccus_hydrogen-demand[TWh]']-df['sto_hydrogen[TWh]'] >= 0)
+            df.loc[~mask, replaced_column] = 0
+            df.loc[mask, replaced_column] = df.loc[mask, 'ccu_ccus_hydrogen-demand[TWh]']-df.loc[mask, 'sto_hydrogen[TWh]']
+        elif splitted ==  "max_in_args(0,$floor-area[Mm2]$-$constructed-area-acc[Mm2]$-$renovated-area-acc[Mm2]$)*$existing-mix$":
+            mask = (df['floor-area[Mm2]']-df['constructed-area-acc[Mm2]']-df["renovated-area-acc[Mm2]"] >= 0)
+            df.loc[~mask, replaced_column] = 0
+            df.loc[mask, replaced_column] = (df.loc[mask,'floor-area[Mm2]']-df.loc[mask,'constructed-area-acc[Mm2]']-df.loc[mask,"renovated-area-acc[Mm2]"]) * df.loc[mask,"existing-mix"]
+        elif splitted =="if($ref_link-refineries-to-activity[-]$==1,$net-energy-production_fossil_oil[TWh]$ ,$ref_fuel-production[TWh]$ )":
+            mask = (df['ref_link-refineries-to-activity[-]'] == 1)
+            df.loc[~mask, replaced_column] = df.loc[~mask,"ref_fuel-production[TWh]"]
+            df.loc[mask, replaced_column] = df.loc[mask,"net-energy-production_fossil_oil[TWh]"]
+        elif splitted == "min_in_args($lus_land_initial-area_unfccc_cropland[ha]$,$lus_land_cropland[ha]$)":
+            mask = (df['lus_land_initial-area_unfccc_cropland[ha]'] - df["lus_land_cropland[ha]"] >= 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "lus_land_cropland[ha]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, 'lus_land_initial-area_unfccc_cropland[ha]']
+        elif splitted == "min_in_args($lus_land_initial-area_unfccc_grassland[ha]$,$lus_land_grassland[ha]$)":
+            mask = (df['lus_land_initial-area_unfccc_grassland[ha]'] - df["lus_land_grassland[ha]"] >= 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "lus_land_grassland[ha]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, 'lus_land_initial-area_unfccc_grassland[ha]']
+        elif splitted == "min_in_args($lus_land_matrix_demand_cropland[ha]$,$lus_land_matrix_supply_cropland[ha]$)":
+            mask = (df['lus_land_matrix_demand_cropland[ha]'] - df["lus_land_matrix_supply_cropland[ha]"] >= 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "lus_land_matrix_supply_cropland[ha]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, 'lus_land_matrix_demand_cropland[ha]']
+        elif splitted == "min_in_args($lus_land_matrix_demand_grassland[ha]$,$lus_land_matrix_supply_grassland[ha]$)":
+            mask = (df['lus_land_matrix_demand_grassland[ha]'] - df["lus_land_matrix_supply_grassland[ha]"] >= 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "lus_land_matrix_supply_grassland[ha]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, 'lus_land_matrix_demand_grassland[ha]']
+        elif splitted == "$elc_demand-imported[TWh]$+if($elc_demand-after-RES[TWh]$>0,0,$elc_demand-after-RES[TWh]$)":
+            mask = (df['elc_demand-after-RES[TWh]'] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "elc_demand-imported[TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "elc_demand-imported[TWh]"]+df.loc[~mask, "elc_demand-after-RES[TWh]"]
+        elif splitted == "if($elc_demand-after-RES[TWh]$<0,0,$elc_demand-after-RES[TWh]$)":
+            mask = (df['elc_demand-after-RES[TWh]'] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "elc_demand-after-RES[TWh]"]
+        elif splitted == "-if($lus_energy-balance_bioenergy_solid[TWh]$<0,$lus_energy-balance_bioenergy_solid[TWh]$,0)":
+            mask = (df['lus_energy-balance_bioenergy_solid[TWh]'] > 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = - df.loc[~mask, "lus_energy-balance_bioenergy_solid[TWh]"]
+        elif splitted == "if($lus_energy-balance_bioenergy_solid[TWh]$<0,0,$lus_energy-balance_bioenergy_solid[TWh]$)":
+            mask = (df['lus_energy-balance_bioenergy_solid[TWh]'] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "lus_energy-balance_bioenergy_solid[TWh]"]
+        elif splitted == "$bioenergy-import_wood_solid[TWh]$-if($bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$<0,$bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$,0)":
+            mask = (df['bioenergy-balance_wood_solid[TWh]']-df['bioenergy-demand_elc_solid[TWh]']-df['bioenergy-demand_hea_solid[TWh]'] < 0)
+            df.loc[mask, replaced_column] = df.loc[mask,'bioenergy-import_wood_solid[TWh]']-(df.loc[mask,'bioenergy-balance_wood_solid[TWh]']-df.loc[mask,'bioenergy-demand_elc_solid[TWh]']-df.loc[mask,'bioenergy-demand_hea_solid[TWh]'])
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$<0,0,$bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$)":
+            mask = (df['bioenergy-balance_wood_solid[TWh]']-df['bioenergy-demand_elc_solid[TWh]']-df['bioenergy-demand_hea_solid[TWh]'] < 0)
+            df.loc[~mask, replaced_column] = (df.loc[~mask,'bioenergy-balance_wood_solid[TWh]']-df.loc[~mask,'bioenergy-demand_elc_solid[TWh]']-df.loc[~mask,'bioenergy-demand_hea_solid[TWh]'])
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "-if($bioenergy-balance_wood_solid[TWh]$*0.8-$bioenergy-demand_elc_gas[TWh]$-$bioenergy-demand_agr_gas[TWh]$-$bioenergy-demand_hea_gas[TWh]$-$bioenergy-demand_ref_gas[TWh]$<0,$bioenergy-balance_wood_solid[TWh]$*0.8-$bioenergy-demand_elc_gas[TWh]$-$bioenergy-demand_agr_gas[TWh]$-$bioenergy-demand_hea_gas[TWh]$-$bioenergy-demand_ref_gas[TWh]$,0)":
+            mask = (df['bioenergy-balance_wood_solid[TWh]']*0.8-df['bioenergy-demand_elc_gas[TWh]']-df['bioenergy-demand_agr_gas[TWh]']-df['bioenergy-demand_ref_gas[TWh]']-df['bioenergy-demand_hea_gas[TWh]'] < 0)
+            df.loc[mask, replaced_column] = -(df.loc[mask,'bioenergy-balance_wood_solid[TWh]']*0.8-df.loc[mask,'bioenergy-demand_elc_gas[TWh]']-df.loc[mask,'bioenergy-demand_agr_gas[TWh]']-df.loc[mask,'bioenergy-demand_hea_gas[TWh]']-df.loc[mask,'bioenergy-demand_ref_gas[TWh]'])
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($bioenergy-balance_wood_solid[TWh]$*0.8-$bioenergy-demand_elc_gas[TWh]$-$bioenergy-demand_agr_gas[TWh]$-$bioenergy-demand_hea_gas[TWh]$-$bioenergy-demand_ref_gas[TWh]$<0,0,$bioenergy-balance_wood_solid[TWh]$-($bioenergy-demand_elc_gas[TWh]$+$bioenergy-demand_agr_gas[TWh]$+$bioenergy-demand_hea_gas[TWh]$+$bioenergy-demand_ref_gas[TWh]$)/0.8)":
+            mask = (df['bioenergy-balance_wood_solid[TWh]']*0.8-df['bioenergy-demand_elc_gas[TWh]']-df['bioenergy-demand_agr_gas[TWh]']-df['bioenergy-demand_hea_gas[TWh]']-df['bioenergy-demand_ref_gas[TWh]'] < 0)
+            df.loc[~mask, replaced_column] = (df.loc[~mask,'bioenergy-balance_wood_solid[TWh]']-(df.loc[~mask,'bioenergy-demand_elc_gas[TWh]']+df.loc[~mask,'bioenergy-demand_agr_gas[TWh]']+df.loc[~mask,'bioenergy-demand_ref_gas[TWh]']+df.loc[~mask,'bioenergy-demand_hea_gas[TWh]'])/0.8)
+            df.loc[mask, replaced_column] = 0
+        elif splitted ==  "max_in_args($energy-demand[TWh]$*(1-($bld_fuel-switch_biogas[%]$+$bld_fuel-switch_e-gas[%]$+$bld_fuel-switch_hydrogen[%]$)),0 )":
+            mask = (df['energy-demand[TWh]']*(1-(df['bld_fuel-switch_biogas[%]']+df["bld_fuel-switch_e-gas[%]"]+df["bld_fuel-switch_hydrogen[%]"])) >= 0)
+            df.loc[~mask, replaced_column] = 0
+            df.loc[mask, replaced_column] = df.loc[mask,'energy-demand[TWh]']*(1-(df.loc[mask,'bld_fuel-switch_biogas[%]']+df.loc[mask,"bld_fuel-switch_e-gas[%]"]+df.loc[mask,"bld_fuel-switch_hydrogen[%]"]))
+        elif splitted ==  "min_in_args($bld_fuel-switch_e-gas[%]$,(1-($bld_fuel-switch_hydrogen[%]$+$bld_fuel-switch_biogas[%]$)))":
+            mask = (df['bld_fuel-switch_e-gas[%]'] < (1-(df["bld_fuel-switch_hydrogen[%]"]+df["bld_fuel-switch_biogas[%]"])))
+            df.loc[mask, replaced_column] = df.loc[mask,'bld_fuel-switch_e-gas[%]']
+            df.loc[~mask, replaced_column] = 1-(df.loc[~mask,"bld_fuel-switch_hydrogen[%]"]+df.loc[~mask,"bld_fuel-switch_biogas[%]"])
+        elif splitted == "max_in_args($bld_fuel-switch_e-gas[%]$,0)":
+            mask = (df['bld_fuel-switch_e-gas[%]'] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask,'bld_fuel-switch_e-gas[%]']
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($constructed-area-over-timestep[Mm2]$ > 0 , $constructed-area-over-timestep[Mm2]$, $demolished-area-over-timestep[Mm2]$)":
+            mask = (df['constructed-area-over-timestep[Mm2]'] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, 'constructed-area-over-timestep[Mm2]']
+            df.loc[~mask, replaced_column] = df.loc[~mask, 'demolished-area-over-timestep[Mm2]']
+        elif splitted ==  "min_in_args($bld_fuel-switch_e-liquids[%]$,(1-$bld_fuel-switch_bioliquids[%]$))":
+            mask = (df['bld_fuel-switch_e-liquids[%]'] > 1 - df['bld_fuel-switch_bioliquids[%]'])
+            df.loc[mask, replaced_column] = 1 - df.loc[mask,'bld_fuel-switch_bioliquids[%]']
+            df.loc[~mask, replaced_column] = df.loc[~mask,'bld_fuel-switch_e-liquids[%]']
+        elif splitted == "max_in_args($bld_fuel-switch_e-liquids[%]$,0)":
+            mask = (df['bld_fuel-switch_e-liquids[%]'] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, 'bld_fuel-switch_e-liquids[%]']
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "max_in_args($energy-demand[TWh]$*(1-($bld_fuel-switch_bioliquids[%]$+$bld_fuel-switch_e-liquids[%]$)),0 )":
+            mask = (df['energy-demand[TWh]']*(1-(df['bld_fuel-switch_bioliquids[%]']+df['bld_fuel-switch_e-liquids[%]'])) > 0)
+            df.loc[mask, replaced_column] = df.loc[mask,'energy-demand[TWh]']*(1-(df.loc[mask,'bld_fuel-switch_bioliquids[%]']+df.loc[mask,'bld_fuel-switch_e-liquids[%]']))
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "abs($elc_demand-imported[TWh]$)":
+            df[replaced_column] = df["elc_demand-imported[TWh]"]
+            df[replaced_column] = df[replaced_column].abs()
+        elif splitted == "if($elc_demand-imported[TWh]$<0,0,$elc_demand-imported[TWh]$)":
+            mask = (df['elc_demand-imported[TWh]'] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "elc_demand-imported[TWh]"]
+        elif splitted == "if($elc_total-prod[TWh]$*(0.2812*$elc_intermitency-share[%]$-0.0228)<0,0,$elc_total-prod[TWh]$*(0.2812*$elc_intermitency-share[%]$-0.0228))":
+            mask = (df['elc_total-prod[TWh]'] * (0.2812 * df['elc_intermitency-share[%]'] - 0.0228) < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "elc_total-prod[TWh]"] * (0.2812 * df.loc[~mask, "elc_intermitency-share[%]"] - 0.0228)
+        elif splitted == "if($elc_intermitency-share[%]$<0.15,8,$transmission-capacity[GW]$)":
+            mask = (df['elc_intermitency-share[%]'] < 0.15)
+            df.loc[mask, replaced_column] = 8
+            df.loc[~mask, replaced_column] = df.loc[~mask, "transmission-capacity[GW]"]
+        elif splitted == "$${Ddegree_integration[%]}$$*(+263.69*$elc_intermitency-share[%]$*$elc_intermitency-share[%]$-13.252*$elc_intermitency-share[%]$+4.3033)":
+            df[replaced_column] = kwargs["degree_integration_percent"] * (263.69 * df['elc_intermitency-share[%]'] * df['elc_intermitency-share[%]'] - 13.252 * df['elc_intermitency-share[%]'] + 4.3033)
+        elif splitted == "$transmission-capacity-annual-increase[GW.km]$*$${Dtransmission_cost_MEUR_per_GWkm}$$":
+            df[replaced_column] = df['transmission-capacity-annual-increase[GW.km]'] * kwargs["transmission_cost_MEUR_per_GWkm"]
+        elif splitted == "$transmission-capacity[GW.km]$*0.01*$${Dtransmission_cost_MEUR_per_GWkm}$$":
+            df[replaced_column] = df['transmission-capacity[GW.km]'] * 0.01 * kwargs["transmission_cost_MEUR_per_GWkm"]
+        elif splitted == "$backup-production[GWh]$/$${Dloadfactor_backupplant[%]}$$":
+            df[replaced_column] = df['backup-production[GWh]'] / kwargs["loadfactor_backupplant_percent"]
+        elif splitted == "$backup-capacity-annual-increase[GW]$*$${Dbackup-capacity-capex[MEUR/GW]}$$":
+            df[replaced_column] = df['backup-capacity-annual-increase[GW]'] * kwargs["backup_capacity_capex_MEUR_per_GW"]
+        elif splitted == "$backup-capacity[GW]$*$${Dbackup-capacity-opexfixed[MEUR/GW]}$$":
+            df[replaced_column] = df['backup-capacity[GW]'] * kwargs["backup_capacity_capex_MEUR_per_GW"]
+        elif splitted == "$backup-consumption[GWh]$*$${Dbackup-capacity-opexvariable[EUR/MWh]}$$/1000":
+            df[replaced_column] = df['backup-consumption[GWh]'] * kwargs["backup_capacity_opexvariable_EUR_MWh"] / 1000
+        elif splitted == "$backup-production[GWh]$*$${Dloadfactor_backupplant[%]}$$":
+            df[replaced_column] = df['backup-production[GWh]'] * kwargs["loadfactor_backupplant_percent"]
+        elif splitted == "if($elc_link-costs-to-activity[-]$==1,$fuel-price_elc[MEUR/TWh]$,$tec_exogenous-energy-costs_electricity[EUR/MWh]$)":
+            mask = (df['elc_link-costs-to-activity[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask,"fuel-price_elc[MEUR/TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_electricity[EUR/MWh]"]
+        elif splitted == "if($elc_link-costs-to-activity[-]$ == 1, $fuel-price_hyd[MEUR / TWh]$, $tec_exogenous-energy-costs_hydrogen[EUR / MWh]$)":
+            mask = (df['elc_link-costs-to-activity[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask,"fuel-price_hyd[MEUR / TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_hydrogen[EUR / MWh]"]
+        elif splitted == "if($elc_link-costs-to-activity[-]$ == 1, $fuel-price_dhg[MEUR / TWh]$, $tec_exogenous-energy-costs_heat-waste[EUR / MWh]$)":
+            mask = (df['elc_link-costs-to-activity[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask,"fuel-price_dhg[MEUR / TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR / MWh]"]
+        elif splitted == "if($elc_link-costs-to-activity_electricity[-]$==1,$fuel-price_elc[MEUR/TWh]$,$tec_exogenous-energy-costs_electricity[EUR/MWh]$)":
+            mask = (df['elc_link-costs-to-activity_electricity[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask,"fuel-price_elc[MEUR/TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_electricity[EUR/MWh]"]
+        elif splitted == "if($elc_link-costs-to-activity_hydrogen[-]$==1,$fuel-price_hyd[MEUR/TWh]$,$tec_exogenous-energy-costs_hydrogen[EUR/MWh]$)":
+            mask = (df['elc_link-costs-to-activity_hydrogen[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask, "fuel-price_hyd[MEUR/TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_hydrogen[EUR/MWh]"]
+        elif splitted == "if($elc_link-costs-to-activity_heat[-]$==1,$fuel-price_dhg[MEUR/TWh]$,$tec_exogenous-energy-costs_heat-waste[EUR/MWh]$)":
+            mask = (df['elc_link-costs-to-activity_heat[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask, "fuel-price_dhg[MEUR/TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR/MWh]"]
+        elif splitted == "if($constructed-area-over-timestep_historical[Mm2]$ > 0 , $constructed-area-over-timestep_historical[Mm2]$, $demolished-area-over-timestep_historical[Mm2]$)":
+            mask = (df['constructed-area-over-timestep_historical[Mm2]'] > 0)
+            df.loc[~mask, replaced_column] = df.loc[~mask, "demolished-area-over-timestep_historical[Mm2]"]
+        elif splitted == "if($Years_number$<2015,1,$renovation-mix$)":
+            mask = (df['Years_number'] < 2015)
+            df.loc[mask, replaced_column] = 1
+        elif splitted == "max_in_args(min_in_args($bld_fuel-switch_hydrogen[%]$,(1-($bld_fuel-switch_biogas[%]$))),0)":
+            temp_1 = df['bld_fuel-switch_hydrogen[%]']
+            temp_2 = 1 - df['bld_fuel-switch_biogas[%]']
+            df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
+            df[replaced_column] = df_temp.min(axis=1)
+            mask = (df[replaced_column] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "max_in_args(min_in_args($bld_fuel-switch_e-gas[%]$,(1-($bld_fuel-switch_hydrogen[%]$+$bld_fuel-switch_biogas[%]$))),0)":
+            temp_1 = df['bld_fuel-switch_e-gas[%]']
+            temp_2 = 1 - (df['bld_fuel-switch_hydrogen[%]'] + df['bld_fuel-switch_biogas[%]'])
+            df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
+            df[replaced_column] = df_temp.min(axis=1)
+            mask = (df[replaced_column] < 0)
+            df.loc[mask, replaced_column] = 0
+        elif splitted == "if($lus_dyn_forest[ha]$ > 0, $lus_dyn_forest[ha]$ * 5000 / 1000000, 0)":
+            mask = (df['lus_dyn_forest[ha]'] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "lus_dyn_forest[ha]"] * 5000 / 1000000
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($dhg_pipes-total-over-timestep[km]$ < 0, 0 , $dhg_pipes-total-over-timestep[km]$)":
+            mask = (df['dhg_pipes-total-over-timestep[km]'] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "dhg_pipes-total-over-timestep[km]"]
+        elif splitted == "if($existing-unrenovated-area-over-timestep[Mm2]$<0,0 ,$existing-unrenovated-area-over-timestep[Mm2]$ )":
+            mask = (df['existing-unrenovated-area-over-timestep[Mm2]'] < 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "existing-unrenovated-area-over-timestep[Mm2]"]
+        elif splitted == "if($lus_change_forest[ha]$ > 0, $lus_change_forest[ha]$ * 5000 / 1000000, 0)":
+            mask = (df['lus_change_forest[ha]'] > 0)
+            df.loc[mask, replaced_column] = df.loc[mask, "lus_change_forest[ha]"] * 5000 / 1000000
+            df.loc[~mask, replaced_column] = 0
+        elif splitted == "if($elc_link-costs-to-activity_heat[-]$ == 1, $fuel-price_heat[MEUR / TWh]$, $tec_exogenous-energy-costs_heat-waste[EUR / MWh]$)":
+            mask = (df['elc_link-costs-to-activity_heat[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask, "fuel-price_heat[MEUR / TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR / MWh]"]
+        elif splitted == "if($elc_link-costs-to-activity_heat[-]$==1,$fuel-price_heat[MEUR/TWh]$,$tec_exogenous-energy-costs_heat-waste[EUR/MWh]$)":
+            mask = (df['elc_link-costs-to-activity_heat[-]'] == 1)
+            df.loc[mask, replaced_column] = df.loc[mask, "fuel-price_heat[MEUR/TWh]"]
+            df.loc[~mask, replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR/MWh]"]
+        elif splitted == "if($chp-pth-ratio[-]$==0,0,$elc_capacity_CHP[GW]$*$capacity-factor_CHP[%]$*8.76/$chp-pth-ratio[-]$)":
+            mask = (df['chp-pth-ratio[-]'] == 0)
+            df.loc[mask, replaced_column] = 0
+            df.loc[~mask, replaced_column] = df.loc[~mask, "elc_capacity_CHP[GW]"] * df.loc[~mask, "capacity-factor_CHP[%]"] * 8.76 / df.loc[~mask, "chp-pth-ratio[-]"]
 
-            if self.convert_to_int:
-                df[self.replaced_column] = df[self.replaced_column].round(0)
-        else:
-            if self.splitted == "if($vehicle-fleet-historical[number]$ >= 0,$vehicle-fleet-historical[number]$,$veh-fleet-future[number]$)": # New : transport prototype
-                df[self.replaced_column] = df["vehicle-fleet-historical[number]"]
-                mask = (df["vehicle-fleet-historical[number]"] < 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "veh-fleet-future[number]"]
-            elif self.splitted == "if($new-veh-fleet[number]$ < 0, 0, $new-veh-fleet[number]$)": # New : transport prototype
-                df[self.replaced_column] = df["new-veh-fleet[number]"]
-                mask = (df["new-veh-fleet[number]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($veh-fleet-need[number]$<0, 0, $veh-fleet-need[number]$)": # New : transport prototype
-                df[self.replaced_column] = df["veh-fleet-need[number]"]
-                mask = (df["veh-fleet-need[number]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($new-veh-fleet[number]$ > 0, 0, $new-veh-fleet[number]$)": # New : transport prototype
-                df[self.replaced_column] = df["new-veh-fleet[number]"]
-                mask = (df["new-veh-fleet[number]"] > 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($new-capacities[kW]$ < 0, 0, $new-capacities[kW]$)":  # New : power prototype
-                df[self.replaced_column] = df["new-capacities[kW]"]
-                mask = (df["new-capacities[kW]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($heat-energy-production[TWh]$<0,0,$heat-energy-production[TWh]$)":  # New : power prototype
-                df[self.replaced_column] = df["heat-energy-production[TWh]"]
-                mask = (df["heat-energy-production[TWh]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($intermitency-share[%]$<0.15,8,$transmission-capacity[GW]$)":  # New : power prototype
-                df[self.replaced_column] = df["transmission-capacity[GW]"]
-                mask = (df["intermitency-share[%]"] < 0.15)
-                df.loc[mask, self.replaced_column] = 8
-            elif self.splitted == "if($energy-imported[TWh]$ < 0, 0, $energy-imported[TWh]$)":  # New : power prototype
-                df[self.replaced_column] = df["energy-imported[TWh]"]
-                mask = (df["energy-imported[TWh]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($annual-backup-growth[GW]$ < 0, 0, $annual-backup-growth[GW]$)":  # New : power prototype
-                df[self.replaced_column] = df["annual-backup-growth[GW]"]
-                mask = (df["annual-backup-growth[GW]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($annual-transmission-growth[GW]$ < 0, 0, $annual-transmission-growth[GW]$)":  # New : power prototype
-                df[self.replaced_column] = df["annual-transmission-growth[GW]"]
-                mask = (df["annual-transmission-growth[GW]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($net-energy-production[TWh]$ * (0.2812 * $intermitency-share[%]$ - 0.0228) < 0,0,$net-energy-production[TWh]$ * (0.2812 * $intermitency-share[%]$ - 0.0228))":  # New : power prototype
-                df[self.replaced_column] = df["net-energy-production[TWh]"] * (0.2812 * df["intermitency-share[%]"] - 0.0228)
-                mask = (df["net-energy-production[TWh]"] * (0.2812 * df["intermitency-share[%]"] - 0.0228) < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($energy-imported[TWh]$ < 0, abs($energy-imported[TWh]$), 0)":  # New : power prototype
-                df[self.replaced_column] = df["energy-imported[TWh]"].abs()
-                mask = (df["energy-imported[TWh]"] >= 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "energy-imported[TWh]$=if($energy-imported[TWh]$ < 0, 0, $energy-imported[TWh]$)":  # New : power prototype
-                df[self.replaced_column] = df["energy-imported[TWh]"]
-                mask = (df["energy-imported[TWh]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "abs($energy-imported[GW]$)":  # New : power prototype
-                df[self.replaced_column] = df["energy-imported[GW]"].abs()
-            elif self.splitted == "-abs($direct-air-capture[Mt]$)":  # New : power prototype
-                df[self.replaced_column] = -df["direct-air-capture[Mt]"].abs()
-            elif self.splitted == "if($EE-saving-delta[TWh]$<0, 0, 15*$EE-saving-delta[TWh]$)": # New : industry prototype
-                mask = (df["EE-saving-delta[TWh]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = 15 * df.loc[~mask, "EE-saving-delta[TWh]"]
-            elif self.splitted == "if($disable_product_calibration$==1,0,1)": # New : industry prototype
-                mask = (df["disable_product_calibration"] == 1)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = 1
-            elif self.splitted == "min_in_args($product-import-share[%demand]$,1)":  # New : industry prototype
-                mask = (df["product-import-share[%demand]"] > 1)
-                df.loc[mask, self.replaced_column] = 1
-            elif self.splitted == "min_in_args($subproduct-import-share[%demand]$,1)":  # New : industry prototype
-                mask = (df["subproduct-import-share[%demand]"] > 1)
-                df.loc[mask, self.replaced_column] = 1
-            elif self.splitted == "min_in_args($material-import-share[%demand]$,1)":  # New : industry prototype
-                mask = (df["material-import-share[%demand]"] > 1)
-                df.loc[mask, self.replaced_column] = 1
-            elif self.splitted == "if($renovation-rate-overtimestep[%]$>1,1,$renovation-rate-overtimestep[%]$)":  # New : building prototype
-                mask = (df["renovation-rate-overtimestep[%]"] > 1)
-                df.loc[mask, self.replaced_column] = 1
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "renovation-rate-overtimestep[%]"]
-            elif self.splitted == "if($pipes-length-overtimestep[km]$<0, 0, $pipes-length-overtimestep[km]$)":  # New : building prototype
-                mask = (df["pipes-length-overtimestep[km]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "pipes-length-overtimestep[km]"]
-            elif self.splitted == "if($missing-floor-area[m2]$ < 0, 0, $missing-floor-area[m2]$)":  # New : building prototype
-                mask = (df["missing-floor-area[m2]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "missing-floor-area[m2]"]
-            elif self.splitted == "if($missing-floor-area[m2]$>=0,0,-$missing-floor-area[m2]$)":  # New : building prototype
-                mask = (df["missing-floor-area[m2]"] >= 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "missing-floor-area[m2]"]*-1
-            elif self.splitted == "if($heating-capacity[KW]$<0,0,$heating-capacity[KW]$)":  # New : building prototype
-                mask = (df["heating-capacity[KW]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "heating-capacity[KW]"]
-            elif self.splitted == "if($land-variation[ha]$> 0, $land-variation[ha]$ * 5000 / 1000000, 0)":  # New : agriculture prototype
-                mask = (df["land-variation[ha]"] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "land-variation[ha]"] * 5000 / 1000000
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($land-area[ha]$> 0, $land-area[ha]$ * 5000 / 1000000, 0)":
-                mask = (df["land-area[ha]"] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "land-area[ha]"] * 5000 / 1000000
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($buffer-land[ha]$>0,0,abs($buffer-land[ha]$))":  # New : agriculture prototype
-                mask = (df["buffer-land[ha]"] > 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "buffer-land[ha]"].abs()
-            elif self.splitted == "if($buffer-land[ha]$<0,0,$buffer-land[ha]$)":  # New : agriculture prototype
-                mask = (df["buffer-land[ha]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "buffer-land[ha]"]
-            elif self.splitted == "if($buffer[TWh]$>0,0,abs($buffer[TWh]$))":  # New : agriculture prototype
-                mask = (df["buffer[TWh]"] > 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "buffer[TWh]"].abs()
-            elif self.splitted == "if($buffer[TWh]$<0,0,$buffer[TWh]$)":  # New : agriculture prototype
-                mask = (df["buffer[TWh]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "buffer[TWh]"]
-            elif self.splitted == "if($${Ioverride_electricity_calibration}$$==0, 1, $cal_rate_energy-demand[TWh]$)": # New : BLD / TRA electricity calibration
-                if kwargs["override_electricity_calibration"] == 0:
-                    df["cal_rate_energy-demand[TWh]"] = 1.0
-            elif self.splitted == "if($domestic-production[kcal]$<0,0,$domestic-production[kcal]$)":  # New : agriculture prototype
-                mask = (df["domestic-production[kcal]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "domestic-production[kcal]"]
-            elif self.splitted == "if($domestic-crop-production[kcal]$<0,0,$domestic-crop-production[kcal]$)":  # New : agriculture prototype
-                mask = (df["domestic-crop-production[kcal]"] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "domestic-crop-production[kcal]"]
-            elif self.splitted == "$gwp-100[-]$":  # New climate
-                df[self.replaced_column] = df[self.replaced_column].astype(float)
-            elif self.splitted == "if($value$==1,0,1)":  # New industry
-                mask = (df["value"] == 1)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = 1
-            elif self.splitted == "-abs($CC[Mt]$)":  # New industry
-                df[self.replaced_column] = -np.abs(df[self.replaced_column])
-            elif self.splitted == "-abs($emissions[Mt]$)":  # New Power
-                df[self.replaced_column] = -np.abs(df[self.replaced_column])
-            elif self.splitted == "if($emissions[MtCO2e]$>0, 0, $emissions[MtCO2e]$)":  # New climate
-                mask = (df["emissions[MtCO2e]"] > 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "$water-losses[%]$+1":  # Water
-                df.loc[:, self.replaced_column] = df.loc[:, "water-losses[%]"] + 1
-            elif self.splitted == "round($buffer-land[ha]$, 3)":  # LUS
-                df.loc[:, self.replaced_column] = df.loc[:, "buffer-land[ha]"].round(3)
+    df[replaced_column] = df[replaced_column].replace(np.inf, np.nan).astype(float)
 
-
-            # ------------------------------------------- OLD MODULES --------------------------------------------------------------------------------- #
-            elif self.splitted == "max_in_args(0,($dhg_energy-demand[TWh/year]$-$dhg_energy-demand_heat-contribution[TWh/year]$)/$dhg_energy-demand[TWh/year]$)":
-                df[self.replaced_column] = (df["dhg_energy-demand[TWh/year]"]-df["dhg_energy-demand_heat-contribution[TWh/year]"])/df["dhg_energy-demand[TWh/year]"]
-                df[self.replaced_column] = df[self.replaced_column].fillna(0)
-                mask = (df[self.replaced_column]<0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "max_in_args(0,$floor-area-increase[Mm2]$+$demolished-area[Mm2]$)":
-                df[self.replaced_column] = df["floor-area-increase[Mm2]"]+df["demolished-area[Mm2]"]
-                mask = (df[self.replaced_column]<0)
-                df.loc[mask, self.replaced_column] = 0
-            # elif self.splitted == "pow($floor-area[Mm2]$/$floor-area_previousperiod[Mm2]$,1/$period-duration$)":
-            #     df[self.replaced_column] = (df["floor-area[Mm2]"]/df["floor-area_previousperiod[Mm2]"])**(1/df["period-duration"])
-            # elif self.splitted == "$floor-area-previous[Mm2]$*(pow(1+$demolition-rate_exi$,$period-duration$)-1)":
-            #     df[self.replaced_column] = df["floor-area-previous[Mm2]"]*((1+df["demolition-rate_exi"]**df["period-duration"])-1)
-            # elif self.splitted == "$floor-area[Mm2]$/pow($growth-factor$,$period-duration$)":
-            #     df[self.replaced_column] = df["floor-area[Mm2]"]/(df["growth-factor"]**df["period-duration"])
-            elif self.splitted == "max_in_args(0,$floor-area-old-stock[Mm2]$-$floor-area-old-stock-renovated[Mm2]$)":
-                df[self.replaced_column] = df["floor-area-old-stock[Mm2]"] - df["floor-area-old-stock-renovated[Mm2]"]
-                mask = (df[self.replaced_column]<0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "$floor-area-previous[Mm2]$*((1+$demolition-rate_exi$)**($period-duration$)-1)+-min_in_args(0,$floor-area-increase[Mm2]$)":
-                df_min_in_args = df["floor-area-increase[Mm2]"].copy()
-                df_min_in_args[df_min_in_args > 0] = 0
-                df[self.replaced_column] = df["floor-area-previous[Mm2]"]*((1+df["demolition-rate_exi"])**df["period-duration"]-1)-df_min_in_args
-            elif self.splitted == "min_in_args(1,$floor-area[Mm2]$/($constructed-area-acc[Mm2]$+$renovated-area-acc[Mm2]$))":
-                df[self.replaced_column] = df["floor-area[Mm2]"]/(df["constructed-area-acc[Mm2]"]+df["renovated-area-acc[Mm2]"])
-                mask = (df[self.replaced_column] > 1)
-                df.loc[mask, self.replaced_column] = 1
-                df[self.replaced_column] = df[self.replaced_column].replace(np.inf,1)
-                df[self.replaced_column] = df[self.replaced_column].fillna(1)
-            elif self.splitted == "if($Years_number$<= 2015,$floor-area-demand[Mm2]$* $demolition-rate_exi$ ,0 )":
-                df[self.replaced_column] = df["floor-area-demand[Mm2]"]*df["demolition-rate_exi"]
-                mask = (df['Years_number'] > 2015)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "max_in_args($undemolished_area[m2]$*$renovation-rate_exi$,$undemolished_area_2015[m2]$*$renovation-rate_exi$)":
-                temp_1 = df["undemolished_area[m2]"]*df['renovation-rate_exi']
-                temp_2 = df["undemolished_area_2015[m2]"]*df["renovation-rate_exi"]
-                df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
-                df[self.replaced_column] = df_temp.max(axis=1)
-            elif self.splitted == "if($Years_number$>2015, $undemolished-area-2015[m2]$*((1-$demolition-rate_exi$)**($Years_number$-2015)),$floor-area-demand[Mm2]$-$demolished-area-before2015[m2]$)":
-                df[self.replaced_column] = df["floor-area-demand[Mm2]"]-df["demolished-area-before2015[m2]"]
-                mask = (df['Years_number'] > 2015)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"undemolished-area-2015[m2]"] * ((1-df.loc[mask,"demolition-rate_exi"])**(df.loc[mask,"Years_number"]-2015))
-            elif self.splitted == "max_in_args($constructed_area[Mm2]$,$Limit_constructed area$)":
-                df[self.replaced_column] = df[["constructed_area[Mm2]","Limit_constructed area"]].max(axis=1)
-            elif self.splitted == "max_in_args(($floor-area-demand[Mm2]$-$previous-floor-area-demand[Mm2]$)-($floor-area-demand[Mm2]$*$demolition-rate_exi$), $floor-area-demand[Mm2]$*$demolition-rate_exi$  )":
-                temp_1 = (df["floor-area-demand[Mm2]"]-df['previous-floor-area-demand[Mm2]'])-(df["floor-area-demand[Mm2]"]*df["demolition-rate_exi"])
-                temp_2 = df["floor-area-demand[Mm2]"]*df["demolition-rate_exi"]
-                df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
-                df[self.replaced_column] = df_temp.max(axis=1)
-            elif self.splitted == "if($Years_number$>=2015,$undemolished_area[m2]$,$floor-area-demand[Mm2]$)":
-                df[self.replaced_column] = df["undemolished_area[m2]"]
-                mask = (df['Years_number'] < 2015)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"floor-area-demand[Mm2]"]
-            elif self.splitted == "if($Years_number$>=2015,$undemolished-area[m2]$,$floor-area-demand[Mm2]$)":
-                df[self.replaced_column] = df["undemolished-area[m2]"]
-                mask = (df['Years_number'] < 2015)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"floor-area-demand[Mm2]"]
-            elif self.splitted == "abs(0-$sim_poultry[%]$)":
-                df[self.replaced_column] = 0 - df["sim_poultry[%]"]
-                df[self.replaced_column] = df[self.replaced_column].abs()
-            elif self.splitted == "max_in_args($yearly-constructed-area[Mm2]$,$Limit_constructed_area$)":
-                df[self.replaced_column] = df[["yearly-constructed-area[Mm2]","Limit_constructed_area"]].max(axis=1)
-            elif self.splitted == "max_in_args($undemolished-area[m2]$*$renovation-rate_exi$,$undemolished-area-2015[m2]$*$renovation-rate_exi$)":
-                temp_1 = df["undemolished-area[m2]"]*df['renovation-rate_exi']
-                temp_2 = df["undemolished-area-2015[m2]"]*df["renovation-rate_exi"]
-                df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
-                df[self.replaced_column] = df_temp.max(axis=1)
-            elif self.splitted == "if($Years$<=2015,$Years$-1,$Years$-5)":
-                mask = (df['Years'] > 2015)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"Years"]-1
-                df.loc[mask, self.replaced_column] = df.loc[mask,"Years"]-5
-            elif self.splitted == "if($Years$<2025,$constructed-area_2025[Mm2]$,$constructed-area[Mm2]$)":
-                mask = (df['Years'] < 2025)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"constructed-area[Mm2]"]
-                df.loc[mask, self.replaced_column] = df.loc[mask,"constructed-area_2025[Mm2]"]
-            elif self.splitted == "if($Years$<2025,$renovated-area_2025[Mm2]$,$renovated-area[Mm2]$)":
-                mask = (df['Years'] < 2025)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"renovated-area[Mm2]"]
-                df.loc[mask, self.replaced_column] = df.loc[mask,"renovated-area_2025[Mm2]"]
-            elif self.splitted == "if($Years_number$<= 2015,0,0 )":
-                mask = (df['Years_number'] > 2015)
-                df.loc[~mask, self.replaced_column] = 0
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "max_in_args($yearly-constructed-area[Mm2]$,0)":
-                mask = (df['yearly-constructed-area[Mm2]'] >= 0)
-                df.loc[~mask, self.replaced_column] = 0
-                df.loc[mask, self.replaced_column] = df.loc[mask,"yearly-constructed-area[Mm2]"]
-            elif self.splitted ==  "max_in_args($constructed-area-over-timestep[Mm2]$,0)":
-                mask = (df['constructed-area-over-timestep[Mm2]'] >= 0)
-                df.loc[~mask, self.replaced_column] = 0
-                df.loc[mask, self.replaced_column] = df.loc[mask, "constructed-area-over-timestep[Mm2]"]
-            elif self.splitted =="if($Years_number$==2020,$constructed-area-over-timestep[Mm2]$/2,$constructed-area-over-timestep[Mm2]$/$period-duration$)":
-                mask = (df['Years_number'] == 2020)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"constructed-area-over-timestep[Mm2]"]/df.loc[~mask,"period-duration"]
-                df.loc[mask, self.replaced_column] = df.loc[mask,"constructed-area-over-timestep[Mm2]"]/2
-            elif self.splitted =="if($Years$==2015,$Years$,$Years$-5)":
-                mask = (df['Years'] == 2015)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"Years"]-5
-                df.loc[mask, self.replaced_column] = df.loc[mask,"Years"]
-            elif self.splitted =="if($Years$<=2020,$constructed-area_2020[Mm2]$,$constructed-area[Mm2]$)":
-                mask = (df['Years'] <= 2020)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"constructed-area[Mm2]"]
-                df.loc[mask, self.replaced_column] = df.loc[mask,"constructed-area_2020[Mm2]"]
-            elif self.splitted =="if($Years$<=2020,$renovated-area_2020[Mm2]$,$renovated-area[Mm2]$)":
-                mask = (df['Years'] <= 2020)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"renovated-area[Mm2]"]
-                df.loc[mask, self.replaced_column] = df.loc[mask,"renovated-area_2020[Mm2]"]
-            elif self.splitted == "max_in_args($ccu_ccus_hydrogen-demand[TWh]$-$sto_hydrogen[TWh]$,0)":
-                mask = (df['ccu_ccus_hydrogen-demand[TWh]']-df['sto_hydrogen[TWh]'] >= 0)
-                df.loc[~mask, self.replaced_column] = 0
-                df.loc[mask, self.replaced_column] = df.loc[mask, 'ccu_ccus_hydrogen-demand[TWh]']-df.loc[mask, 'sto_hydrogen[TWh]']
-            elif self.splitted ==  "max_in_args(0,$floor-area[Mm2]$-$constructed-area-acc[Mm2]$-$renovated-area-acc[Mm2]$)*$existing-mix$":
-                mask = (df['floor-area[Mm2]']-df['constructed-area-acc[Mm2]']-df["renovated-area-acc[Mm2]"] >= 0)
-                df.loc[~mask, self.replaced_column] = 0
-                df.loc[mask, self.replaced_column] = (df.loc[mask,'floor-area[Mm2]']-df.loc[mask,'constructed-area-acc[Mm2]']-df.loc[mask,"renovated-area-acc[Mm2]"]) * df.loc[mask,"existing-mix"]
-            elif self.splitted =="if($ref_link-refineries-to-activity[-]$==1,$net-energy-production_fossil_oil[TWh]$ ,$ref_fuel-production[TWh]$ )":
-                mask = (df['ref_link-refineries-to-activity[-]'] == 1)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,"ref_fuel-production[TWh]"]
-                df.loc[mask, self.replaced_column] = df.loc[mask,"net-energy-production_fossil_oil[TWh]"]
-            elif self.splitted == "min_in_args($lus_land_initial-area_unfccc_cropland[ha]$,$lus_land_cropland[ha]$)":
-                mask = (df['lus_land_initial-area_unfccc_cropland[ha]'] - df["lus_land_cropland[ha]"] >= 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "lus_land_cropland[ha]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, 'lus_land_initial-area_unfccc_cropland[ha]']
-            elif self.splitted == "min_in_args($lus_land_initial-area_unfccc_grassland[ha]$,$lus_land_grassland[ha]$)":
-                mask = (df['lus_land_initial-area_unfccc_grassland[ha]'] - df["lus_land_grassland[ha]"] >= 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "lus_land_grassland[ha]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, 'lus_land_initial-area_unfccc_grassland[ha]']
-            elif self.splitted == "min_in_args($lus_land_matrix_demand_cropland[ha]$,$lus_land_matrix_supply_cropland[ha]$)":
-                mask = (df['lus_land_matrix_demand_cropland[ha]'] - df["lus_land_matrix_supply_cropland[ha]"] >= 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "lus_land_matrix_supply_cropland[ha]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, 'lus_land_matrix_demand_cropland[ha]']
-            elif self.splitted == "min_in_args($lus_land_matrix_demand_grassland[ha]$,$lus_land_matrix_supply_grassland[ha]$)":
-                mask = (df['lus_land_matrix_demand_grassland[ha]'] - df["lus_land_matrix_supply_grassland[ha]"] >= 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "lus_land_matrix_supply_grassland[ha]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, 'lus_land_matrix_demand_grassland[ha]']
-            elif self.splitted == "$elc_demand-imported[TWh]$+if($elc_demand-after-RES[TWh]$>0,0,$elc_demand-after-RES[TWh]$)":
-                mask = (df['elc_demand-after-RES[TWh]'] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "elc_demand-imported[TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "elc_demand-imported[TWh]"]+df.loc[~mask, "elc_demand-after-RES[TWh]"]
-            elif self.splitted == "if($elc_demand-after-RES[TWh]$<0,0,$elc_demand-after-RES[TWh]$)":
-                mask = (df['elc_demand-after-RES[TWh]'] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "elc_demand-after-RES[TWh]"]
-            elif self.splitted == "-if($lus_energy-balance_bioenergy_solid[TWh]$<0,$lus_energy-balance_bioenergy_solid[TWh]$,0)":
-                mask = (df['lus_energy-balance_bioenergy_solid[TWh]'] > 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = - df.loc[~mask, "lus_energy-balance_bioenergy_solid[TWh]"]
-            elif self.splitted == "if($lus_energy-balance_bioenergy_solid[TWh]$<0,0,$lus_energy-balance_bioenergy_solid[TWh]$)":
-                mask = (df['lus_energy-balance_bioenergy_solid[TWh]'] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "lus_energy-balance_bioenergy_solid[TWh]"]
-            elif self.splitted == "$bioenergy-import_wood_solid[TWh]$-if($bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$<0,$bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$,0)":
-                mask = (df['bioenergy-balance_wood_solid[TWh]']-df['bioenergy-demand_elc_solid[TWh]']-df['bioenergy-demand_hea_solid[TWh]'] < 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask,'bioenergy-import_wood_solid[TWh]']-(df.loc[mask,'bioenergy-balance_wood_solid[TWh]']-df.loc[mask,'bioenergy-demand_elc_solid[TWh]']-df.loc[mask,'bioenergy-demand_hea_solid[TWh]'])
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$<0,0,$bioenergy-balance_wood_solid[TWh]$-$bioenergy-demand_elc_solid[TWh]$-$bioenergy-demand_hea_solid[TWh]$)":
-                mask = (df['bioenergy-balance_wood_solid[TWh]']-df['bioenergy-demand_elc_solid[TWh]']-df['bioenergy-demand_hea_solid[TWh]'] < 0)
-                df.loc[~mask, self.replaced_column] = (df.loc[~mask,'bioenergy-balance_wood_solid[TWh]']-df.loc[~mask,'bioenergy-demand_elc_solid[TWh]']-df.loc[~mask,'bioenergy-demand_hea_solid[TWh]'])
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "-if($bioenergy-balance_wood_solid[TWh]$*0.8-$bioenergy-demand_elc_gas[TWh]$-$bioenergy-demand_agr_gas[TWh]$-$bioenergy-demand_hea_gas[TWh]$-$bioenergy-demand_ref_gas[TWh]$<0,$bioenergy-balance_wood_solid[TWh]$*0.8-$bioenergy-demand_elc_gas[TWh]$-$bioenergy-demand_agr_gas[TWh]$-$bioenergy-demand_hea_gas[TWh]$-$bioenergy-demand_ref_gas[TWh]$,0)":
-                mask = (df['bioenergy-balance_wood_solid[TWh]']*0.8-df['bioenergy-demand_elc_gas[TWh]']-df['bioenergy-demand_agr_gas[TWh]']-df['bioenergy-demand_ref_gas[TWh]']-df['bioenergy-demand_hea_gas[TWh]'] < 0)
-                df.loc[mask, self.replaced_column] = -(df.loc[mask,'bioenergy-balance_wood_solid[TWh]']*0.8-df.loc[mask,'bioenergy-demand_elc_gas[TWh]']-df.loc[mask,'bioenergy-demand_agr_gas[TWh]']-df.loc[mask,'bioenergy-demand_hea_gas[TWh]']-df.loc[mask,'bioenergy-demand_ref_gas[TWh]'])
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($bioenergy-balance_wood_solid[TWh]$*0.8-$bioenergy-demand_elc_gas[TWh]$-$bioenergy-demand_agr_gas[TWh]$-$bioenergy-demand_hea_gas[TWh]$-$bioenergy-demand_ref_gas[TWh]$<0,0,$bioenergy-balance_wood_solid[TWh]$-($bioenergy-demand_elc_gas[TWh]$+$bioenergy-demand_agr_gas[TWh]$+$bioenergy-demand_hea_gas[TWh]$+$bioenergy-demand_ref_gas[TWh]$)/0.8)":
-                mask = (df['bioenergy-balance_wood_solid[TWh]']*0.8-df['bioenergy-demand_elc_gas[TWh]']-df['bioenergy-demand_agr_gas[TWh]']-df['bioenergy-demand_hea_gas[TWh]']-df['bioenergy-demand_ref_gas[TWh]'] < 0)
-                df.loc[~mask, self.replaced_column] = (df.loc[~mask,'bioenergy-balance_wood_solid[TWh]']-(df.loc[~mask,'bioenergy-demand_elc_gas[TWh]']+df.loc[~mask,'bioenergy-demand_agr_gas[TWh]']+df.loc[~mask,'bioenergy-demand_ref_gas[TWh]']+df.loc[~mask,'bioenergy-demand_hea_gas[TWh]'])/0.8)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted ==  "max_in_args($energy-demand[TWh]$*(1-($bld_fuel-switch_biogas[%]$+$bld_fuel-switch_e-gas[%]$+$bld_fuel-switch_hydrogen[%]$)),0 )":
-                mask = (df['energy-demand[TWh]']*(1-(df['bld_fuel-switch_biogas[%]']+df["bld_fuel-switch_e-gas[%]"]+df["bld_fuel-switch_hydrogen[%]"])) >= 0)
-                df.loc[~mask, self.replaced_column] = 0
-                df.loc[mask, self.replaced_column] = df.loc[mask,'energy-demand[TWh]']*(1-(df.loc[mask,'bld_fuel-switch_biogas[%]']+df.loc[mask,"bld_fuel-switch_e-gas[%]"]+df.loc[mask,"bld_fuel-switch_hydrogen[%]"]))
-            elif self.splitted ==  "min_in_args($bld_fuel-switch_e-gas[%]$,(1-($bld_fuel-switch_hydrogen[%]$+$bld_fuel-switch_biogas[%]$)))":
-                mask = (df['bld_fuel-switch_e-gas[%]'] < (1-(df["bld_fuel-switch_hydrogen[%]"]+df["bld_fuel-switch_biogas[%]"])))
-                df.loc[mask, self.replaced_column] = df.loc[mask,'bld_fuel-switch_e-gas[%]']
-                df.loc[~mask, self.replaced_column] = 1-(df.loc[~mask,"bld_fuel-switch_hydrogen[%]"]+df.loc[~mask,"bld_fuel-switch_biogas[%]"])
-            elif self.splitted == "max_in_args($bld_fuel-switch_e-gas[%]$,0)":
-                mask = (df['bld_fuel-switch_e-gas[%]'] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask,'bld_fuel-switch_e-gas[%]']
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($constructed-area-over-timestep[Mm2]$ > 0 , $constructed-area-over-timestep[Mm2]$, $demolished-area-over-timestep[Mm2]$)":
-                mask = (df['constructed-area-over-timestep[Mm2]'] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, 'constructed-area-over-timestep[Mm2]']
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, 'demolished-area-over-timestep[Mm2]']
-            elif self.splitted ==  "min_in_args($bld_fuel-switch_e-liquids[%]$,(1-$bld_fuel-switch_bioliquids[%]$))":
-                mask = (df['bld_fuel-switch_e-liquids[%]'] > 1 - df['bld_fuel-switch_bioliquids[%]'])
-                df.loc[mask, self.replaced_column] = 1 - df.loc[mask,'bld_fuel-switch_bioliquids[%]']
-                df.loc[~mask, self.replaced_column] = df.loc[~mask,'bld_fuel-switch_e-liquids[%]']
-            elif self.splitted == "max_in_args($bld_fuel-switch_e-liquids[%]$,0)":
-                mask = (df['bld_fuel-switch_e-liquids[%]'] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, 'bld_fuel-switch_e-liquids[%]']
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "max_in_args($energy-demand[TWh]$*(1-($bld_fuel-switch_bioliquids[%]$+$bld_fuel-switch_e-liquids[%]$)),0 )":
-                mask = (df['energy-demand[TWh]']*(1-(df['bld_fuel-switch_bioliquids[%]']+df['bld_fuel-switch_e-liquids[%]'])) > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask,'energy-demand[TWh]']*(1-(df.loc[mask,'bld_fuel-switch_bioliquids[%]']+df.loc[mask,'bld_fuel-switch_e-liquids[%]']))
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "abs($elc_demand-imported[TWh]$)":
-                df[self.replaced_column] = df["elc_demand-imported[TWh]"]
-                df[self.replaced_column] = df[self.replaced_column].abs()
-            elif self.splitted == "if($elc_demand-imported[TWh]$<0,0,$elc_demand-imported[TWh]$)":
-                mask = (df['elc_demand-imported[TWh]'] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "elc_demand-imported[TWh]"]
-            elif self.splitted == "if($elc_total-prod[TWh]$*(0.2812*$elc_intermitency-share[%]$-0.0228)<0,0,$elc_total-prod[TWh]$*(0.2812*$elc_intermitency-share[%]$-0.0228))":
-                mask = (df['elc_total-prod[TWh]'] * (0.2812 * df['elc_intermitency-share[%]'] - 0.0228) < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "elc_total-prod[TWh]"] * (0.2812 * df.loc[~mask, "elc_intermitency-share[%]"] - 0.0228)
-            elif self.splitted == "if($elc_intermitency-share[%]$<0.15,8,$transmission-capacity[GW]$)":
-                mask = (df['elc_intermitency-share[%]'] < 0.15)
-                df.loc[mask, self.replaced_column] = 8
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "transmission-capacity[GW]"]
-            elif self.splitted == "$${Ddegree_integration[%]}$$*(+263.69*$elc_intermitency-share[%]$*$elc_intermitency-share[%]$-13.252*$elc_intermitency-share[%]$+4.3033)":
-                df[self.replaced_column] = kwargs["degree_integration_percent"] * (263.69 * df['elc_intermitency-share[%]'] * df['elc_intermitency-share[%]'] - 13.252 * df['elc_intermitency-share[%]'] + 4.3033)
-            elif self.splitted == "$transmission-capacity-annual-increase[GW.km]$*$${Dtransmission_cost_MEUR_per_GWkm}$$":
-                df[self.replaced_column] = df['transmission-capacity-annual-increase[GW.km]'] * kwargs["transmission_cost_MEUR_per_GWkm"]
-            elif self.splitted == "$transmission-capacity[GW.km]$*0.01*$${Dtransmission_cost_MEUR_per_GWkm}$$":
-                df[self.replaced_column] = df['transmission-capacity[GW.km]'] * 0.01 * kwargs["transmission_cost_MEUR_per_GWkm"]
-            elif self.splitted == "$backup-production[GWh]$/$${Dloadfactor_backupplant[%]}$$":
-                df[self.replaced_column] = df['backup-production[GWh]'] / kwargs["loadfactor_backupplant_percent"]
-            elif self.splitted == "$backup-capacity-annual-increase[GW]$*$${Dbackup-capacity-capex[MEUR/GW]}$$":
-                df[self.replaced_column] = df['backup-capacity-annual-increase[GW]'] * kwargs["backup_capacity_capex_MEUR_per_GW"]
-            elif self.splitted == "$backup-capacity[GW]$*$${Dbackup-capacity-opexfixed[MEUR/GW]}$$":
-                df[self.replaced_column] = df['backup-capacity[GW]'] * kwargs["backup_capacity_capex_MEUR_per_GW"]
-            elif self.splitted == "$backup-consumption[GWh]$*$${Dbackup-capacity-opexvariable[EUR/MWh]}$$/1000":
-                df[self.replaced_column] = df['backup-consumption[GWh]'] * kwargs["backup_capacity_opexvariable_EUR_MWh"] / 1000
-            elif self.splitted == "$backup-production[GWh]$*$${Dloadfactor_backupplant[%]}$$":
-                df[self.replaced_column] = df['backup-production[GWh]'] * kwargs["loadfactor_backupplant_percent"]
-            elif self.splitted == "if($elc_link-costs-to-activity[-]$==1,$fuel-price_elc[MEUR/TWh]$,$tec_exogenous-energy-costs_electricity[EUR/MWh]$)":
-                mask = (df['elc_link-costs-to-activity[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"fuel-price_elc[MEUR/TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_electricity[EUR/MWh]"]
-            elif self.splitted == "if($elc_link-costs-to-activity[-]$ == 1, $fuel-price_hyd[MEUR / TWh]$, $tec_exogenous-energy-costs_hydrogen[EUR / MWh]$)":
-                mask = (df['elc_link-costs-to-activity[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"fuel-price_hyd[MEUR / TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_hydrogen[EUR / MWh]"]
-            elif self.splitted == "if($elc_link-costs-to-activity[-]$ == 1, $fuel-price_dhg[MEUR / TWh]$, $tec_exogenous-energy-costs_heat-waste[EUR / MWh]$)":
-                mask = (df['elc_link-costs-to-activity[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"fuel-price_dhg[MEUR / TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR / MWh]"]
-            elif self.splitted == "if($elc_link-costs-to-activity_electricity[-]$==1,$fuel-price_elc[MEUR/TWh]$,$tec_exogenous-energy-costs_electricity[EUR/MWh]$)":
-                mask = (df['elc_link-costs-to-activity_electricity[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask,"fuel-price_elc[MEUR/TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_electricity[EUR/MWh]"]
-            elif self.splitted == "if($elc_link-costs-to-activity_hydrogen[-]$==1,$fuel-price_hyd[MEUR/TWh]$,$tec_exogenous-energy-costs_hydrogen[EUR/MWh]$)":
-                mask = (df['elc_link-costs-to-activity_hydrogen[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "fuel-price_hyd[MEUR/TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_hydrogen[EUR/MWh]"]
-            elif self.splitted == "if($elc_link-costs-to-activity_heat[-]$==1,$fuel-price_dhg[MEUR/TWh]$,$tec_exogenous-energy-costs_heat-waste[EUR/MWh]$)":
-                mask = (df['elc_link-costs-to-activity_heat[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "fuel-price_dhg[MEUR/TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR/MWh]"]
-            elif self.splitted == "if($constructed-area-over-timestep_historical[Mm2]$ > 0 , $constructed-area-over-timestep_historical[Mm2]$, $demolished-area-over-timestep_historical[Mm2]$)":
-                mask = (df['constructed-area-over-timestep_historical[Mm2]'] > 0)
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "demolished-area-over-timestep_historical[Mm2]"]
-            elif self.splitted == "if($Years_number$<2015,1,$renovation-mix$)":
-                mask = (df['Years_number'] < 2015)
-                df.loc[mask, self.replaced_column] = 1
-            elif self.splitted == "max_in_args(min_in_args($bld_fuel-switch_hydrogen[%]$,(1-($bld_fuel-switch_biogas[%]$))),0)":
-                temp_1 = df['bld_fuel-switch_hydrogen[%]']
-                temp_2 = 1 - df['bld_fuel-switch_biogas[%]']
-                df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
-                df[self.replaced_column] = df_temp.min(axis=1)
-                mask = (df[self.replaced_column] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "max_in_args(min_in_args($bld_fuel-switch_e-gas[%]$,(1-($bld_fuel-switch_hydrogen[%]$+$bld_fuel-switch_biogas[%]$))),0)":
-                temp_1 = df['bld_fuel-switch_e-gas[%]']
-                temp_2 = 1 - (df['bld_fuel-switch_hydrogen[%]'] + df['bld_fuel-switch_biogas[%]'])
-                df_temp = pd.DataFrame({"temp_1": temp_1, "temp_2": temp_2})
-                df[self.replaced_column] = df_temp.min(axis=1)
-                mask = (df[self.replaced_column] < 0)
-                df.loc[mask, self.replaced_column] = 0
-            elif self.splitted == "if($lus_dyn_forest[ha]$ > 0, $lus_dyn_forest[ha]$ * 5000 / 1000000, 0)":
-                mask = (df['lus_dyn_forest[ha]'] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "lus_dyn_forest[ha]"] * 5000 / 1000000
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($dhg_pipes-total-over-timestep[km]$ < 0, 0 , $dhg_pipes-total-over-timestep[km]$)":
-                mask = (df['dhg_pipes-total-over-timestep[km]'] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "dhg_pipes-total-over-timestep[km]"]
-            elif self.splitted == "if($existing-unrenovated-area-over-timestep[Mm2]$<0,0 ,$existing-unrenovated-area-over-timestep[Mm2]$ )":
-                mask = (df['existing-unrenovated-area-over-timestep[Mm2]'] < 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "existing-unrenovated-area-over-timestep[Mm2]"]
-            elif self.splitted == "if($lus_change_forest[ha]$ > 0, $lus_change_forest[ha]$ * 5000 / 1000000, 0)":
-                mask = (df['lus_change_forest[ha]'] > 0)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "lus_change_forest[ha]"] * 5000 / 1000000
-                df.loc[~mask, self.replaced_column] = 0
-            elif self.splitted == "if($elc_link-costs-to-activity_heat[-]$ == 1, $fuel-price_heat[MEUR / TWh]$, $tec_exogenous-energy-costs_heat-waste[EUR / MWh]$)":
-                mask = (df['elc_link-costs-to-activity_heat[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "fuel-price_heat[MEUR / TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR / MWh]"]
-            elif self.splitted == "if($elc_link-costs-to-activity_heat[-]$==1,$fuel-price_heat[MEUR/TWh]$,$tec_exogenous-energy-costs_heat-waste[EUR/MWh]$)":
-                mask = (df['elc_link-costs-to-activity_heat[-]'] == 1)
-                df.loc[mask, self.replaced_column] = df.loc[mask, "fuel-price_heat[MEUR/TWh]"]
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "tec_exogenous-energy-costs_heat-waste[EUR/MWh]"]
-            elif self.splitted == "if($chp-pth-ratio[-]$==0,0,$elc_capacity_CHP[GW]$*$capacity-factor_CHP[%]$*8.76/$chp-pth-ratio[-]$)":
-                mask = (df['chp-pth-ratio[-]'] == 0)
-                df.loc[mask, self.replaced_column] = 0
-                df.loc[~mask, self.replaced_column] = df.loc[~mask, "elc_capacity_CHP[GW]"] * df.loc[~mask, "capacity-factor_CHP[%]"] * 8.76 / df.loc[~mask, "chp-pth-ratio[-]"]
-
-        df[self.replaced_column] = df[self.replaced_column].replace(np.inf, np.nan).astype(float)
-
-        return df
+    return df

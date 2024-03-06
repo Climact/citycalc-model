@@ -136,7 +136,7 @@ def patex_node():
     # BioEnergy
 
 
-    out_9098_3 = ColumnFilterNode(columns_to_drop=[])(df=out_9098_3)
+    out_9098_3 = column_filter(df=out_9098_3, columns_to_drop=[])
     # Bioenergy Balance module (module-name = agriculture)
     out_9076_1, _, out_9076_3 = metanode_9076(port_02=out_9097_6, port_01=out_9099_3, port_04=out_9100_4, port_03=out_9098_3)
 

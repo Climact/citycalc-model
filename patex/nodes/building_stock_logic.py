@@ -20,7 +20,7 @@ from typing import Any, List
 import pandas as pd
 import numpy as np
 
-from patex.nodes.node import Globals, PythonNode, SubNode
+from patex.nodes.node import Globals
 
 
 # Functions
@@ -570,35 +570,27 @@ def stock_logic(demand=pd.DataFrame(), order=pd.DataFrame(), mix=pd.DataFrame(),
     return yrly_renovation, building_stock
 
 
-class BuildingStockLogicNode(PythonNode, SubNode):
-    def __init__(self):
-        super().__init__()
+def buildings_stock_logic(demand_df, order_df, mix_df, status_change_df, switch_df, switch_delay_df, ban_df) -> tuple[pd.DataFrame, pd.DataFrame]:
+    # Inputs (parameters => USERS)
+    ban_category_name = "BAN"  # User value used for BAN (cfr values inside activation column)
+    trigger_point_name = "trigger-point"
+    delay_metric_name = "renovation-delay[years]"
+    historical_status_name = "area-type"
 
-    def init_ports(self):
-        self.in_ports = {1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None}
-        self.out_ports = {1: None, 2: None}
+    # Baseyear
+    baseyear = Globals.get().base_year
 
-    def apply(self, demand_df, order_df, mix_df, status_change_df, switch_df, switch_delay_df, ban_df) -> tuple[pd.DataFrame, pd.DataFrame]:
-        # Inputs (parameters => USERS)
-        ban_category_name = "BAN"  # User value used for BAN (cfr values inside activation column)
-        trigger_point_name = "trigger-point"
-        delay_metric_name = "renovation-delay[years]"
-        historical_status_name = "area-type"
+    # Apply function
+    renovation_rate, stock = stock_logic(demand=demand_df.copy(), order=order_df.copy(), mix=mix_df.copy(),
+                                         change_status=status_change_df.copy(),
+                                         switch=switch_df.copy(),
+                                         switch_delay=switch_delay_df.copy(), ban=ban_df.copy(),
+                                         detruction_method='worst_first',  # detruction_method='worst_first', 'same_as_mix'
+                                         trigger_point=trigger_point_name,
+                                         delay_metric=delay_metric_name,
+                                         ban_category=ban_category_name,
+                                         historical_status=historical_status_name,
+                                         baseyear=baseyear)
 
-        # Baseyear
-        baseyear = Globals.get().base_year
-
-        # Apply function
-        renovation_rate, stock = stock_logic(demand=demand_df, order=order_df, mix=mix_df,
-                                             change_status=status_change_df,
-                                             switch=switch_df,
-                                             switch_delay=switch_delay_df, ban=ban_df,
-                                             detruction_method='worst_first',  # detruction_method='worst_first', 'same_as_mix'
-                                             trigger_point=trigger_point_name,
-                                             delay_metric=delay_metric_name,
-                                             ban_category=ban_category_name,
-                                             historical_status=historical_status_name,
-                                             baseyear=baseyear)
-
-        return renovation_rate, stock
+    return renovation_rate, stock
 

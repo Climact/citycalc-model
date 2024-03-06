@@ -166,14 +166,14 @@ def metanode_9097(port_01):
     # Hard-coded here 
     # => To move in google sheet ??
 
-    out_9561_1 = TableCreatorNode(df=pd.DataFrame(columns=['category-from', 'energy-carrier-from', 'category-to', 'energy-carrier-to'], data=[['fffuels', 'gaseous-ff-natural', 'biofuels', 'gaseous-bio'], ['fffuels', 'liquid-ff-diesel', 'biofuels', 'liquid-bio'], ['fffuels', 'liquid-ff-gasoline', 'biofuels', 'liquid-bio'], ['fffuels', 'liquid-ff-oil', 'biofuels', 'liquid-bio'], ['fffuels', 'solid-ff-coal', 'biofuels', 'solid-biomass']]))()
+    out_9561_1 = pd.DataFrame(columns=['category-from', 'energy-carrier-from', 'category-to', 'energy-carrier-to'], data=[['fffuels', 'gaseous-ff-natural', 'biofuels', 'gaseous-bio'], ['fffuels', 'liquid-ff-diesel', 'biofuels', 'liquid-bio'], ['fffuels', 'liquid-ff-gasoline', 'biofuels', 'liquid-bio'], ['fffuels', 'liquid-ff-oil', 'biofuels', 'liquid-bio'], ['fffuels', 'solid-ff-coal', 'biofuels', 'solid-biomass']])
     # ratio[-] = 1 (energy final, no need to  account for energy efficiency differences)
     ratio = out_9561_1.assign(**{'ratio[-]': 1.0})
 
     # Adapt data from other module => pivot and co
 
     # LIFESTYLE
-    out_5965_1 = InjectVariablesDataNode()(df=port_01)
+    out_5965_1 = port_01
 
     # Potential for bio-energy production
     # Note : Some of the bioenergy production is made further, inside Land-Use node (when production comes from forest, settlement, bioenergy-crops)
@@ -181,9 +181,9 @@ def metanode_9097(port_01):
     # Biomass coming from wastes (other than food wastes)
 
     # energy-production [TWh] (from lifestyle)
-    energy_production_TWh = UseVariableNode(selected_variable='energy-production[TWh]')(input_table=out_5965_1)
+    energy_production_TWh = use_variable(input_table=out_5965_1, selected_variable='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh)
+    energy_production_TWh = group_by_dimensions(df=energy_production_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = other-wastes
     energy_production_TWh['origin'] = "other-wastes"
 
@@ -209,44 +209,44 @@ def metanode_9097(port_01):
     # - Domestic food production linked to import/export [kcal] (all categories)
 
     # food-waste [kcal] (from lifestyle)
-    food_waste_kcal = UseVariableNode(selected_variable='food-waste[kcal]')(input_table=out_5965_1)
+    food_waste_kcal = use_variable(input_table=out_5965_1, selected_variable='food-waste[kcal]')
 
     # Biomass coming from food wastes
     # We only consider food waste linked tocrops (not beverage, livestock, ...)
 
     # food-waste [kcal] (from lifestyle)
-    food_waste_kcal_2 = UseVariableNode(selected_variable='food-waste[kcal]')(input_table=food_waste_kcal)
+    food_waste_kcal_2 = use_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
 
     # Apply biomass supply valorisation of co-products and co levers (switch)
     # => determine % of food waste collected for biogaz production
 
     # OTS/FTS food-waste-collection-rate [%]
-    food_waste_collection_rate_percent = ImportDataNode(trigram='agr', variable_name='food-waste-collection-rate')()
+    food_waste_collection_rate_percent = import_data(trigram='agr', variable_name='food-waste-collection-rate')
     # food-waste-production[kcal] = food-waste[kcal] * food-waste-collection-rate[%]
-    food_waste_production_kcal = MCDNode(operation_selection='x * y', output_name='food-waste-production[kcal]')(input_table_1=food_waste_kcal_2, input_table_2=food_waste_collection_rate_percent)
+    food_waste_production_kcal = mcd(input_table_1=food_waste_kcal_2, input_table_2=food_waste_collection_rate_percent, operation_selection='x * y', output_name='food-waste-production[kcal]')
     # Group by Country, Years, category (sum)
-    food_waste_production_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'category'], aggregation_method='Sum')(df=food_waste_production_kcal)
+    food_waste_production_kcal = group_by_dimensions(df=food_waste_production_kcal, groupby_dimensions=['Country', 'Years', 'category'], aggregation_method='Sum')
     # RCP food-waste-bioenergy-conv-factors [TWh/kcal]
-    food_waste_bioenergy_conv_factors_TWh_per_kcal = ImportDataNode(trigram='agr', variable_name='food-waste-bioenergy-conv-factors', variable_type='RCP')()
+    food_waste_bioenergy_conv_factors_TWh_per_kcal = import_data(trigram='agr', variable_name='food-waste-bioenergy-conv-factors', variable_type='RCP')
     # energy-production[TWh] = food-waste-production [kcal] * food-waste-bioenergy-conv-factors [TWh/kcal]
-    energy_production_TWh_2 = MCDNode(operation_selection='x * y', output_name='energy-production[TWh]')(input_table_1=food_waste_production_kcal, input_table_2=food_waste_bioenergy_conv_factors_TWh_per_kcal)
+    energy_production_TWh_2 = mcd(input_table_1=food_waste_production_kcal, input_table_2=food_waste_bioenergy_conv_factors_TWh_per_kcal, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh_2)
+    energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = food-wastes
     energy_production_TWh_2['origin'] = "food-wastes"
     energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
     # food-demand [kcal] (from lifestyle)
-    food_demand_kcal = UseVariableNode(selected_variable='food-demand[kcal]')(input_table=out_5965_1)
+    food_demand_kcal = use_variable(input_table=out_5965_1, selected_variable='food-demand[kcal]')
     # overall-food-demand[kcal] = food-demand[kcal] + food-waste[kcal]
-    overall_food_demand_kcal = MCDNode(operation_selection='x + y', output_name='overall-food-demand[kcal]')(input_table_1=food_waste_kcal, input_table_2=food_demand_kcal)
+    overall_food_demand_kcal = mcd(input_table_1=food_waste_kcal, input_table_2=food_demand_kcal, operation_selection='x + y', output_name='overall-food-demand[kcal]')
     # overall-food-demand [kcal]
-    overall_food_demand_kcal = ExportVariableNode(selected_variable='overall-food-demand[kcal]')(input_table=overall_food_demand_kcal)
+    overall_food_demand_kcal = export_variable(input_table=overall_food_demand_kcal, selected_variable='overall-food-demand[kcal]')
 
     # Apply food net import levers (switch)
     # => determine the amount of food that is imported
 
     # OTS/FTS food-net-import-product [kcal]
-    food_net_import_product_kcal = ImportDataNode(trigram='agr', variable_name='food-net-import-product')()
+    food_net_import_product_kcal = import_data(trigram='agr', variable_name='food-net-import-product')
 
     # Formating data for other modules + Pathway Explorer
 
@@ -254,26 +254,26 @@ def metanode_9097(port_01):
     #  - Food import
 
     # food-net-import-product [kcal]
-    food_net_import_product_kcal_2 = UseVariableNode(selected_variable='food-net-import-product[kcal]')(input_table=food_net_import_product_kcal)
+    food_net_import_product_kcal_2 = use_variable(input_table=food_net_import_product_kcal, selected_variable='food-net-import-product[kcal]')
     # include positive  values
-    out_9595_1 = RowFilterNode(filter_type='RangeVal_RowFilter', that_column='food-net-import-product[kcal]', include=True, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)(df=food_net_import_product_kcal_2)
+    out_9595_1 = row_filter(df=food_net_import_product_kcal_2, filter_type='RangeVal_RowFilter', that_column='food-net-import-product[kcal]', include=True, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)
     # Set to 0 (no need to account for export)
     food_net_import_product_kcal_3 = out_9595_1.assign(**{'food-net-import-product[kcal]': 0.0})
     # exclude positive  values
-    out_9593_1 = RowFilterNode(filter_type='RangeVal_RowFilter', that_column='food-net-import-product[kcal]', include=False, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)(df=food_net_import_product_kcal_2)
+    out_9593_1 = row_filter(df=food_net_import_product_kcal_2, filter_type='RangeVal_RowFilter', that_column='food-net-import-product[kcal]', include=False, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)
     # * -1 (convert in positive values)
     food_net_import_product_kcal_2 = out_9593_1.assign(**{'food-net-import-product[kcal]': out_9593_1['food-net-import-product[kcal]']*(-1.0)})
     food_net_import_product_kcal_2 = pd.concat([food_net_import_product_kcal_3, food_net_import_product_kcal_2.set_index(food_net_import_product_kcal_2.index.astype(str) + '_dup')])
     # Group by  Country, Years, product (sum)
-    food_net_import_product_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')(df=food_net_import_product_kcal_2)
+    food_net_import_product_kcal_2 = group_by_dimensions(df=food_net_import_product_kcal_2, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # domestic production[kcal] = overall-food-demand[kcal] + food-net-import-product[kcal]
-    domestic_production_kcal = MCDNode(operation_selection='x + y', output_name='domestic-production[kcal]')(input_table_1=overall_food_demand_kcal, input_table_2=food_net_import_product_kcal)
+    domestic_production_kcal = mcd(input_table_1=overall_food_demand_kcal, input_table_2=food_net_import_product_kcal, operation_selection='x + y', output_name='domestic-production[kcal]')
     # If < 0 Set 0 (no net production)
     mask = domestic_production_kcal['domestic-production[kcal]']<0
     domestic_production_kcal.loc[mask, 'domestic-production[kcal]'] = 0
     domestic_production_kcal.loc[~mask, 'domestic-production[kcal]'] = domestic_production_kcal.loc[~mask, 'domestic-production[kcal]']
     # domestic-production [kcal]
-    domestic_production_kcal = ExportVariableNode(selected_variable='domestic-production[kcal]')(input_table=domestic_production_kcal)
+    domestic_production_kcal = export_variable(input_table=domestic_production_kcal, selected_variable='domestic-production[kcal]')
 
     # Livestock
 
@@ -293,24 +293,24 @@ def metanode_9097(port_01):
     # - Domestic livestock production accounting for waste [kcal]  (livestock)
 
     # domestic-production [kcal]
-    domestic_production_kcal = UseVariableNode(selected_variable='domestic-production[kcal]')(input_table=domestic_production_kcal)
+    domestic_production_kcal = use_variable(input_table=domestic_production_kcal, selected_variable='domestic-production[kcal]')
     # cal livestock-domestic-production
-    livestock_domestic_production = ImportDataNode(trigram='agr', variable_name='livestock-domestic-production', variable_type='Calibration')()
+    livestock_domestic_production = import_data(trigram='agr', variable_name='livestock-domestic-production', variable_type='Calibration')
 
     # Calibration
     # On domestic livestock production
 
     # Apply Calibration on domestic livestock production
-    domestic_production_kcal_2, _, out_9207_3 = CalibrationNode(data_to_be_cal='domestic-production[kcal]', data_cal='livestock-domestic-production[kcal]')(input_table=domestic_production_kcal, cal_table=livestock_domestic_production)
+    domestic_production_kcal_2, _, out_9207_3 = calibration(input_table=domestic_production_kcal, cal_table=livestock_domestic_production, data_to_be_cal='domestic-production[kcal]', data_cal='livestock-domestic-production[kcal]')
     # domestic-production [kcal] (calibrated on lifestock)
-    domestic_production_kcal_2 = ExportVariableNode(selected_variable='domestic-production[kcal]')(input_table=domestic_production_kcal_2)
+    domestic_production_kcal_2 = export_variable(input_table=domestic_production_kcal_2, selected_variable='domestic-production[kcal]')
 
     # Calibration RATES
 
     # Cal_rate for livestock-domestic-production[kcal]
 
     # cal_rate for livestock-domestic-production
-    cal_rate_domestic_production_kcal = UseVariableNode(selected_variable='cal_rate_domestic-production[kcal]')(input_table=out_9207_3)
+    cal_rate_domestic_production_kcal = use_variable(input_table=out_9207_3, selected_variable='cal_rate_domestic-production[kcal]')
     # Keep livestock
     cal_rate_domestic_production_kcal = cal_rate_domestic_production_kcal.loc[cal_rate_domestic_production_kcal['category'].isin(['livestock'])].copy()
     # Add livestock to variable name
@@ -320,11 +320,11 @@ def metanode_9097(port_01):
     # => determine the losses ; we reduce losses thnaks to smart farming
 
     # OTS/FTS smart-losses-livestock [%]
-    smart_losses_livestock_percent = ImportDataNode(trigram='agr', variable_name='smart-losses-livestock')()
+    smart_losses_livestock_percent = import_data(trigram='agr', variable_name='smart-losses-livestock')
     # domestic-production-afw[kcal] = domestic-production[kcal] * smart-losses-livestock[%]
-    domestic_production_afw_kcal = MCDNode(operation_selection='x * y', output_name='domestic-production-afw[kcal]')(input_table_1=domestic_production_kcal_2, input_table_2=smart_losses_livestock_percent)
+    domestic_production_afw_kcal = mcd(input_table_1=domestic_production_kcal_2, input_table_2=smart_losses_livestock_percent, operation_selection='x * y', output_name='domestic-production-afw[kcal]')
     # domestic-production-afw [kcal]
-    domestic_production_afw_kcal = ExportVariableNode(selected_variable='domestic-production-afw[kcal]')(input_table=domestic_production_afw_kcal)
+    domestic_production_afw_kcal = export_variable(input_table=domestic_production_afw_kcal, selected_variable='domestic-production-afw[kcal]')
 
     # Industry by-products (from livestock, beverage, alternative proteins)
 
@@ -351,7 +351,7 @@ def metanode_9097(port_01):
     # 	* Animal fats
 
     # domestic-production-afw [kcal]
-    domestic_production_afw_kcal = UseVariableNode(selected_variable='domestic-production-afw[kcal]')(input_table=domestic_production_afw_kcal)
+    domestic_production_afw_kcal = use_variable(input_table=domestic_production_afw_kcal, selected_variable='domestic-production-afw[kcal]')
 
     # Livestock feed requirements
 
@@ -374,12 +374,12 @@ def metanode_9097(port_01):
     # - Overall feed requierement [kcal]
 
     # RCP efficiency [%]
-    efficiency_percent = ImportDataNode(trigram='agr', variable_name='efficiency', variable_type='RCP')()
+    efficiency_percent = import_data(trigram='agr', variable_name='efficiency', variable_type='RCP')
     # feed-requierement[kcal] =  domestic-production-afw[kcal] / efficiency[%]
-    feed_requierement_kcal = MCDNode(operation_selection='x / y', output_name='feed-requierement[kcal]')(input_table_1=domestic_production_afw_kcal, input_table_2=efficiency_percent)
+    feed_requierement_kcal = mcd(input_table_1=domestic_production_afw_kcal, input_table_2=efficiency_percent, operation_selection='x / y', output_name='feed-requierement[kcal]')
     feed_requierement_kcal = feed_requierement_kcal.loc[~feed_requierement_kcal['product'].isin(['abp-dairy-milk'])].copy()
     # feed-requierement [kcal]
-    feed_requierement_kcal = ExportVariableNode(selected_variable='feed-requierement[kcal]')(input_table=feed_requierement_kcal)
+    feed_requierement_kcal = export_variable(input_table=feed_requierement_kcal, selected_variable='feed-requierement[kcal]')
 
     # Animal feed demand : from grazing and alternative proteins
     # 
@@ -399,7 +399,7 @@ def metanode_9097(port_01):
     # - Feed alternative proteins [kcal]
 
     # feed-requierement [kcal]
-    feed_requierement_kcal = UseVariableNode(selected_variable='feed-requierement[kcal]')(input_table=feed_requierement_kcal)
+    feed_requierement_kcal = use_variable(input_table=feed_requierement_kcal, selected_variable='feed-requierement[kcal]')
 
     # Other animals feed demand (animal typical ration) - Others than from grazing / beverage ibp cereals / alternative proteins
     # 
@@ -422,19 +422,19 @@ def metanode_9097(port_01):
     # - Feed demand by type (crop) [kcal]
 
     # feed-requierement [kcal]
-    feed_requierement_kcal_2 = UseVariableNode(selected_variable='feed-requierement[kcal]')(input_table=feed_requierement_kcal)
+    feed_requierement_kcal_2 = use_variable(input_table=feed_requierement_kcal, selected_variable='feed-requierement[kcal]')
     # Group by  country, Years (SUM)
-    feed_requierement_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=feed_requierement_kcal_2)
+    feed_requierement_kcal_2 = group_by_dimensions(df=feed_requierement_kcal_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
 
     # Apply climate smart livestock levers (switch)
     # => determine the % of feed requirements furnished by grazing
 
     # OTS/FTS land-man-pasture [%]
-    land_man_pasture_percent = ImportDataNode(trigram='agr', variable_name='land-man-pasture')()
+    land_man_pasture_percent = import_data(trigram='agr', variable_name='land-man-pasture')
     # feed-grass[kcal] =  feed-requierement[kcal] * land-man-pasture[%]
-    feed_grass_kcal = MCDNode(operation_selection='x * y', output_name='feed-grass[kcal]')(input_table_1=feed_requierement_kcal, input_table_2=land_man_pasture_percent)
+    feed_grass_kcal = mcd(input_table_1=feed_requierement_kcal, input_table_2=land_man_pasture_percent, operation_selection='x * y', output_name='feed-grass[kcal]')
     # feed-grass[kcal]
-    feed_grass_kcal = ExportVariableNode(selected_variable='feed-grass[kcal]')(input_table=feed_grass_kcal)
+    feed_grass_kcal = export_variable(input_table=feed_grass_kcal, selected_variable='feed-grass[kcal]')
 
     # Land demand (crop and pasture)
 
@@ -454,25 +454,25 @@ def metanode_9097(port_01):
     # - Pastureland demand [ha]
 
     # Group by Country, Years (SUM)
-    feed_grass_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=feed_grass_kcal)
+    feed_grass_kcal = group_by_dimensions(df=feed_grass_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
 
     # Apply climate smart livestock grazing intensity levers (improve)
     # => determine the kcal of livestock feed / ha in a pasture
 
     # OTS/FTS smart-livestock-grazing-intensity [kcal/ha]
-    smart_livestock_grazing_intensity_kcal_per_ha = ImportDataNode(trigram='agr', variable_name='smart-livestock-grazing-intensity')()
+    smart_livestock_grazing_intensity_kcal_per_ha = import_data(trigram='agr', variable_name='smart-livestock-grazing-intensity')
     # land-management[ha] = feed-grass[kcal] (total) / smart-livestock-grazing-intensity[kcal/ha]
-    land_management_ha = MCDNode(operation_selection='x / y', output_name='land-management[ha]')(input_table_1=feed_grass_kcal, input_table_2=smart_livestock_grazing_intensity_kcal_per_ha)
+    land_management_ha = mcd(input_table_1=feed_grass_kcal, input_table_2=smart_livestock_grazing_intensity_kcal_per_ha, operation_selection='x / y', output_name='land-management[ha]')
 
     # Apply climate smart livestock levers (switch)
     # => determine the % of feed requirements furnished by alternative protein
 
     # OTS/FTS alt-protein [%]
-    alt_protein_percent = ImportDataNode(trigram='agr', variable_name='alt-protein')()
+    alt_protein_percent = import_data(trigram='agr', variable_name='alt-protein')
     # feed-aps[kcal] = feed-requierement[kcal] * alt-protein[%]
-    feed_aps_kcal = MCDNode(operation_selection='x * y', output_name='feed-aps[kcal]')(input_table_1=feed_requierement_kcal, input_table_2=alt_protein_percent)
+    feed_aps_kcal = mcd(input_table_1=feed_requierement_kcal, input_table_2=alt_protein_percent, operation_selection='x * y', output_name='feed-aps[kcal]')
     # feed-aps [kcal]
-    feed_aps_kcal = ExportVariableNode(selected_variable='feed-aps[kcal]')(input_table=feed_aps_kcal)
+    feed_aps_kcal = export_variable(input_table=feed_aps_kcal, selected_variable='feed-aps[kcal]')
 
     # By-product of alternative proteins
     # 
@@ -491,13 +491,13 @@ def metanode_9097(port_01):
     # - Alternative protein source Byproduct supplies [kcal]
 
     # Group by  Country, Years,  alternative-protein-type (SUM)
-    feed_aps_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'alternative-protein-type'], aggregation_method='Sum')(df=feed_aps_kcal)
+    feed_aps_kcal_2 = group_by_dimensions(df=feed_aps_kcal, groupby_dimensions=['Country', 'Years', 'alternative-protein-type'], aggregation_method='Sum')
     # RCP alt-protein-by-product-ratio [%]
-    alt_protein_by_product_ratio_percent = ImportDataNode(trigram='agr', variable_name='alt-protein-by-product-ratio', variable_type='RCP')()
+    alt_protein_by_product_ratio_percent = import_data(trigram='agr', variable_name='alt-protein-by-product-ratio', variable_type='RCP')
     # alt-protein-by-product[kcal] = feed-aps[kcal] * alt-protein-by-product-ratio[%]
-    alt_protein_by_product_kcal = MCDNode(operation_selection='x * y', output_name='alt-protein-by-product[kcal]')(input_table_1=feed_aps_kcal_2, input_table_2=alt_protein_by_product_ratio_percent)
+    alt_protein_by_product_kcal = mcd(input_table_1=feed_aps_kcal_2, input_table_2=alt_protein_by_product_ratio_percent, operation_selection='x * y', output_name='alt-protein-by-product[kcal]')
     # alt-protein-by-product [kcal]
-    alt_protein_by_product_kcal = ExportVariableNode(selected_variable='alt-protein-by-product[kcal]')(input_table=alt_protein_by_product_kcal)
+    alt_protein_by_product_kcal = export_variable(input_table=alt_protein_by_product_kcal, selected_variable='alt-protein-by-product[kcal]')
 
     # Crop production demand
 
@@ -522,17 +522,17 @@ def metanode_9097(port_01):
     # Crop demand for alternative proteins
 
     # alt-protein-by-product [kcal]
-    alt_protein_by_product_kcal = UseVariableNode(selected_variable='alt-protein-by-product[kcal]')(input_table=alt_protein_by_product_kcal)
+    alt_protein_by_product_kcal = use_variable(input_table=alt_protein_by_product_kcal, selected_variable='alt-protein-by-product[kcal]')
     # Keep  origin = crop
     alt_protein_by_product_kcal = alt_protein_by_product_kcal.loc[alt_protein_by_product_kcal['origin'].isin(['crop'])].copy()
     # Group by  Country, Years,  raw-material (sum)
-    alt_protein_by_product_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=alt_protein_by_product_kcal)
+    alt_protein_by_product_kcal = group_by_dimensions(df=alt_protein_by_product_kcal, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # alt-protein-by-product =>  domestic-crop-production[kcal]
     out_8909_1 = alt_protein_by_product_kcal.rename(columns={'alt-protein-by-product[kcal]': 'domestic-crop-production[kcal]'})
     # Group by Country, Years (SUM)
-    feed_aps_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=feed_aps_kcal)
+    feed_aps_kcal = group_by_dimensions(df=feed_aps_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # sum[kcal] = feed-aps[kcal] + feed-grass[kcal]
-    sum_kcal = MCDNode(operation_selection='x + y', output_name='sum[kcal]')(input_table_1=feed_grass_kcal, input_table_2=feed_aps_kcal)
+    sum_kcal = mcd(input_table_1=feed_grass_kcal, input_table_2=feed_aps_kcal, operation_selection='x + y', output_name='sum[kcal]')
 
     # From Meat Demand to Livestock Population 
     # 
@@ -559,68 +559,68 @@ def metanode_9097(port_01):
     # => determine the amount of kcal by livestock unit
 
     # OTS/FTS smart-yield-livestock
-    smart_yield_livestock = ImportDataNode(trigram='agr', variable_name='smart-yield-livestock')()
+    smart_yield_livestock = import_data(trigram='agr', variable_name='smart-yield-livestock')
     # slaughtered-population[lsu] =  domestic-production-afw[kcal] / smart-yield-livestock[kcal/lsu]
-    slaughtered_population_lsu = MCDNode(operation_selection='x / y', output_name='slaughtered-population[lsu]')(input_table_1=domestic_production_afw_kcal, input_table_2=smart_yield_livestock)
+    slaughtered_population_lsu = mcd(input_table_1=domestic_production_afw_kcal, input_table_2=smart_yield_livestock, operation_selection='x / y', output_name='slaughtered-population[lsu]')
     # Set to 0 (when / by 0)
-    slaughtered_population_lsu = MissingValueNode(DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')(df=slaughtered_population_lsu)
+    slaughtered_population_lsu = missing_value(df=slaughtered_population_lsu, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
 
     # Apply climate smart livestock levers (improve ?)
     # => determine the share of the animal population that are slaughtered each year
 
     # OTS/FTS smart-livestock-slaughtered [%]
-    smart_livestock_slaughtered_percent = ImportDataNode(trigram='agr', variable_name='smart-livestock-slaughtered')()
+    smart_livestock_slaughtered_percent = import_data(trigram='agr', variable_name='smart-livestock-slaughtered')
     # livestock-population[lsu] =  slaughtered-population[lsu] /  smart-livestock-slaughtered[%]  LEFT OUTER JOIN if missing value = 1 (meaning 100% of the population is slaughtered each year ?!)
-    livestock_population_lsu_2 = MCDNode(operation_selection='x / y', output_name='livestock-population[lsu]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)(input_table_1=slaughtered_population_lsu, input_table_2=smart_livestock_slaughtered_percent)
+    livestock_population_lsu_2 = mcd(input_table_1=slaughtered_population_lsu, input_table_2=smart_livestock_slaughtered_percent, operation_selection='x / y', output_name='livestock-population[lsu]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
     # cal livestock-population [lsu]
-    livestock_population_lsu = ImportDataNode(trigram='agr', variable_name='livestock-population', variable_type='Calibration')()
+    livestock_population_lsu = import_data(trigram='agr', variable_name='livestock-population', variable_type='Calibration')
 
     # Calibration
     # Livestock population
 
     # Apply Calibration on livestock-population
-    livestock_population_lsu, _, out_9208_3 = CalibrationNode(data_to_be_cal='livestock-population[lsu]', data_cal='livestock-population[lsu]')(input_table=livestock_population_lsu_2, cal_table=livestock_population_lsu)
+    livestock_population_lsu, _, out_9208_3 = calibration(input_table=livestock_population_lsu_2, cal_table=livestock_population_lsu, data_to_be_cal='livestock-population[lsu]', data_cal='livestock-population[lsu]')
 
     # Cal_rate for livestock-population[lsu]
 
     # cal_rate for livestock-population[lsu]
-    cal_rate_livestock_population_lsu = UseVariableNode(selected_variable='cal_rate_livestock-population[lsu]')(input_table=out_9208_3)
+    cal_rate_livestock_population_lsu = use_variable(input_table=out_9208_3, selected_variable='cal_rate_livestock-population[lsu]')
     out_9426_1 = pd.concat([out_9433_1, cal_rate_livestock_population_lsu.set_index(cal_rate_livestock_population_lsu.index.astype(str) + '_dup')])
     # livestock-population [lsu]
-    livestock_population_lsu = ExportVariableNode(selected_variable='livestock-population[lsu]')(input_table=livestock_population_lsu)
+    livestock_population_lsu = export_variable(input_table=livestock_population_lsu, selected_variable='livestock-population[lsu]')
     # livestock-population [lsu]
-    livestock_population_lsu_2 = UseVariableNode(selected_variable='livestock-population[lsu]')(input_table=livestock_population_lsu)
+    livestock_population_lsu_2 = use_variable(input_table=livestock_population_lsu, selected_variable='livestock-population[lsu]')
 
     # For : Water
     #  - Livestock population
 
     # Group by  Country, Years, product (sum)
-    livestock_population_lsu_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')(df=livestock_population_lsu_2)
+    livestock_population_lsu_3 = group_by_dimensions(df=livestock_population_lsu_2, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
 
     # Biomass coming from livestock residues (= manure)
 
     # OTS (only) manure-production [tonnes/LSU]
-    manure_production_tonnes_per_LSU = ImportDataNode(trigram='agr', variable_name='manure-production', variable_type='OTS (only)')()
+    manure_production_tonnes_per_LSU = import_data(trigram='agr', variable_name='manure-production', variable_type='OTS (only)')
     # Same as last available year
-    manure_production_tonnes_per_LSU = AddMissingYearsNode()(df_data=manure_production_tonnes_per_LSU)
+    manure_production_tonnes_per_LSU = add_missing_years(df_data=manure_production_tonnes_per_LSU)
     # manure-production[t] = population[lsu] * manure-production[t/lsu]
-    manure_production_t = MCDNode(operation_selection='x * y', output_name='manure-production[t]')(input_table_1=livestock_population_lsu_2, input_table_2=manure_production_tonnes_per_LSU)
+    manure_production_t = mcd(input_table_1=livestock_population_lsu_2, input_table_2=manure_production_tonnes_per_LSU, operation_selection='x * y', output_name='manure-production[t]')
     # Group by  Country, Years, product (sum)
-    manure_production_t = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')(df=manure_production_t)
+    manure_production_t = group_by_dimensions(df=manure_production_t, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # RCP livestock-residues-bioenergy-conv-factors [TWh/ton]
-    livestock_residues_bioenergy_conv_factors_TWh_per_ton = ImportDataNode(trigram='agr', variable_name='livestock-residues-bioenergy-conv-factors', variable_type='RCP')()
+    livestock_residues_bioenergy_conv_factors_TWh_per_ton = import_data(trigram='agr', variable_name='livestock-residues-bioenergy-conv-factors', variable_type='RCP')
     # potential-energy-production[TWh] = manure-production[t] * livestock-residues-bioenergy-conv-factors [TWh/ton]
-    potential_energy_production_TWh = MCDNode(operation_selection='x * y', output_name='potential-energy-production[TWh]')(input_table_1=manure_production_t, input_table_2=livestock_residues_bioenergy_conv_factors_TWh_per_ton)
+    potential_energy_production_TWh = mcd(input_table_1=manure_production_t, input_table_2=livestock_residues_bioenergy_conv_factors_TWh_per_ton, operation_selection='x * y', output_name='potential-energy-production[TWh]')
 
     # Apply biomass supply valorisation of co-products and co levers (switch)
     # => determine % of manure which are effectively used to produce biogaz
 
     # OTS/FTS manure-bioenergy-share [%]
-    manure_bioenergy_share_percent = ImportDataNode(trigram='agr', variable_name='manure-bioenergy-share')()
+    manure_bioenergy_share_percent = import_data(trigram='agr', variable_name='manure-bioenergy-share')
     # energy-production[TWh] = potentiel-energy-production[TWh] * manure-bioenergy-share [%]
-    energy_production_TWh_2 = MCDNode(operation_selection='x * y', output_name='energy-production[TWh]')(input_table_1=potential_energy_production_TWh, input_table_2=manure_bioenergy_share_percent)
+    energy_production_TWh_2 = mcd(input_table_1=potential_energy_production_TWh, input_table_2=manure_bioenergy_share_percent, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh_2)
+    energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = livestock-residues
     energy_production_TWh_2['origin'] = "livestock-residues"
     energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
@@ -649,11 +649,11 @@ def metanode_9097(port_01):
     # => determine the quantity of CH4 emissions linked to livestock (linked to their living activity)
 
     # OTS/FTS livestock-emission-factor [Mt/lsu]
-    livestock_emission_factor_Mt_per_lsu = ImportDataNode(trigram='agr', variable_name='livestock-emission-factor')()
+    livestock_emission_factor_Mt_per_lsu = import_data(trigram='agr', variable_name='livestock-emission-factor')
     # emissions[Mt] = population[lsu] * livestock-emission-factor[Mt/lsu]
-    emissions_Mt = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=livestock_population_lsu, input_table_2=livestock_emission_factor_Mt_per_lsu)
+    emissions_Mt = mcd(input_table_1=livestock_population_lsu, input_table_2=livestock_emission_factor_Mt_per_lsu, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years,  gaes, emission-type
-    emissions_Mt = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'emission-type', 'gaes'], aggregation_method='Sum')(df=emissions_Mt)
+    emissions_Mt = group_by_dimensions(df=emissions_Mt, groupby_dimensions=['Country', 'Years', 'emission-type', 'gaes'], aggregation_method='Sum')
 
     # Formating data for KPI's
 
@@ -664,18 +664,18 @@ def metanode_9097(port_01):
     # Note : missing 3E emissions ! (not modelised)
 
     # domestic-production [kcal] (livestock)
-    domestic_production_kcal_2 = UseVariableNode(selected_variable='domestic-production[kcal]')(input_table=domestic_production_kcal)
+    domestic_production_kcal_2 = use_variable(input_table=domestic_production_kcal, selected_variable='domestic-production[kcal]')
     # Group by Country, Years (sum)
-    domestic_production_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=domestic_production_kcal_2)
+    domestic_production_kcal_2 = group_by_dimensions(df=domestic_production_kcal_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
 
     # Crop demand for processed human food & livestock feed
 
     # RCP processing-yield [%]
-    processing_yield_percent = ImportDataNode(trigram='agr', variable_name='processing-yield', variable_type='RCP')()
+    processing_yield_percent = import_data(trigram='agr', variable_name='processing-yield', variable_type='RCP')
     # crop-demand[kcal] (food) =  domestic-production[kcal] / processing-yield[%]
-    crop_demand_kcal = MCDNode(operation_selection='x / y', output_name='crop-demand[kcal]')(input_table_1=domestic_production_kcal, input_table_2=processing_yield_percent)
+    crop_demand_kcal = mcd(input_table_1=domestic_production_kcal, input_table_2=processing_yield_percent, operation_selection='x / y', output_name='crop-demand[kcal]')
     # Group by  Country, Years,  raw-material (sum)
-    crop_demand_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=crop_demand_kcal)
+    crop_demand_kcal = group_by_dimensions(df=crop_demand_kcal, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
 
     # From food demand to food industry demand
     # 
@@ -693,19 +693,19 @@ def metanode_9097(port_01):
     # - Domestic food demand for industry [t]
 
     # RCP food-conv-factors [kcal/t]
-    food_conv_factors_kcal_per_t = ImportDataNode(trigram='agr', variable_name='food-conv-factors', variable_type='RCP')()
+    food_conv_factors_kcal_per_t = import_data(trigram='agr', variable_name='food-conv-factors', variable_type='RCP')
     # food-demand[t] = domestic-production[kcal] / food-conv-factors[kcal/t]
-    food_demand_t = MCDNode(operation_selection='x / y', output_name='food-demand[t]')(input_table_1=domestic_production_kcal, input_table_2=food_conv_factors_kcal_per_t)
+    food_demand_t = mcd(input_table_1=domestic_production_kcal, input_table_2=food_conv_factors_kcal_per_t, operation_selection='x / y', output_name='food-demand[t]')
     # Group by Country, Years (sum)
-    food_demand_t = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=food_demand_t)
+    food_demand_t = group_by_dimensions(df=food_demand_t, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # food-demand [t]
-    food_demand_t = ExportVariableNode(selected_variable='food-demand[t]')(input_table=food_demand_t)
+    food_demand_t = export_variable(input_table=food_demand_t, selected_variable='food-demand[t]')
 
     # For : Ammonia
     #  - Food demand
 
     # food-demand [t]
-    food_demand_t = UseVariableNode(selected_variable='food-demand[t]')(input_table=food_demand_t)
+    food_demand_t = use_variable(input_table=food_demand_t, selected_variable='food-demand[t]')
 
     # By-products of alcoholic beverages 
     # 
@@ -723,18 +723,18 @@ def metanode_9097(port_01):
     # - By-product demand for beverage [kcal]
 
     # RCP beverage-by-product-ratio [%]
-    beverage_by_product_ratio_percent = ImportDataNode(trigram='agr', variable_name='beverage-by-product-ratio', variable_type='RCP')()
+    beverage_by_product_ratio_percent = import_data(trigram='agr', variable_name='beverage-by-product-ratio', variable_type='RCP')
     # beverage-by-product[kcal] = domestic-production[kcal] * beverage-by-product-ratio[%]
-    beverage_by_product_kcal = MCDNode(operation_selection='x * y', output_name='beverage-by-product[kcal]')(input_table_1=domestic_production_kcal, input_table_2=beverage_by_product_ratio_percent)
+    beverage_by_product_kcal = mcd(input_table_1=domestic_production_kcal, input_table_2=beverage_by_product_ratio_percent, operation_selection='x * y', output_name='beverage-by-product[kcal]')
     # beverage-by-product [kcal]
-    beverage_by_product_kcal = ExportVariableNode(selected_variable='beverage-by-product[kcal]')(input_table=beverage_by_product_kcal)
+    beverage_by_product_kcal = export_variable(input_table=beverage_by_product_kcal, selected_variable='beverage-by-product[kcal]')
 
     # Animal feed demand : from beverage industry-by-products cereals
     # 
     # Objective: the node is computing the production of animal feeds linked to by-products linked to beverage
 
     # beverage-by-product [kcal]
-    beverage_by_product_kcal = UseVariableNode(selected_variable='beverage-by-product[kcal]')(input_table=beverage_by_product_kcal)
+    beverage_by_product_kcal = use_variable(input_table=beverage_by_product_kcal, selected_variable='beverage-by-product[kcal]')
     # keep  raw-material =  cereals, yeast
     beverage_by_product_kcal_2 = beverage_by_product_kcal.loc[beverage_by_product_kcal['raw-material'].isin(['cereal', 'yeast'])].copy()
     # keep  product =  beer
@@ -742,36 +742,36 @@ def metanode_9097(port_01):
     # keep  origin =  fdk
     beverage_by_product_kcal_2 = beverage_by_product_kcal_2.loc[beverage_by_product_kcal_2['origin'].isin(['fdk'])].copy()
     # Group by  Country, Years (Sum) => Cereals & yeast
-    beverage_by_product_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=beverage_by_product_kcal_2)
+    beverage_by_product_kcal_2 = group_by_dimensions(df=beverage_by_product_kcal_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # alternative-feed-ration[kcal] = sum[kcal] + beverage-by-product[kcal] (yeast and cereals from  feedstock beer only)
-    alternative_feed_ration_kcal = MCDNode(operation_selection='x + y', output_name='alternative-feed-ration[kcal]')(input_table_1=beverage_by_product_kcal_2, input_table_2=sum_kcal)
+    alternative_feed_ration_kcal = mcd(input_table_1=beverage_by_product_kcal_2, input_table_2=sum_kcal, operation_selection='x + y', output_name='alternative-feed-ration[kcal]')
     # remaining-feed-demand[kcal] = feed-requierement[kcal] - alternative-feed-ration[kcal]
-    remaining_feed_demand_kcal = MCDNode(operation_selection='x - y', output_name='remaining-feed-demand[kcal]')(input_table_1=feed_requierement_kcal_2, input_table_2=alternative_feed_ration_kcal)
+    remaining_feed_demand_kcal = mcd(input_table_1=feed_requierement_kcal_2, input_table_2=alternative_feed_ration_kcal, operation_selection='x - y', output_name='remaining-feed-demand[kcal]')
     # OTS (only) feed-share [%]
-    feed_share_percent = ImportDataNode(trigram='agr', variable_name='feed-share', variable_type='OTS (only)')()
+    feed_share_percent = import_data(trigram='agr', variable_name='feed-share', variable_type='OTS (only)')
     # Same as last available year
-    feed_share_percent = AddMissingYearsNode()(df_data=feed_share_percent)
+    feed_share_percent = add_missing_years(df_data=feed_share_percent)
     # remaining-feed-demand[kcal] (replace)  = remaining-feed-demand[kcal] * feed-share[%]
-    remaining_feed_demand_kcal_2 = MCDNode(operation_selection='x * y', output_name='remaining-feed-demand[kcal]', fill_value_bool='Inner Join')(input_table_1=remaining_feed_demand_kcal, input_table_2=feed_share_percent)
+    remaining_feed_demand_kcal_2 = mcd(input_table_1=remaining_feed_demand_kcal, input_table_2=feed_share_percent, operation_selection='x * y', output_name='remaining-feed-demand[kcal]', fill_value_bool='Inner Join')
     # cal remaining-feed-demand [kcal]
-    remaining_feed_demand_kcal = ImportDataNode(trigram='agr', variable_name='remaining-feed-demand', variable_type='Calibration')()
+    remaining_feed_demand_kcal = import_data(trigram='agr', variable_name='remaining-feed-demand', variable_type='Calibration')
 
     # calibration
     # Based on remaining feed demand
     # (= feed requirements other than feed coming from beverage by-product, grazing and alternative proteins)
 
     # Apply Calibration on remaining feed demand
-    remaining_feed_demand_kcal, _, out_9209_3 = CalibrationNode(data_to_be_cal='remaining-feed-demand[kcal]', data_cal='remaining-feed-demand[kcal]')(input_table=remaining_feed_demand_kcal_2, cal_table=remaining_feed_demand_kcal)
+    remaining_feed_demand_kcal, _, out_9209_3 = calibration(input_table=remaining_feed_demand_kcal_2, cal_table=remaining_feed_demand_kcal, data_to_be_cal='remaining-feed-demand[kcal]', data_cal='remaining-feed-demand[kcal]')
 
     # Cal_rate for remaining-feed-demand[kcal]
 
     # cal_rate for remaining-feed-demand[kcal]
-    cal_rate_remaining_feed_demand_kcal = UseVariableNode(selected_variable='cal_rate_remaining-feed-demand[kcal]')(input_table=out_9209_3)
+    cal_rate_remaining_feed_demand_kcal = use_variable(input_table=out_9209_3, selected_variable='cal_rate_remaining-feed-demand[kcal]')
     out_9428_1 = pd.concat([out_9426_1, cal_rate_remaining_feed_demand_kcal.set_index(cal_rate_remaining_feed_demand_kcal.index.astype(str) + '_dup')])
     # remaining-feed-demand [kcal]
-    remaining_feed_demand_kcal = ExportVariableNode(selected_variable='remaining-feed-demand[kcal]')(input_table=remaining_feed_demand_kcal)
+    remaining_feed_demand_kcal = export_variable(input_table=remaining_feed_demand_kcal, selected_variable='remaining-feed-demand[kcal]')
     # remaining-feed-demand [kcal]
-    remaining_feed_demand_kcal = UseVariableNode(selected_variable='remaining-feed-demand[kcal]')(input_table=remaining_feed_demand_kcal)
+    remaining_feed_demand_kcal = use_variable(input_table=remaining_feed_demand_kcal, selected_variable='remaining-feed-demand[kcal]')
 
     # Crop demand for bioenergy (biogas, liquid-bio)
     # (Note : crop-demand for bio-solid energy-carrier is defined in ha and not kcal => so we add it furter in this model)
@@ -780,7 +780,7 @@ def metanode_9097(port_01):
     # => determine the kcal demand by raw material for bioenergy production
 
     # OTS/FTS crops-consumption-bioenergy [kcal]
-    crops_consumption_bioenergy_kcal = ImportDataNode(trigram='agr', variable_name='crops-consumption-bioenergy')()
+    crops_consumption_bioenergy_kcal = import_data(trigram='agr', variable_name='crops-consumption-bioenergy')
 
     # Domestic crop production
     # 
@@ -798,18 +798,18 @@ def metanode_9097(port_01):
     # Crop other than bioenergy and alternative-proteins
 
     # Group by  Country, Years,  raw-material (sum)
-    crops_consumption_bioenergy_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=crops_consumption_bioenergy_kcal)
+    crops_consumption_bioenergy_kcal_2 = group_by_dimensions(df=crops_consumption_bioenergy_kcal, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
 
     # Biomass coming from crops products
 
     # crops-consumption-bioenergy [kcal]
-    crops_consumption_bioenergy_kcal = UseVariableNode(selected_variable='crops-consumption-bioenergy[kcal]')(input_table=crops_consumption_bioenergy_kcal)
+    crops_consumption_bioenergy_kcal = use_variable(input_table=crops_consumption_bioenergy_kcal, selected_variable='crops-consumption-bioenergy[kcal]')
     # RCP crop-product-bioenergy-conv-factors [TWh/kcal]
-    crop_product_bioenergy_conv_factors_TWh_per_kcal = ImportDataNode(trigram='agr', variable_name='crop-product-bioenergy-conv-factors', variable_type='RCP')()
+    crop_product_bioenergy_conv_factors_TWh_per_kcal = import_data(trigram='agr', variable_name='crop-product-bioenergy-conv-factors', variable_type='RCP')
     # energy-production[TWh] = crops-consumption-bioenergy [kcal] * crop-product-bioenergy-conv-factors [TWh/kcal]
-    energy_production_TWh = MCDNode(operation_selection='x * y', output_name='energy-production[TWh]')(input_table_1=crops_consumption_bioenergy_kcal, input_table_2=crop_product_bioenergy_conv_factors_TWh_per_kcal)
+    energy_production_TWh = mcd(input_table_1=crops_consumption_bioenergy_kcal, input_table_2=crop_product_bioenergy_conv_factors_TWh_per_kcal, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh)
+    energy_production_TWh = group_by_dimensions(df=energy_production_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = crops-product
     energy_production_TWh['origin'] = "crops-product"
     # Keep  treatement = unprocessed
@@ -820,13 +820,13 @@ def metanode_9097(port_01):
     # Crop demand for unprocessed livestock feed
 
     # Group by  Country, Years,  product (sum)
-    remaining_feed_demand_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')(df=remaining_feed_demand_kcal_2)
+    remaining_feed_demand_kcal_2 = group_by_dimensions(df=remaining_feed_demand_kcal_2, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # product => raw-material remaining-feed-demand => crop-demand
     out_8899_1 = remaining_feed_demand_kcal_2.rename(columns={'product': 'raw-material', 'remaining-feed-demand[kcal]': 'crop-demand[kcal]'})
     # crop-demand[kcal] (feed) =  remaining-feed-demand[kcal] / processing-yield[%]
-    crop_demand_kcal_2 = MCDNode(operation_selection='x / y', output_name='crop-demand[kcal]')(input_table_1=remaining_feed_demand_kcal, input_table_2=processing_yield_percent)
+    crop_demand_kcal_2 = mcd(input_table_1=remaining_feed_demand_kcal, input_table_2=processing_yield_percent, operation_selection='x / y', output_name='crop-demand[kcal]')
     # Group by  Country, Years,  raw-material (sum)
-    crop_demand_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=crop_demand_kcal_2)
+    crop_demand_kcal_2 = group_by_dimensions(df=crop_demand_kcal_2, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     crop_demand_kcal = pd.concat([crop_demand_kcal, crop_demand_kcal_2.set_index(crop_demand_kcal_2.index.astype(str) + '_dup')])
     crop_demand_kcal = crop_demand_kcal.loc[~crop_demand_kcal['raw-material'].isin(['oil-crop'])].copy()
     out_8894_1 = pd.concat([crop_demand_kcal, out_8899_1.set_index(out_8899_1.index.astype(str) + '_dup')])
@@ -836,111 +836,111 @@ def metanode_9097(port_01):
     # Crop demand for unprocessed beverage by-products
 
     # Group by  Country, Years,  raw-material (sum)
-    beverage_by_product_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=beverage_by_product_kcal)
+    beverage_by_product_kcal = group_by_dimensions(df=beverage_by_product_kcal, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # beverage-by-product => crop-demand
     out_8891_1 = beverage_by_product_kcal.rename(columns={'beverage-by-product[kcal]': 'crop-demand[kcal]'})
 
     # Crop demand for unprocessed human food
 
     # overall-food-demand [kcal]
-    overall_food_demand_kcal = UseVariableNode(selected_variable='overall-food-demand[kcal]')(input_table=overall_food_demand_kcal)
+    overall_food_demand_kcal = use_variable(input_table=overall_food_demand_kcal, selected_variable='overall-food-demand[kcal]')
     # Keep  treatement = unprocessed
     overall_food_demand_kcal = overall_food_demand_kcal.loc[overall_food_demand_kcal['treatment'].isin(['unprocessed'])].copy()
     # Keep  category = crop
     overall_food_demand_kcal = overall_food_demand_kcal.loc[overall_food_demand_kcal['category'].isin(['crop'])].copy()
     # Group by  Country, Years,  product (sum)
-    overall_food_demand_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')(df=overall_food_demand_kcal)
+    overall_food_demand_kcal = group_by_dimensions(df=overall_food_demand_kcal, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # product => raw-material ovaerall-food-demand => crop-demand
     out_8890_1 = overall_food_demand_kcal.rename(columns={'product': 'raw-material', 'overall-food-demand[kcal]': 'crop-demand[kcal]'})
     out_1 = pd.concat([out_8890_1, out_8891_1.set_index(out_8891_1.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_1, out_8894_1.set_index(out_8894_1.index.astype(str) + '_dup')])
     # Group by  Country, Years,  raw-material (sum)
-    out_1 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=out_1)
+    out_1 = group_by_dimensions(df=out_1, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # crop-demand[kcal] (replace) = crop-demand[kcal] + crops-consumption-bioenergy [kcal]  LEFT JOIN => If missing set 0 (no additional crop demand for this raw-material)
-    crop_demand_kcal_2 = MCDNode(operation_selection='x + y', output_name='crop-demand[kcal]')(input_table_1=out_1, input_table_2=crops_consumption_bioenergy_kcal_2)
+    crop_demand_kcal_2 = mcd(input_table_1=out_1, input_table_2=crops_consumption_bioenergy_kcal_2, operation_selection='x + y', output_name='crop-demand[kcal]')
     # cal crop-demand [kcal]
-    crop_demand_kcal = ImportDataNode(trigram='agr', variable_name='crop-demand', variable_type='Calibration')()
+    crop_demand_kcal = import_data(trigram='agr', variable_name='crop-demand', variable_type='Calibration')
 
     # calibration
     # Crop activity
 
     # Apply Calibration on crop demand
-    crop_demand_kcal, _, _ = CalibrationNode(data_to_be_cal='crop-demand[kcal]', data_cal='crop-demand[kcal]')(input_table=crop_demand_kcal_2, cal_table=crop_demand_kcal)
+    crop_demand_kcal, _, _ = calibration(input_table=crop_demand_kcal_2, cal_table=crop_demand_kcal, data_to_be_cal='crop-demand[kcal]', data_cal='crop-demand[kcal]')
 
     # Apply food net import levers (avoid ?)
     # => determine the % of crops required to reach the crop demand accounting for the crop losses
 
     # OTS/FTS crop-losses [%]
-    crop_losses_percent = ImportDataNode(trigram='agr', variable_name='crop-losses')()
+    crop_losses_percent = import_data(trigram='agr', variable_name='crop-losses')
     # domestic-crop-demand [kcal] = domestic-demand[kcal] * crop-losses[%]
-    domestic_crop_demand_kcal = MCDNode(operation_selection='x * y', output_name='domestic-crop-demand[kcal]')(input_table_1=crop_demand_kcal, input_table_2=crop_losses_percent)
+    domestic_crop_demand_kcal = mcd(input_table_1=crop_demand_kcal, input_table_2=crop_losses_percent, operation_selection='x * y', output_name='domestic-crop-demand[kcal]')
 
     # Apply food net import levers (avoid ?)
     # => determine the % of food/feed crops demand that is imported
 
     # OTS/FTS food-net-import [kcal]
-    food_net_import_kcal = ImportDataNode(trigram='agr', variable_name='food-net-import')()
+    food_net_import_kcal = import_data(trigram='agr', variable_name='food-net-import')
 
     # For : Scope 2/3
     #  - Food import
 
     # food-net-import [kcal]
-    food_net_import_kcal_2 = UseVariableNode(selected_variable='food-net-import[kcal]')(input_table=food_net_import_kcal)
+    food_net_import_kcal_2 = use_variable(input_table=food_net_import_kcal, selected_variable='food-net-import[kcal]')
     # include positive  values
-    out_9596_1 = RowFilterNode(filter_type='RangeVal_RowFilter', that_column='food-net-import[kcal]', include=True, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)(df=food_net_import_kcal_2)
+    out_9596_1 = row_filter(df=food_net_import_kcal_2, filter_type='RangeVal_RowFilter', that_column='food-net-import[kcal]', include=True, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)
     # Set to 0 (no need to account for export)
     food_net_import_kcal_3 = out_9596_1.assign(**{'food-net-import[kcal]': 0.0})
     # exclude positive  values
-    out_9597_1 = RowFilterNode(filter_type='RangeVal_RowFilter', that_column='food-net-import[kcal]', include=False, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)(df=food_net_import_kcal_2)
+    out_9597_1 = row_filter(df=food_net_import_kcal_2, filter_type='RangeVal_RowFilter', that_column='food-net-import[kcal]', include=False, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)
     # * -1 (convert in positive values)
     food_net_import_kcal_2 = out_9597_1.assign(**{'food-net-import[kcal]': out_9597_1['food-net-import[kcal]']*(-1.0)})
     food_net_import_kcal_2 = pd.concat([food_net_import_kcal_3, food_net_import_kcal_2.set_index(food_net_import_kcal_2.index.astype(str) + '_dup')])
     # Group by  Country, Years, raw-material (sum)
-    food_net_import_kcal_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=food_net_import_kcal_2)
+    food_net_import_kcal_2 = group_by_dimensions(df=food_net_import_kcal_2, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     food_net_import_kcal_2 = pd.concat([food_net_import_kcal_2, food_net_import_product_kcal_2.set_index(food_net_import_product_kcal_2.index.astype(str) + '_dup')])
     # Module = Scope 2/3
-    food_net_import_kcal_2 = ColumnFilterNode(pattern='^.*$')(df=food_net_import_kcal_2)
+    food_net_import_kcal_2 = column_filter(df=food_net_import_kcal_2, pattern='^.*$')
     # domestic-crop-production[kcal] = domestic-crop-demand[kcal] + food-net-import[kcal]
-    domestic_crop_production_kcal = MCDNode(operation_selection='x + y', output_name='domestic-crop-production[kcal]')(input_table_1=domestic_crop_demand_kcal, input_table_2=food_net_import_kcal)
+    domestic_crop_production_kcal = mcd(input_table_1=domestic_crop_demand_kcal, input_table_2=food_net_import_kcal, operation_selection='x + y', output_name='domestic-crop-production[kcal]')
     # If < 0 Set 0 (no net production)
     mask = domestic_crop_production_kcal['domestic-crop-production[kcal]']<0
     domestic_crop_production_kcal.loc[mask, 'domestic-crop-production[kcal]'] = 0
     domestic_crop_production_kcal.loc[~mask, 'domestic-crop-production[kcal]'] = domestic_crop_production_kcal.loc[~mask, 'domestic-crop-production[kcal]']
     # Group by  Country, Years,  raw-material (sum)
-    domestic_crop_production_kcal = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=domestic_crop_production_kcal)
+    domestic_crop_production_kcal = group_by_dimensions(df=domestic_crop_production_kcal, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # add crops for alt-proteins
     out_8197_1 = pd.concat([domestic_crop_production_kcal, out_8909_1.set_index(out_8909_1.index.astype(str) + '_dup')])
     # cal domestic-crop-production [kcal]
-    domestic_crop_production_kcal = ImportDataNode(trigram='agr', variable_name='domestic-crop-production', variable_type='Calibration')()
+    domestic_crop_production_kcal = import_data(trigram='agr', variable_name='domestic-crop-production', variable_type='Calibration')
 
     # calibration
     # Crop activity
 
     # Apply Calibration on crop production
-    out_8197_1, _, out_9210_3 = CalibrationNode(data_to_be_cal='domestic-crop-production[kcal]', data_cal='domestic-crop-production[kcal]')(input_table=out_8197_1, cal_table=domestic_crop_production_kcal)
+    out_8197_1, _, out_9210_3 = calibration(input_table=out_8197_1, cal_table=domestic_crop_production_kcal, data_to_be_cal='domestic-crop-production[kcal]', data_cal='domestic-crop-production[kcal]')
 
     # Cal_rate for domestic-crop-production[kcal]
 
     # cal_rate for domestic-crop-production[kcal]
-    cal_rate_domestic_crop_production_kcal = UseVariableNode(selected_variable='cal_rate_domestic-crop-production[kcal]')(input_table=out_9210_3)
+    cal_rate_domestic_crop_production_kcal = use_variable(input_table=out_9210_3, selected_variable='cal_rate_domestic-crop-production[kcal]')
     out_9430_1 = pd.concat([out_9428_1, cal_rate_domestic_crop_production_kcal.set_index(cal_rate_domestic_crop_production_kcal.index.astype(str) + '_dup')])
     # domestic-crop-production [kcal]   (all crops demand + calibrated)
-    domestic_crop_production_kcal = ExportVariableNode(selected_variable='domestic-crop-production[kcal]')(input_table=out_8197_1)
+    domestic_crop_production_kcal = export_variable(input_table=out_8197_1, selected_variable='domestic-crop-production[kcal]')
     # domestic-crop-production [kcal]
-    domestic_crop_production_kcal = UseVariableNode(selected_variable='domestic-crop-production[kcal]')(input_table=domestic_crop_production_kcal)
+    domestic_crop_production_kcal = use_variable(input_table=domestic_crop_production_kcal, selected_variable='domestic-crop-production[kcal]')
 
     # For : Water
     #  - Raw material demand
 
     # domestic-crop-production [kcal]
-    domestic_crop_production_kcal_2 = UseVariableNode(selected_variable='domestic-crop-production[kcal]')(input_table=domestic_crop_production_kcal)
+    domestic_crop_production_kcal_2 = use_variable(input_table=domestic_crop_production_kcal, selected_variable='domestic-crop-production[kcal]')
     out_9579_1 = pd.concat([domestic_crop_production_kcal_2, livestock_population_lsu_3.set_index(livestock_population_lsu_3.index.astype(str) + '_dup')])
     # Module = Water
-    out_9579_1 = ColumnFilterNode(pattern='^.*$')(df=out_9579_1)
+    out_9579_1 = column_filter(df=out_9579_1, pattern='^.*$')
     # Group by Country, Years (sum)
-    domestic_crop_production_kcal_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=domestic_crop_production_kcal)
+    domestic_crop_production_kcal_3 = group_by_dimensions(df=domestic_crop_production_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # total-domestic-production[kcal] = domestic-production[kcal] + domestic-crop-production[kcal]
-    total_domestic_production_kcal = MCDNode(operation_selection='x + y', output_name='total-domestic-production[kcal]')(input_table_1=domestic_crop_production_kcal_3, input_table_2=domestic_production_kcal_2)
+    total_domestic_production_kcal = mcd(input_table_1=domestic_crop_production_kcal_3, input_table_2=domestic_production_kcal_2, operation_selection='x + y', output_name='total-domestic-production[kcal]')
 
     # 3.F. Field burning of agricultural residues​
     # 
@@ -958,19 +958,19 @@ def metanode_9097(port_01):
     # CH4 / N2O brunt-residues emission [Mt]
 
     # OTS (only) residues-burnt [Mt/kcal]
-    residues_burnt_Mt_per_kcal = ImportDataNode(trigram='agr', variable_name='residues-burnt', variable_type='OTS (only)')()
+    residues_burnt_Mt_per_kcal = import_data(trigram='agr', variable_name='residues-burnt', variable_type='OTS (only)')
     # Same as last available year
-    residues_burnt_Mt_per_kcal = AddMissingYearsNode()(df_data=residues_burnt_Mt_per_kcal)
+    residues_burnt_Mt_per_kcal = add_missing_years(df_data=residues_burnt_Mt_per_kcal)
     # burned-residues[Mt] = residues-burnt[Mt/kcal] * domestic-crop-production[kcal]
-    burned_residues_Mt = MCDNode(operation_selection='x * y', output_name='burned-residues[Mt]')(input_table_1=domestic_crop_production_kcal_2, input_table_2=residues_burnt_Mt_per_kcal)
+    burned_residues_Mt = mcd(input_table_1=domestic_crop_production_kcal_2, input_table_2=residues_burnt_Mt_per_kcal, operation_selection='x * y', output_name='burned-residues[Mt]')
     # OTS (only) burnt-residues-emission-factor [Mt/Mt]
-    burnt_residues_emission_factor_Mt_per_Mt = ImportDataNode(trigram='agr', variable_name='burnt-residues-emission-factor', variable_type='OTS (only)')()
+    burnt_residues_emission_factor_Mt_per_Mt = import_data(trigram='agr', variable_name='burnt-residues-emission-factor', variable_type='OTS (only)')
     # Same as last available year
-    burnt_residues_emission_factor_Mt_per_Mt = AddMissingYearsNode()(df_data=burnt_residues_emission_factor_Mt_per_Mt)
+    burnt_residues_emission_factor_Mt_per_Mt = add_missing_years(df_data=burnt_residues_emission_factor_Mt_per_Mt)
     # emissions[Mt] = burned-residues[Mt] * burnt-residues-emission-factor [Mt/Mt]
-    emissions_Mt_2 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=burned_residues_Mt, input_table_2=burnt_residues_emission_factor_Mt_per_Mt)
+    emissions_Mt_2 = mcd(input_table_1=burned_residues_Mt, input_table_2=burnt_residues_emission_factor_Mt_per_Mt, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years, amendment-type, gaes, raw-material, emission-type
-    emissions_Mt_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material', 'amendment-type', 'emission-type', 'gaes'], aggregation_method='Sum')(df=emissions_Mt_2)
+    emissions_Mt_2 = group_by_dimensions(df=emissions_Mt_2, groupby_dimensions=['Country', 'Years', 'raw-material', 'amendment-type', 'emission-type', 'gaes'], aggregation_method='Sum')
 
     # 3.D. Agricultural soils
     # 
@@ -1006,15 +1006,15 @@ def metanode_9097(port_01):
     # => determine the use of crop residues
 
     # OTS/FTS crop-residues-use [Mt/kcal]
-    crop_residues_use_Mt_per_kcal = ImportDataNode(trigram='agr', variable_name='crop-residues-use')()
+    crop_residues_use_Mt_per_kcal = import_data(trigram='agr', variable_name='crop-residues-use')
     # residues-left-on-soil[Mt] = domestic-crop-production[kcal] * crop-residues-use[Mt/kcal]
-    residues_left_on_soil_Mt = MCDNode(operation_selection='x * y', output_name='residues-left-on-soil[Mt]')(input_table_1=domestic_crop_production_kcal, input_table_2=crop_residues_use_Mt_per_kcal)
+    residues_left_on_soil_Mt = mcd(input_table_1=domestic_crop_production_kcal, input_table_2=crop_residues_use_Mt_per_kcal, operation_selection='x * y', output_name='residues-left-on-soil[Mt]')
     # OTS (only) residue-N-content [MtN/Mt]
-    residue_N_content_MtN_per_Mt = ImportDataNode(trigram='agr', variable_name='residue-N-content', variable_type='OTS (only)')()
+    residue_N_content_MtN_per_Mt = import_data(trigram='agr', variable_name='residue-N-content', variable_type='OTS (only)')
     # Same as last available year
-    residue_N_content_MtN_per_Mt = AddMissingYearsNode()(df_data=residue_N_content_MtN_per_Mt)
+    residue_N_content_MtN_per_Mt = add_missing_years(df_data=residue_N_content_MtN_per_Mt)
     # N-left-on-soil[MtN] = residues-left-on-soil[Mt] * residue-N-content[MtN/Mt]
-    N_left_on_soil_Mt = MCDNode(operation_selection='x * y', output_name='N-left-on-soil[Mt]')(input_table_1=residues_left_on_soil_Mt, input_table_2=residue_N_content_MtN_per_Mt)
+    N_left_on_soil_Mt = mcd(input_table_1=residues_left_on_soil_Mt, input_table_2=residue_N_content_MtN_per_Mt, operation_selection='x * y', output_name='N-left-on-soil[Mt]')
 
     # Cropland  
     # 
@@ -1037,44 +1037,44 @@ def metanode_9097(port_01):
     # => determine crop yield (kcal/ha) leading to reducing the cropland surface if yield increases
 
     # OTS/FTS smart-crop-yield [kcal/ha]
-    smart_crop_yield_kcal_per_ha = ImportDataNode(trigram='agr', variable_name='smart-crop-yield')()
+    smart_crop_yield_kcal_per_ha = import_data(trigram='agr', variable_name='smart-crop-yield')
     # land-management[ha] = domestic-crop-production[kcal] / smart-crop-yield[kcal/ha]
-    land_management_ha_2 = MCDNode(operation_selection='x / y', output_name='land-management[ha]')(input_table_1=domestic_crop_production_kcal, input_table_2=smart_crop_yield_kcal_per_ha)
+    land_management_ha_2 = mcd(input_table_1=domestic_crop_production_kcal, input_table_2=smart_crop_yield_kcal_per_ha, operation_selection='x / y', output_name='land-management[ha]')
     # Set 0 if divide by 0
-    land_management_ha_2 = MissingValueNode(DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')(df=land_management_ha_2)
+    land_management_ha_2 = missing_value(df=land_management_ha_2, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
     # Calibration land-management-by-raw-material [ha]
-    land_management_by_raw_material_ha = ImportDataNode(trigram='agr', variable_name='land-management-by-raw-material', variable_type='Calibration')()
+    land_management_by_raw_material_ha = import_data(trigram='agr', variable_name='land-management-by-raw-material', variable_type='Calibration')
 
     # calibration
     # Crop land by raw material
     # We use this calibration to be sure the proportion of each raw-material is correct
 
     # Apply Calibration on land-management
-    land_management_ha_2, _, _ = CalibrationNode(data_to_be_cal='land-management[ha]', data_cal='land-management-by-raw-material[ha]')(input_table=land_management_ha_2, cal_table=land_management_by_raw_material_ha)
+    land_management_ha_2, _, _ = calibration(input_table=land_management_ha_2, cal_table=land_management_by_raw_material_ha, data_to_be_cal='land-management[ha]', data_cal='land-management-by-raw-material[ha]')
     # Group by  Country, Years, land-use (sum)
-    land_management_ha_4 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'land-use'], aggregation_method='Sum')(df=land_management_ha_2)
+    land_management_ha_4 = group_by_dimensions(df=land_management_ha_2, groupby_dimensions=['Country', 'Years', 'land-use'], aggregation_method='Sum')
     # cal land-management [ha]
-    land_management_ha_3 = ImportDataNode(trigram='agr', variable_name='land-management', variable_type='Calibration')()
+    land_management_ha_3 = import_data(trigram='agr', variable_name='land-management', variable_type='Calibration')
 
     # calibration
     # Pasture land
 
     # Apply Calibration on land management
-    land_management_ha, _, out_9213_3 = CalibrationNode(data_to_be_cal='land-management[ha]', data_cal='land-management[ha]')(input_table=land_management_ha, cal_table=land_management_ha_3)
+    land_management_ha, _, out_9213_3 = calibration(input_table=land_management_ha, cal_table=land_management_ha_3, data_to_be_cal='land-management[ha]', data_cal='land-management[ha]')
 
     # Cal_rate for land-management[ha]
 
     # cal_rate for land-management[ha] for pasture
-    cal_rate_land_management_ha = UseVariableNode(selected_variable='cal_rate_land-management[ha]')(input_table=out_9213_3)
+    cal_rate_land_management_ha = use_variable(input_table=out_9213_3, selected_variable='cal_rate_land-management[ha]')
 
     # calibration
     # Crop land
     # We use this calibration to be sure the sum of all raw-material correspond to cropland
 
     # Apply Calibration on land-management
-    land_management_ha_3, out_9212_2, out_9212_3 = CalibrationNode(data_to_be_cal='land-management[ha]', data_cal='land-management[ha]')(input_table=land_management_ha_4, cal_table=land_management_ha_3)
+    land_management_ha_3, out_9212_2, out_9212_3 = calibration(input_table=land_management_ha_4, cal_table=land_management_ha_3, data_to_be_cal='land-management[ha]', data_cal='land-management[ha]')
     # Apply calibration factor on land-management[ha] (by raw material)
-    land_management_ha_2 = MCDNode(operation_selection='x * y', output_name='land-management[ha]')(input_table_1=land_management_ha_2, input_table_2=out_9212_2)
+    land_management_ha_2 = mcd(input_table_1=land_management_ha_2, input_table_2=out_9212_2, operation_selection='x * y', output_name='land-management[ha]')
     # land-management[ha] to cropland-management[ha]
     out_9094_1 = land_management_ha_2.rename(columns={'land-management[ha]': 'cropland-management[ha]'})
 
@@ -1093,9 +1093,9 @@ def metanode_9097(port_01):
     # CH4 crop rice emission [Mt]
 
     # land-management [ha]
-    land_management_ha_2 = UseVariableNode(selected_variable='land-management[ha]')(input_table=land_management_ha_2)
+    land_management_ha_2 = use_variable(input_table=land_management_ha_2, selected_variable='land-management[ha]')
     # OTS (only) rice-emission-factor [Mt/ha]
-    rice_emission_factor_Mt_per_ha = ImportDataNode(trigram='agr', variable_name='rice-emission-factor', variable_type='OTS (only)')()
+    rice_emission_factor_Mt_per_ha = import_data(trigram='agr', variable_name='rice-emission-factor', variable_type='OTS (only)')
 
     # Emissions : 
     # - N2O due to urine and dung left on pastures
@@ -1120,19 +1120,19 @@ def metanode_9097(port_01):
     # => determine the quantity of N produced by livestock (used as manure : applied on field or leave it on the pasture)
 
     # OTS/FTS N-excretion-rate [kgN/lsu/year]
-    N_excretion_rate_kgN_per_lsu_per_year = ImportDataNode(trigram='agr', variable_name='N-excretion-rate')()
+    N_excretion_rate_kgN_per_lsu_per_year = import_data(trigram='agr', variable_name='N-excretion-rate')
     # N-manure-quantity[kgN] = livestock-population[lsu] * N-excretion-rate[kgN/lsu/year]
-    N_manure_quantity_kgN = MCDNode(operation_selection='x * y', output_name='N-manure-quantity[kgN]')(input_table_1=livestock_population_lsu, input_table_2=N_excretion_rate_kgN_per_lsu_per_year)
+    N_manure_quantity_kgN = mcd(input_table_1=livestock_population_lsu, input_table_2=N_excretion_rate_kgN_per_lsu_per_year, operation_selection='x * y', output_name='N-manure-quantity[kgN]')
     # Group by Country, Years
-    N_manure_quantity_kgN = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=N_manure_quantity_kgN)
+    N_manure_quantity_kgN = group_by_dimensions(df=N_manure_quantity_kgN, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
 
     # Apply climate smart livestock levers (switch)
     # => determine the quantity of N left on pasture and the one applied on fields
 
     # OTS/FTS manure-management-share [%]
-    manure_management_share_percent = ImportDataNode(trigram='agr', variable_name='manure-management-share')()
+    manure_management_share_percent = import_data(trigram='agr', variable_name='manure-management-share')
     # N-manure-quantity[kgN] (replace) = N-manure-quantity[kgN] * manure-management-share[%]
-    N_manure_quantity_kgN = MCDNode(operation_selection='x * y', output_name='N-manure-quantity[kgN]')(input_table_1=N_manure_quantity_kgN, input_table_2=manure_management_share_percent)
+    N_manure_quantity_kgN = mcd(input_table_1=N_manure_quantity_kgN, input_table_2=manure_management_share_percent, operation_selection='x * y', output_name='N-manure-quantity[kgN]')
 
     # For : Air Quality
     #  - Energy demand
@@ -1141,56 +1141,56 @@ def metanode_9097(port_01):
     #  - N-manure-quantity
 
     # N-manure-quantity [kgN]
-    N_manure_quantity_kgN_2 = ExportVariableNode(selected_variable='N-manure-quantity[kgN]')(input_table=N_manure_quantity_kgN)
+    N_manure_quantity_kgN_2 = export_variable(input_table=N_manure_quantity_kgN, selected_variable='N-manure-quantity[kgN]')
 
     # Apply climate smart livestock levers (switch)
     # => determine the quantity of N left on pasture and the one applied on fields
 
     # OTS/FTS N-amendment-emission-factor [Mt/kgN]
-    N_amendment_emission_factor_Mt_per_kgN = ImportDataNode(trigram='agr', variable_name='N-amendment-emission-factor')()
+    N_amendment_emission_factor_Mt_per_kgN = import_data(trigram='agr', variable_name='N-amendment-emission-factor')
     # Keep emission-type = 3D-agricultural-soils-residues
     N_amendment_emission_factor_Mt_per_kgN_2 = N_amendment_emission_factor_Mt_per_kgN.loc[N_amendment_emission_factor_Mt_per_kgN['emission-type'].isin(['3D-agricultural-soils-residues'])].copy()
     # Same as last available year
-    N_amendment_emission_factor_Mt_per_kgN_2 = AddMissingYearsNode()(df_data=N_amendment_emission_factor_Mt_per_kgN_2)
+    N_amendment_emission_factor_Mt_per_kgN_2 = add_missing_years(df_data=N_amendment_emission_factor_Mt_per_kgN_2)
     # emissions[Mt] = N-left-on-soil[MtN] * left-residues-emission-factor[Mt/Mt]
-    emissions_Mt_3 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=N_amendment_emission_factor_Mt_per_kgN_2, input_table_2=N_left_on_soil_Mt)
+    emissions_Mt_3 = mcd(input_table_1=N_amendment_emission_factor_Mt_per_kgN_2, input_table_2=N_left_on_soil_Mt, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years, gaes, emission-type, amendment-type
-    emissions_Mt_4 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'emission-type', 'gaes', 'amendment-type'], aggregation_method='Sum')(df=emissions_Mt_3)
+    emissions_Mt_4 = group_by_dimensions(df=emissions_Mt_3, groupby_dimensions=['Country', 'Years', 'emission-type', 'gaes', 'amendment-type'], aggregation_method='Sum')
     # emissions[Mt] =  N-manure-quantity[kgN] * N-amendment-emission-factor[Mt/kgN]
-    emissions_Mt_3 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=N_manure_quantity_kgN, input_table_2=N_amendment_emission_factor_Mt_per_kgN)
+    emissions_Mt_3 = mcd(input_table_1=N_manure_quantity_kgN, input_table_2=N_amendment_emission_factor_Mt_per_kgN, operation_selection='x * y', output_name='emissions[Mt]')
     # Same as last available year
-    rice_emission_factor_Mt_per_ha = AddMissingYearsNode()(df_data=rice_emission_factor_Mt_per_ha)
+    rice_emission_factor_Mt_per_ha = add_missing_years(df_data=rice_emission_factor_Mt_per_ha)
     # emissions[Mt] =  land-management[ha] * rice-emission-factor[Mt/ha]
-    emissions_Mt_5 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=land_management_ha_2, input_table_2=rice_emission_factor_Mt_per_ha)
+    emissions_Mt_5 = mcd(input_table_1=land_management_ha_2, input_table_2=rice_emission_factor_Mt_per_ha, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years, gaes, raw-material, emission-type
-    emissions_Mt_5 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material', 'emission-type', 'gaes'], aggregation_method='Sum')(df=emissions_Mt_5)
+    emissions_Mt_5 = group_by_dimensions(df=emissions_Mt_5, groupby_dimensions=['Country', 'Years', 'raw-material', 'emission-type', 'gaes'], aggregation_method='Sum')
 
     # Biomass coming from dedicated double crops
 
     # land-management [ha] (detailled by raw-material)
-    land_management_ha_4 = UseVariableNode(selected_variable='land-management[ha]')(input_table=land_management_ha_2)
+    land_management_ha_4 = use_variable(input_table=land_management_ha_2, selected_variable='land-management[ha]')
 
     # Apply biomass supply dedicated crops levers (switch)
     # => determine % of surface with dedicated double crops
 
     # OTS / FTS dedicated-double-crops-share [%]
-    dedicated_double_crops_share_percent = ImportDataNode(trigram='agr', variable_name='dedicated-double-crops-share')()
+    dedicated_double_crops_share_percent = import_data(trigram='agr', variable_name='dedicated-double-crops-share')
     # dedicated-double-crops[ha] = land-management[ha] * dedicated-double-crops-share[%]
-    dedicated_double_crops_ha = MCDNode(operation_selection='x * y', output_name='dedicated-double-crops[ha]')(input_table_1=land_management_ha_4, input_table_2=dedicated_double_crops_share_percent)
+    dedicated_double_crops_ha = mcd(input_table_1=land_management_ha_4, input_table_2=dedicated_double_crops_share_percent, operation_selection='x * y', output_name='dedicated-double-crops[ha]')
     # OTS (only) dedicated-double-crops-yield [t/ha]
-    dedicated_double_crops_yield_t_per_ha = ImportDataNode(trigram='agr', variable_name='dedicated-double-crops-yield', variable_type='OTS (only)')()
+    dedicated_double_crops_yield_t_per_ha = import_data(trigram='agr', variable_name='dedicated-double-crops-yield', variable_type='OTS (only)')
     # Same as last available year
-    dedicated_double_crops_yield_t_per_ha = AddMissingYearsNode()(df_data=dedicated_double_crops_yield_t_per_ha)
+    dedicated_double_crops_yield_t_per_ha = add_missing_years(df_data=dedicated_double_crops_yield_t_per_ha)
     # potential-energy-crops[t] = dedicated-double-crops[ha] * dedicated-double-crops-yield [t/ha]
-    potential_energy_crops_t = MCDNode(operation_selection='x * y', output_name='potential-energy-crops[t]')(input_table_1=dedicated_double_crops_ha, input_table_2=dedicated_double_crops_yield_t_per_ha)
+    potential_energy_crops_t = mcd(input_table_1=dedicated_double_crops_ha, input_table_2=dedicated_double_crops_yield_t_per_ha, operation_selection='x * y', output_name='potential-energy-crops[t]')
     # RCP dedicated-double-crops-conversion-factor [TWh/ton]
-    dedicated_double_crops_conversion_factor_TWh_per_ton = ImportDataNode(trigram='agr', variable_name='dedicated-double-crops-conversion-factor', variable_type='RCP')()
+    dedicated_double_crops_conversion_factor_TWh_per_ton = import_data(trigram='agr', variable_name='dedicated-double-crops-conversion-factor', variable_type='RCP')
     # Group by  Country, Years, land-use (sum)
-    potential_energy_crops_t = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'land-use'], aggregation_method='Sum')(df=potential_energy_crops_t)
+    potential_energy_crops_t = group_by_dimensions(df=potential_energy_crops_t, groupby_dimensions=['Country', 'Years', 'land-use'], aggregation_method='Sum')
     # energy-production[TWh] = potentiel-energy-crops[t] * dedicated-double-crops-conversion-factor [TWh/ton]
-    energy_production_TWh_3 = MCDNode(operation_selection='x * y', output_name='energy-production[TWh]')(input_table_1=potential_energy_crops_t, input_table_2=dedicated_double_crops_conversion_factor_TWh_per_ton)
+    energy_production_TWh_3 = mcd(input_table_1=potential_energy_crops_t, input_table_2=dedicated_double_crops_conversion_factor_TWh_per_ton, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh_3)
+    energy_production_TWh_3 = group_by_dimensions(df=energy_production_TWh_3, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = dedicated-double-crops
     energy_production_TWh_3['origin'] = "dedicated-double-crops"
     energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
@@ -1198,38 +1198,38 @@ def metanode_9097(port_01):
     # Biomass coming from crops co-products
 
     # OTS (only) co-products-yields [tonnes/ha]
-    co_products_yields_tonnes_per_ha = ImportDataNode(trigram='agr', variable_name='co-products-yields', variable_type='OTS (only)')()
+    co_products_yields_tonnes_per_ha = import_data(trigram='agr', variable_name='co-products-yields', variable_type='OTS (only)')
     # Same as last available year
-    co_products_yields_tonnes_per_ha = AddMissingYearsNode()(df_data=co_products_yields_tonnes_per_ha)
+    co_products_yields_tonnes_per_ha = add_missing_years(df_data=co_products_yields_tonnes_per_ha)
     # co-products-production[t] = land-management[ha] * co-products-yields[tonnes/ha]
-    co_products_production_t = MCDNode(operation_selection='x * y', output_name='co-products-production[t]')(input_table_1=land_management_ha_2, input_table_2=co_products_yields_tonnes_per_ha)
+    co_products_production_t = mcd(input_table_1=land_management_ha_2, input_table_2=co_products_yields_tonnes_per_ha, operation_selection='x * y', output_name='co-products-production[t]')
     # Group by  Country, Years, raw-material (sum)
-    co_products_production_t = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=co_products_production_t)
+    co_products_production_t = group_by_dimensions(df=co_products_production_t, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # RCP co-product-bioenergy-conv-factors [TWh/ton]
-    co_product_bioenergy_conv_factors_TWh_per_ton = ImportDataNode(trigram='agr', variable_name='co-product-bioenergy-conv-factors', variable_type='RCP')()
+    co_product_bioenergy_conv_factors_TWh_per_ton = import_data(trigram='agr', variable_name='co-product-bioenergy-conv-factors', variable_type='RCP')
     # potential-energy-production[TWh] = co-products-production[t] * co-product-bioenergy-conv-factors [TWh/ton]
-    potential_energy_production_TWh = MCDNode(operation_selection='x * y', output_name='potential-energy-production[TWh]')(input_table_1=co_products_production_t, input_table_2=co_product_bioenergy_conv_factors_TWh_per_ton)
+    potential_energy_production_TWh = mcd(input_table_1=co_products_production_t, input_table_2=co_product_bioenergy_conv_factors_TWh_per_ton, operation_selection='x * y', output_name='potential-energy-production[TWh]')
 
     # Apply biomass supply valorisation of co-products and co levers (switch)
     # => determine % of crops residues which are effectively used to produce biogaz
 
     # OTS/FTS crops-co-products-bioenergy-share [%]
-    crops_co_products_bioenergy_share_percent = ImportDataNode(trigram='agr', variable_name='crops-co-products-bioenergy-share')()
+    crops_co_products_bioenergy_share_percent = import_data(trigram='agr', variable_name='crops-co-products-bioenergy-share')
     # energy-production[TWh] = potentiel-energy-production[TWh] * crops-co-products-bioenergy-share [%]
-    energy_production_TWh_3 = MCDNode(operation_selection='x * y', output_name='energy-production[TWh]')(input_table_1=potential_energy_production_TWh, input_table_2=crops_co_products_bioenergy_share_percent)
+    energy_production_TWh_3 = mcd(input_table_1=potential_energy_production_TWh, input_table_2=crops_co_products_bioenergy_share_percent, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh_3)
+    energy_production_TWh_3 = group_by_dimensions(df=energy_production_TWh_3, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = crops-co-product
     energy_production_TWh_3['origin'] = "crops-co-product"
     energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
     energy_production_TWh = pd.concat([energy_production_TWh, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
     # cal_rate for land-management[ha] for cropland
-    cal_rate_land_management_ha_2 = UseVariableNode(selected_variable='cal_rate_land-management[ha]')(input_table=out_9212_3)
+    cal_rate_land_management_ha_2 = use_variable(input_table=out_9212_3, selected_variable='cal_rate_land-management[ha]')
     cal_rate_land_management_ha = pd.concat([cal_rate_land_management_ha_2, cal_rate_land_management_ha.set_index(cal_rate_land_management_ha.index.astype(str) + '_dup')])
     out_9434_1 = pd.concat([out_9430_1, cal_rate_land_management_ha.set_index(cal_rate_land_management_ha.index.astype(str) + '_dup')])
     land_management_ha = pd.concat([land_management_ha_3, land_management_ha.set_index(land_management_ha.index.astype(str) + '_dup')])
     # land-management [ha]
-    land_management_ha = ExportVariableNode(selected_variable='land-management[ha]')(input_table=land_management_ha)
+    land_management_ha = export_variable(input_table=land_management_ha, selected_variable='land-management[ha]')
 
     # For : KPIs (Pathway Explorer)
     #  - GHG emission per farmland
@@ -1240,7 +1240,7 @@ def metanode_9097(port_01):
     # Note : for grassland, KPI's underestimates emissions per ha as hectars of grassland are not all pastured
 
     # land-management [ha]
-    land_management_ha = UseVariableNode(selected_variable='land-management[ha]')(input_table=land_management_ha)
+    land_management_ha = use_variable(input_table=land_management_ha, selected_variable='land-management[ha]')
     # Top : land-use = cropland Bottom : land-use = pasture
     land_management_ha_2 = land_management_ha.loc[land_management_ha['land-use'].isin(['cropland'])].copy()
     land_management_ha_excluded = land_management_ha.loc[~land_management_ha['land-use'].isin(['cropland'])].copy()
@@ -1249,25 +1249,25 @@ def metanode_9097(port_01):
     # => determine quantity of TWh by cropland management (TWh/ha)
 
     # OTS/FTS cropland-energy-consumption [TWh/ha]
-    cropland_energy_consumption_TWh_per_ha = ImportDataNode(trigram='agr', variable_name='cropland-energy-consumption')()
+    cropland_energy_consumption_TWh_per_ha = import_data(trigram='agr', variable_name='cropland-energy-consumption')
     # energy-demand[TWh] = land-management[ha] * cropland-energy-consumption[TWh/ha]
-    energy_demand_TWh = MCDNode(operation_selection='x * y', output_name='energy-demand[TWh]')(input_table_1=land_management_ha, input_table_2=cropland_energy_consumption_TWh_per_ha)
+    energy_demand_TWh = mcd(input_table_1=land_management_ha, input_table_2=cropland_energy_consumption_TWh_per_ha, operation_selection='x * y', output_name='energy-demand[TWh]')
     # OTS (only) cropland-fuel-mix [%]
-    cropland_fuel_mix_percent = ImportDataNode(trigram='agr', variable_name='cropland-fuel-mix', variable_type='OTS (only)')()
+    cropland_fuel_mix_percent = import_data(trigram='agr', variable_name='cropland-fuel-mix', variable_type='OTS (only)')
     # Same as last available year
-    cropland_fuel_mix_percent = AddMissingYearsNode()(df_data=cropland_fuel_mix_percent)
+    cropland_fuel_mix_percent = add_missing_years(df_data=cropland_fuel_mix_percent)
     # energy-demand[TWh] (replace) =  energy-demand[TWh] * cropland-fuel-mix[%]
-    energy_demand_TWh_2 = MCDNode(operation_selection='x * y', output_name='energy-demand[TWh]')(input_table_1=energy_demand_TWh, input_table_2=cropland_fuel_mix_percent)
+    energy_demand_TWh_2 = mcd(input_table_1=energy_demand_TWh, input_table_2=cropland_fuel_mix_percent, operation_selection='x * y', output_name='energy-demand[TWh]')
 
     # Apply cliamte smart crop levers (switch)
     # => determine which fuel is used for irrigation management energy demand (NOT ONLY FUEL MIX BUT ALSO % CROPLAND for which there is IRRIGATION ??)
 
     # OTS/FTS irrigation-fuel-mix [%]
-    irrigation_fuel_mix_percent = ImportDataNode(trigram='agr', variable_name='irrigation-fuel-mix')()
+    irrigation_fuel_mix_percent = import_data(trigram='agr', variable_name='irrigation-fuel-mix')
     # energy-demand-irrigation =  energy-demand * smart-crop-irrigation-energy-demand[%]
-    irrigation_energy_demand_TWh = MCDNode(operation_selection='x * y', output_name='irrigation-energy-demand[TWh]')(input_table_1=energy_demand_TWh, input_table_2=irrigation_fuel_mix_percent)
+    irrigation_energy_demand_TWh = mcd(input_table_1=energy_demand_TWh, input_table_2=irrigation_fuel_mix_percent, operation_selection='x * y', output_name='irrigation-energy-demand[TWh]')
     # energy-demand[TWh] (replace) = energy-demand[TWh] + irrigation-energy-demand[TWh]  LEFT OUTER JOIN if no irrigation demand ; set to 0
-    energy_demand_TWh = MCDNode(operation_selection='x + y', output_name='energy-demand[TWh]', fill_value_bool='Left [x] Outer Join')(input_table_1=energy_demand_TWh_2, input_table_2=irrigation_energy_demand_TWh)
+    energy_demand_TWh = mcd(input_table_1=energy_demand_TWh_2, input_table_2=irrigation_energy_demand_TWh, operation_selection='x + y', output_name='energy-demand[TWh]', fill_value_bool='Left [x] Outer Join')
     # Remove energy-carrier = LPG
     energy_demand_TWh_excluded = energy_demand_TWh.loc[energy_demand_TWh['energy-carrier'].isin(['gaseous-ff-lpg'])].copy()
     energy_demand_TWh = energy_demand_TWh.loc[~energy_demand_TWh['energy-carrier'].isin(['gaseous-ff-lpg'])].copy()
@@ -1275,9 +1275,9 @@ def metanode_9097(port_01):
     energy_demand_TWh_excluded['energy-carrier'] = "gaseous-ff-natural"
     energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
     # Group by  Country, Years,  energy-carrier
-    energy_demand_TWh = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # cal energy-demand [TWh]
-    energy_demand_TWh_2 = ImportDataNode(trigram='agr', variable_name='energy-demand', variable_type='Calibration')()
+    energy_demand_TWh_2 = import_data(trigram='agr', variable_name='energy-demand', variable_type='Calibration')
     # Remove energy-carrier = LPG
     energy_demand_TWh_excluded = energy_demand_TWh_2.loc[energy_demand_TWh_2['energy-carrier'].isin(['gaseous-ff-lpg'])].copy()
     energy_demand_TWh_2 = energy_demand_TWh_2.loc[~energy_demand_TWh_2['energy-carrier'].isin(['gaseous-ff-lpg'])].copy()
@@ -1285,43 +1285,43 @@ def metanode_9097(port_01):
     energy_demand_TWh_excluded['energy-carrier'] = "gaseous-ff-natural"
     energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
     # Group by  Country, Years,  energy-carrier
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_demand_TWh_2)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
 
     # calibration
     # Energy-demand
 
     # Apply Calibration on energy-demand
-    energy_demand_TWh, _, out_9214_3 = CalibrationNode(data_to_be_cal='energy-demand[TWh]', data_cal='energy-demand[TWh]')(input_table=energy_demand_TWh, cal_table=energy_demand_TWh_2)
+    energy_demand_TWh, _, out_9214_3 = calibration(input_table=energy_demand_TWh, cal_table=energy_demand_TWh_2, data_to_be_cal='energy-demand[TWh]', data_cal='energy-demand[TWh]')
 
     # Cal_rate for energy-demand[TWh]
 
     # cal_rate for energy-demand[TWh]
-    cal_rate_energy_demand_TWh = UseVariableNode(selected_variable='cal_rate_energy-demand[TWh]')(input_table=out_9214_3)
+    cal_rate_energy_demand_TWh = use_variable(input_table=out_9214_3, selected_variable='cal_rate_energy-demand[TWh]')
     out_9439_1 = pd.concat([out_9434_1, cal_rate_energy_demand_TWh.set_index(cal_rate_energy_demand_TWh.index.astype(str) + '_dup')])
 
     # Apply cliamte smart crop levers (reduce ?)
     # => Determine the % of gaseous-ff-natural than can be converted to gaseous-bio
 
     # OTS/FTS fuel-switch [%]
-    fuel_switch_percent = ImportDataNode(trigram='agr', variable_name='fuel-switch')()
+    fuel_switch_percent = import_data(trigram='agr', variable_name='fuel-switch')
     # fuel-switch[%] = 1 - fuel-switch[%]
     fuel_switch_percent['fuel-switch[%]'] = 1.0-fuel_switch_percent['fuel-switch[%]']
     # Fuel Switch fffuels to biofuels
-    out_8983_1 = XSwitchNode()(demand_table=energy_demand_TWh, switch_table=fuel_switch_percent, correlation_table=ratio)
+    out_8983_1 = x_switch(demand_table=energy_demand_TWh, switch_table=fuel_switch_percent, correlation_table=ratio)
     # Add sector = agr
     out_8983_1['sector'] = "agr"
     # energy-demand [TWh]
-    energy_demand_TWh = ExportVariableNode(selected_variable='energy-demand[TWh]')(input_table=out_8983_1)
+    energy_demand_TWh = export_variable(input_table=out_8983_1, selected_variable='energy-demand[TWh]')
     # energy-demand [TWh]
-    energy_demand_TWh = UseVariableNode(selected_variable='energy-demand[TWh]')(input_table=energy_demand_TWh)
+    energy_demand_TWh = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
 
     # For : Electricity supply
     #  - Energy demand
 
     # Group by Country, Years, energy-carrier, sector (sum)
-    energy_demand_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier', 'sector'], aggregation_method='Sum')(df=energy_demand_TWh)
+    energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'sector'], aggregation_method='Sum')
     # Module = Electricity
-    energy_demand_TWh_2 = ColumnFilterNode(pattern='^.*$')(df=energy_demand_TWh_2)
+    energy_demand_TWh_2 = column_filter(df=energy_demand_TWh_2, pattern='^.*$')
 
     # 1.A.4.c. Energy emissions
     # 
@@ -1337,11 +1337,11 @@ def metanode_9097(port_01):
     # - Gas demand for bioenergy module [TWh]
 
     # RCP agr-combustion-emission-factor [Mt/TWh]
-    agr_combustion_emission_factor_Mt_per_TWh = ImportDataNode(trigram='agr', variable_name='agr-combustion-emission-factor', variable_type='RCP')()
+    agr_combustion_emission_factor_Mt_per_TWh = import_data(trigram='agr', variable_name='agr-combustion-emission-factor', variable_type='RCP')
     # Keep gaes = CO2 (only)
     agr_combustion_emission_factor_Mt_per_TWh = agr_combustion_emission_factor_Mt_per_TWh.loc[agr_combustion_emission_factor_Mt_per_TWh['gaes'].isin(['CO2'])].copy()
     # emissions[Mt] = energy-demand[TWh] * agr-combustion-emission-factor[Mt/TWh]
-    emissions_Mt_6 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=energy_demand_TWh, input_table_2=agr_combustion_emission_factor_Mt_per_TWh)
+    emissions_Mt_6 = mcd(input_table_1=energy_demand_TWh, input_table_2=agr_combustion_emission_factor_Mt_per_TWh, operation_selection='x * y', output_name='emissions[Mt]')
     # emission-type = energy-demand
     emissions_Mt_6['emission-type'] = "energy-demand"
 
@@ -1351,69 +1351,69 @@ def metanode_9097(port_01):
     # Emission linked to energy demand (CO2 only)
 
     # Group by  Country, Years, gaes
-    emissions_Mt_8 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'gaes', 'emission-type'], aggregation_method='Sum')(df=emissions_Mt_6)
+    emissions_Mt_8 = group_by_dimensions(df=emissions_Mt_6, groupby_dimensions=['Country', 'Years', 'gaes', 'emission-type'], aggregation_method='Sum')
     # Calibration emissions [Mt]
-    emissions_Mt_7 = ImportDataNode(trigram='agr', variable_name='emissions', variable_type='Calibration')()
+    emissions_Mt_7 = import_data(trigram='agr', variable_name='emissions', variable_type='Calibration')
     emissions_Mt_7 = emissions_Mt_7.loc[~emissions_Mt_7['emission-type'].isin(['c-stock'])].copy()
     # Split emission-type energy-demand
     emissions_Mt_9 = emissions_Mt_7.loc[emissions_Mt_7['emission-type'].isin(['energy-demand'])].copy()
     emissions_Mt_excluded = emissions_Mt_7.loc[~emissions_Mt_7['emission-type'].isin(['energy-demand'])].copy()
     # Remove empty dimensions
-    out_9472_1 = MissingValueColumnFilterNode(missing_threshold=1.0, type_of_pattern='Manual')(df=emissions_Mt_9)
+    out_9472_1 = missing_value_column_filter(df=emissions_Mt_9, missing_threshold=1.0, type_of_pattern='Manual')
     # Apply Calibration on emissions coming from energy-demand
-    _, out_9471_2, out_9471_3 = CalibrationNode(data_to_be_cal='emissions[Mt]', data_cal='emissions[Mt]')(input_table=emissions_Mt_8, cal_table=out_9472_1)
+    _, out_9471_2, out_9471_3 = calibration(input_table=emissions_Mt_8, cal_table=out_9472_1, data_to_be_cal='emissions[Mt]', data_cal='emissions[Mt]')
     # Apply cal rate to emissions[Mt]
-    emissions_Mt_6 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=emissions_Mt_6, input_table_2=out_9471_2)
+    emissions_Mt_6 = mcd(input_table_1=emissions_Mt_6, input_table_2=out_9471_2, operation_selection='x * y', output_name='emissions[Mt]')
     # Remove sector
-    emissions_Mt_6 = ColumnFilterNode(columns_to_drop=['sector'])(df=emissions_Mt_6)
+    emissions_Mt_6 = column_filter(df=emissions_Mt_6, columns_to_drop=['sector'])
 
     # Other Emissions
 
     # Fill missing by ""
-    emissions_Mt_excluded = MissingValueNode(dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')(df=emissions_Mt_excluded)
+    emissions_Mt_excluded = missing_value(df=emissions_Mt_excluded, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     # Group by  Country, Years, gaes, amendment-type, raw-material, emission-type
-    emissions_Mt_excluded = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'emission-type', 'gaes', 'amendment-type', 'raw-material'], aggregation_method='Sum')(df=emissions_Mt_excluded)
+    emissions_Mt_excluded = group_by_dimensions(df=emissions_Mt_excluded, groupby_dimensions=['Country', 'Years', 'emission-type', 'gaes', 'amendment-type', 'raw-material'], aggregation_method='Sum')
 
     # Biomass coming from grass (pasture)
 
     # OTS (only) grass-yields [tonnes DM/ha]
-    grass_yields_tonnes_DM_per_ha = ImportDataNode(trigram='agr', variable_name='grass-yields', variable_type='OTS (only)')()
+    grass_yields_tonnes_DM_per_ha = import_data(trigram='agr', variable_name='grass-yields', variable_type='OTS (only)')
     # Same as last available year
-    grass_yields_tonnes_DM_per_ha = AddMissingYearsNode()(df_data=grass_yields_tonnes_DM_per_ha)
+    grass_yields_tonnes_DM_per_ha = add_missing_years(df_data=grass_yields_tonnes_DM_per_ha)
     # grass-production[t] = land-management[ha] * grass-yields[tonnes DM/ha]
-    grass_production_t = MCDNode(operation_selection='x * y', output_name='grass-production[t]')(input_table_1=land_management_ha, input_table_2=grass_yields_tonnes_DM_per_ha)
+    grass_production_t = mcd(input_table_1=land_management_ha, input_table_2=grass_yields_tonnes_DM_per_ha, operation_selection='x * y', output_name='grass-production[t]')
     # Group by  Country, Years, raw-material (sum)
-    grass_production_t = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')(df=grass_production_t)
+    grass_production_t = group_by_dimensions(df=grass_production_t, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # RCP grass-bioenergy-conv-factor [TWh/t]
-    grass_bioenergy_conv_factor_TWh_per_t = ImportDataNode(trigram='agr', variable_name='grass-bioenergy-conv-factor', variable_type='RCP')()
+    grass_bioenergy_conv_factor_TWh_per_t = import_data(trigram='agr', variable_name='grass-bioenergy-conv-factor', variable_type='RCP')
     # potential-energy-production[TWh] = grass-production[t] * grass-bioenergy-conv-factor [TWh/t]
-    potential_energy_production_TWh = MCDNode(operation_selection='x * y', output_name='potential-energy-production[TWh]')(input_table_1=grass_production_t, input_table_2=grass_bioenergy_conv_factor_TWh_per_t)
+    potential_energy_production_TWh = mcd(input_table_1=grass_production_t, input_table_2=grass_bioenergy_conv_factor_TWh_per_t, operation_selection='x * y', output_name='potential-energy-production[TWh]')
 
     # Apply biomass supply valorisation of co-products and co levers (switch)
     # => determine % of pasture grass which are effectively used to produce biogaz
 
     # OTS/FTS grass-bioenergy-share [%]
-    grass_bioenergy_share_percent = ImportDataNode(trigram='agr', variable_name='grass-bioenergy-share')()
+    grass_bioenergy_share_percent = import_data(trigram='agr', variable_name='grass-bioenergy-share')
     # energy-production[TWh] = potentiel-energy-production[TWh] * grass-bioenergy-share [%]
-    energy_production_TWh_2 = MCDNode(operation_selection='x * y', output_name='energy-production[TWh]')(input_table_1=potential_energy_production_TWh, input_table_2=grass_bioenergy_share_percent)
+    energy_production_TWh_2 = mcd(input_table_1=potential_energy_production_TWh, input_table_2=grass_bioenergy_share_percent, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
-    energy_production_TWh_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')(df=energy_production_TWh_2)
+    energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = grass-pasture
     energy_production_TWh_2['origin'] = "grass-pasture"
     energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
     # energy-production [TWh]
-    energy_production_TWh = ExportVariableNode(selected_variable='energy-production[TWh]')(input_table=energy_production_TWh)
+    energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
     # For : Bioenergy
     #  - Energy production
 
     # energy-production [TWh]
-    energy_production_TWh = UseVariableNode(selected_variable='energy-production[TWh]')(input_table=energy_production_TWh)
+    energy_production_TWh = use_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
     # Module = Bioenergy
-    energy_production_TWh = ColumnFilterNode(pattern='^.*$')(df=energy_production_TWh)
+    energy_production_TWh = column_filter(df=energy_production_TWh, pattern='^.*$')
     out_9090_1 = pd.concat([land_management_ha, out_9094_1.set_index(out_9094_1.index.astype(str) + '_dup')])
     # Module = Land-use
-    out_9090_1 = ColumnFilterNode(pattern='^.*$')(df=out_9090_1)
+    out_9090_1 = column_filter(df=out_9090_1, pattern='^.*$')
 
     # Fertilizer and other amendments demand
 
@@ -1435,17 +1435,17 @@ def metanode_9097(port_01):
     # => only available for fertilzers (nitrogen phospohore, potash) but not for other amendments (urea, liming). For these last categories : we need to compute year after baseyear then.
 
     # OTS/FTS amendment-application-rate [t/ha]
-    amendment_application_rate_t_per_ha = ImportDataNode(trigram='agr', variable_name='amendment-application-rate')()
+    amendment_application_rate_t_per_ha = import_data(trigram='agr', variable_name='amendment-application-rate')
     # Top : amendment-type = nitrogen, potash, phosphore Bottom : rest
     amendment_application_rate_t_per_ha_2 = amendment_application_rate_t_per_ha.loc[amendment_application_rate_t_per_ha['amendment-type'].isin(['nitrogen', 'phosphore', 'potash'])].copy()
     amendment_application_rate_t_per_ha_excluded = amendment_application_rate_t_per_ha.loc[~amendment_application_rate_t_per_ha['amendment-type'].isin(['nitrogen', 'phosphore', 'potash'])].copy()
     # Same as last available year
-    amendment_application_rate_t_per_ha_excluded = AddMissingYearsNode()(df_data=amendment_application_rate_t_per_ha_excluded)
+    amendment_application_rate_t_per_ha_excluded = add_missing_years(df_data=amendment_application_rate_t_per_ha_excluded)
     amendment_application_rate_t_per_ha_2 = pd.concat([amendment_application_rate_t_per_ha_2, amendment_application_rate_t_per_ha_excluded.set_index(amendment_application_rate_t_per_ha_excluded.index.astype(str) + '_dup')])
     # amendment-application[t]  = land-management[ha] * amendment-application-rate[t/ha]
-    amendment_application_t = MCDNode(operation_selection='x * y', output_name='amendment-application[t]')(input_table_1=land_management_ha, input_table_2=amendment_application_rate_t_per_ha_2)
+    amendment_application_t = mcd(input_table_1=land_management_ha, input_table_2=amendment_application_rate_t_per_ha_2, operation_selection='x * y', output_name='amendment-application[t]')
     # amendment-application [t]
-    amendment_application_t = ExportVariableNode(selected_variable='amendment-application[t]')(input_table=amendment_application_t)
+    amendment_application_t = export_variable(input_table=amendment_application_t, selected_variable='amendment-application[t]')
 
     # Emissions : 
     # - N2O due to other sources (mainly inorganic fertilizers)
@@ -1461,13 +1461,13 @@ def metanode_9097(port_01):
     # - Fertilizer emissions [Mt]
 
     # amendment-application [t]
-    amendment_application_t = UseVariableNode(selected_variable='amendment-application[t]')(input_table=amendment_application_t)
+    amendment_application_t = use_variable(input_table=amendment_application_t, selected_variable='amendment-application[t]')
     # RCP fertilizer-emission-factor[Mt/t] ( * 10e9 = 15.7kg/t ) 
-    fertilizer_emission_factor_Mt_per_t = ImportDataNode(trigram='agr', variable_name='fertilizer-emission-factor', variable_type='RCP')()
+    fertilizer_emission_factor_Mt_per_t = import_data(trigram='agr', variable_name='fertilizer-emission-factor', variable_type='RCP')
     # emissions[Mt] = amendment-application[t] * fertilizer-emission-factor[Mt/t]
-    emissions_Mt_7 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=amendment_application_t, input_table_2=fertilizer_emission_factor_Mt_per_t)
+    emissions_Mt_7 = mcd(input_table_1=amendment_application_t, input_table_2=fertilizer_emission_factor_Mt_per_t, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years, gaes, amendment-type
-    emissions_Mt_7 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'amendment-type', 'gaes'], aggregation_method='Sum')(df=emissions_Mt_7)
+    emissions_Mt_7 = group_by_dimensions(df=emissions_Mt_7, groupby_dimensions=['Country', 'Years', 'amendment-type', 'gaes'], aggregation_method='Sum')
     # emission-type = 3D-agricultural-soils-fertilizers
     emissions_Mt_7['emission-type'] = "3D-agricultural-soils-fertilizers"
 
@@ -1492,67 +1492,67 @@ def metanode_9097(port_01):
     # - CO2 liming and urea emission [Mt]
 
     # amendment-application [t]
-    amendment_application_t_2 = UseVariableNode(selected_variable='amendment-application[t]')(input_table=amendment_application_t)
+    amendment_application_t_2 = use_variable(input_table=amendment_application_t, selected_variable='amendment-application[t]')
     # Group by  Country, Years, amendment-type
-    amendment_application_t_3 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'amendment-type'], aggregation_method='Sum')(df=amendment_application_t_2)
+    amendment_application_t_3 = group_by_dimensions(df=amendment_application_t_2, groupby_dimensions=['Country', 'Years', 'amendment-type'], aggregation_method='Sum')
     # OTS (only) C-amendment-emission-factor [Mt/t]
-    C_amendment_emission_factor_Mt_per_t = ImportDataNode(trigram='agr', variable_name='C-amendment-emission-factor', variable_type='OTS (only)')()
+    C_amendment_emission_factor_Mt_per_t = import_data(trigram='agr', variable_name='C-amendment-emission-factor', variable_type='OTS (only)')
     # Same as last available year
-    C_amendment_emission_factor_Mt_per_t = AddMissingYearsNode()(df_data=C_amendment_emission_factor_Mt_per_t)
+    C_amendment_emission_factor_Mt_per_t = add_missing_years(df_data=C_amendment_emission_factor_Mt_per_t)
     # emissions[Mt] = amendment-application[t] * C-amendment-emission-factor [Mt/t]
-    emissions_Mt_8 = MCDNode(operation_selection='x * y', output_name='emissions[Mt]')(input_table_1=amendment_application_t_3, input_table_2=C_amendment_emission_factor_Mt_per_t)
+    emissions_Mt_8 = mcd(input_table_1=amendment_application_t_3, input_table_2=C_amendment_emission_factor_Mt_per_t, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years, gaes, amendment-type, emission-type
-    emissions_Mt_8 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'amendment-type', 'emission-type', 'gaes'], aggregation_method='Sum')(df=emissions_Mt_8)
+    emissions_Mt_8 = group_by_dimensions(df=emissions_Mt_8, groupby_dimensions=['Country', 'Years', 'amendment-type', 'emission-type', 'gaes'], aggregation_method='Sum')
     out_9481_1 = metanode_9481(port_03=emissions_Mt_3, port_01=emissions_Mt, port_02=emissions_Mt_5, port_04=emissions_Mt_4, port_06=emissions_Mt_2, port_07=emissions_Mt_8, port_05=emissions_Mt_7)
     # Fill missing by ""
-    out_9481_1 = MissingValueNode(dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')(df=out_9481_1)
+    out_9481_1 = missing_value(df=out_9481_1, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     # Apply Calibration on emissions coming from energy-demand
-    out_9481_1, _, out_9456_3 = CalibrationNode(data_to_be_cal='emissions[Mt]', data_cal='emissions[Mt]')(input_table=out_9481_1, cal_table=emissions_Mt_excluded)
+    out_9481_1, _, out_9456_3 = calibration(input_table=out_9481_1, cal_table=emissions_Mt_excluded, data_to_be_cal='emissions[Mt]', data_cal='emissions[Mt]')
     # Group by  Country, Years, gaes, emission-type
-    out_9481_1 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'gaes', 'emission-type'], aggregation_method='Sum')(df=out_9481_1)
+    out_9481_1 = group_by_dimensions(df=out_9481_1, groupby_dimensions=['Country', 'Years', 'gaes', 'emission-type'], aggregation_method='Sum')
     out_9477_1 = pd.concat([emissions_Mt_6, out_9481_1.set_index(out_9481_1.index.astype(str) + '_dup')])
     # Set "" if missing
-    out_9477_1 = MissingValueNode(dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')(df=out_9477_1)
+    out_9477_1 = missing_value(df=out_9477_1, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     # emissions [Mt]
-    emissions_Mt = ExportVariableNode(selected_variable='emissions[Mt]')(input_table=out_9477_1)
+    emissions_Mt = export_variable(input_table=out_9477_1, selected_variable='emissions[Mt]')
 
     # For : Climate
     #  - Emissions
 
     # emissions [Mt]
-    emissions_Mt = UseVariableNode(selected_variable='emissions[Mt]')(input_table=emissions_Mt)
+    emissions_Mt = use_variable(input_table=emissions_Mt, selected_variable='emissions[Mt]')
     # Add emissions-or-capture
     emissions_Mt_2 = emissions_Mt.assign(**{'emissions-or-capture': "emissions"})
     # Module = Climate emissions
-    emissions_Mt_2 = ColumnFilterNode(pattern='^.*$')(df=emissions_Mt_2)
+    emissions_Mt_2 = column_filter(df=emissions_Mt_2, pattern='^.*$')
     # CP gwp [-] (Global Warming Potential) from Climate Emissions
-    clt_gwp_ = ImportDataNode(trigram='clt', variable_name='clt_gwp', variable_type='CP')()
+    clt_gwp_ = import_data(trigram='clt', variable_name='clt_gwp', variable_type='CP')
     # Switch  variable to double
-    gwp_100 = MathFormulaNode(convert_to_int=False, replaced_column='gwp-100[-]', splitted='$gwp-100[-]$')(df=clt_gwp_)
+    gwp_100 = math_formula(df=clt_gwp_, convert_to_int=False, replaced_column='gwp-100[-]', splitted='$gwp-100[-]$')
     # Convert Unit Mt to t
     emissions_t = emissions_Mt.drop(columns='emissions[Mt]').assign(**{'emissions[t]': emissions_Mt['emissions[Mt]'] * 1000000.0})
     # emissions[tCO2e] = emissions[t] x gwp[-]
-    emissions_tCO2e = MCDNode(operation_selection='x * y', output_name='emissions[tCO2e]')(input_table_1=emissions_t, input_table_2=gwp_100)
+    emissions_tCO2e = mcd(input_table_1=emissions_t, input_table_2=gwp_100, operation_selection='x * y', output_name='emissions[tCO2e]')
     # Top : emission-type = 3C, 3D, 3E, 3F, 3G, 3H (linked to cropland)
     emissions_tCO2e_2 = emissions_tCO2e.loc[emissions_tCO2e['emission-type'].isin(['3C-rice-cultivation', '3D-agricultural-soils-fertilizers', '3D-agricultural-soils-manure', '3D-agricultural-soils-residues', '3F-burnt-residues', '3G-liming', '3H-urea-application'])].copy()
     emissions_tCO2e_excluded = emissions_tCO2e.loc[~emissions_tCO2e['emission-type'].isin(['3C-rice-cultivation', '3D-agricultural-soils-fertilizers', '3D-agricultural-soils-manure', '3D-agricultural-soils-residues', '3F-burnt-residues', '3G-liming', '3H-urea-application'])].copy()
     # Top : emission-type = 3A, 3B (linked to pasture)
     emissions_tCO2e_excluded = emissions_tCO2e_excluded.loc[emissions_tCO2e_excluded['emission-type'].isin(['3A-enteric-fermentation', '3B-manure-management'])].copy()
     # Group by Country, Years, gaes (sum)
-    emissions_tCO2e_excluded = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')(df=emissions_tCO2e_excluded)
+    emissions_tCO2e_excluded = group_by_dimensions(df=emissions_tCO2e_excluded, groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')
     # emissions-per-fermland[tCO2e/ha] = emissions[tCO2e] / land-management[ha]
-    emissions_per_fermland_tCO2e_per_ha = MCDNode(operation_selection='y / x', output_name='emissions-per-fermland[tCO2e/ha]')(input_table_1=land_management_ha_excluded, input_table_2=emissions_tCO2e_excluded)
+    emissions_per_fermland_tCO2e_per_ha = mcd(input_table_1=land_management_ha_excluded, input_table_2=emissions_tCO2e_excluded, operation_selection='y / x', output_name='emissions-per-fermland[tCO2e/ha]')
     # Group by Country, Years, gaes (sum)
-    emissions_tCO2e_2 = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')(df=emissions_tCO2e_2)
+    emissions_tCO2e_2 = group_by_dimensions(df=emissions_tCO2e_2, groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')
     # emissions-per-fermland[tCO2e/ha] = emissions[tCO2e] / land-management[ha]
-    emissions_per_fermland_tCO2e_per_ha_2 = MCDNode(operation_selection='y / x', output_name='emissions-per-fermland[tCO2e/ha]')(input_table_1=land_management_ha_2, input_table_2=emissions_tCO2e_2)
+    emissions_per_fermland_tCO2e_per_ha_2 = mcd(input_table_1=land_management_ha_2, input_table_2=emissions_tCO2e_2, operation_selection='y / x', output_name='emissions-per-fermland[tCO2e/ha]')
     emissions_per_fermland_tCO2e_per_ha = pd.concat([emissions_per_fermland_tCO2e_per_ha_2, emissions_per_fermland_tCO2e_per_ha.set_index(emissions_per_fermland_tCO2e_per_ha.index.astype(str) + '_dup')])
     # Group by Country, Years, gaes (sum)
-    emissions_tCO2e = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')(df=emissions_tCO2e)
+    emissions_tCO2e = group_by_dimensions(df=emissions_tCO2e, groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')
     # Convert Unit t to g
     emissions_gCO2e = emissions_tCO2e.drop(columns='emissions[tCO2e]').assign(**{'emissions[gCO2e]': emissions_tCO2e['emissions[tCO2e]'] * 1000000.0})
     # emissions-per-food-production[gCO2e/kcal] = emissions[gCO2e] / total-domestic-production[kcal]
-    emissions_per_food_production_gCO2e_per_kcal = MCDNode(operation_selection='x / y', output_name='emissions-per-food-production[gCO2e/kcal]')(input_table_1=emissions_gCO2e, input_table_2=total_domestic_production_kcal)
+    emissions_per_food_production_gCO2e_per_kcal = mcd(input_table_1=emissions_gCO2e, input_table_2=total_domestic_production_kcal, operation_selection='x / y', output_name='emissions-per-food-production[gCO2e/kcal]')
     emissions_per_per = pd.concat([emissions_per_fermland_tCO2e_per_ha, emissions_per_food_production_gCO2e_per_kcal.set_index(emissions_per_food_production_gCO2e_per_kcal.index.astype(str) + '_dup')])
 
     # Cal_rate for emissions[Mt]
@@ -1574,15 +1574,15 @@ def metanode_9097(port_01):
     out_18_1 = helper_18(input_table=out_9456_3)
     out = pd.concat([out_9471_3, out_18_1.set_index(out_18_1.index.astype(str) + '_dup')])
     # cal_rate for emissions[Mt]
-    cal_rate_emissions_Mt = UseVariableNode(selected_variable='cal_rate_emissions[Mt]')(input_table=out)
+    cal_rate_emissions_Mt = use_variable(input_table=out, selected_variable='cal_rate_emissions[Mt]')
     out_9441_1 = pd.concat([out_9439_1, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
     # Module = Calibration
-    out_9441_1 = ColumnFilterNode(pattern='^.*$')(df=out_9441_1)
+    out_9441_1 = column_filter(df=out_9441_1, pattern='^.*$')
     out_9603_1 = pd.concat([amendment_application_t, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
     out_9604_1 = pd.concat([livestock_population_lsu_2, out_9603_1.set_index(out_9603_1.index.astype(str) + '_dup')])
     out_9605_1 = pd.concat([out_9604_1, N_manure_quantity_kgN_2.set_index(N_manure_quantity_kgN_2.index.astype(str) + '_dup')])
     # Module = Air Pollution
-    out_9605_1 = ColumnFilterNode(pattern='^.*$')(df=out_9605_1)
+    out_9605_1 = column_filter(df=out_9605_1, pattern='^.*$')
     # Keep amendment-type = nitrogen, phosphore, potash
     amendment_application_t_2 = amendment_application_t_2.loc[amendment_application_t_2['amendment-type'].isin(['nitrogen', 'phosphore', 'potash'])].copy()
     # amendment-application[t] as fertilizer-application[t] ------------------------ amendment-type as fertilizer
@@ -1592,7 +1592,7 @@ def metanode_9097(port_01):
     #  - Fertilizer demand (should we include as well pesticide and other fertilizer ?)
 
     # fertilizer-application [t]
-    fertilizer_application_t = UseVariableNode(selected_variable='fertilizer-application[t]')(input_table=out_9493_1)
+    fertilizer_application_t = use_variable(input_table=out_9493_1, selected_variable='fertilizer-application[t]')
     # Convert Unit t to Mt
     fertilizer_application_Mt = fertilizer_application_t.drop(columns='fertilizer-application[t]').assign(**{'fertilizer-application[Mt]': fertilizer_application_t['fertilizer-application[t]'] * 1e-06})
 
@@ -1601,16 +1601,16 @@ def metanode_9097(port_01):
 
     # Pivot
 
-    out_8958_1, _, _ = PivotingNode(agg_dict={'fertilizer-application[Mt]': 'sum'}, column_name_option='Pivot name+Aggregation name', column_name_policy='Keep original name(s)', list_group_columns=['Country', 'Years'], list_pivots=['fertilizer'])(df=fertilizer_application_Mt)
-    out_8959_1 = MissingValueColumnFilterNode(missing_threshold=0.9, type_of_pattern='Manual')(df=out_8958_1)
+    out_8958_1, _, _ = pivoting(df=fertilizer_application_Mt, agg_dict={'fertilizer-application[Mt]': 'sum'}, column_name_option='Pivot name+Aggregation name', column_name_policy='Keep original name(s)', list_group_columns=['Country', 'Years'], list_pivots=['fertilizer'])
+    out_8959_1 = missing_value_column_filter(df=out_8958_1, missing_threshold=0.9, type_of_pattern='Manual')
     # Same as in Minerals
-    out_8959_1 = ColumnRenameRegexNode(search_string='(.*)\\+(.*)(\\[.*)', replace_string='agr_demand_$1$3')(df=out_8959_1)
+    out_8959_1 = column_rename_regex(df=out_8959_1, search_string='(.*)\\+(.*)(\\[.*)', replace_string='agr_demand_$1$3')
     # phosphore to phosphate
     out_8961_1 = out_8959_1.rename(columns={'agr_demand_phosphore[Mt]': 'agr_demand_phosphate[Mt]'})
     # Keep only the phosphate and potass
-    out_8961_1 = ColumnFilterNode(columns_to_drop=['agr_demand_nitrogen[Mt]'])(df=out_8961_1)
+    out_8961_1 = column_filter(df=out_8961_1, columns_to_drop=['agr_demand_nitrogen[Mt]'])
     # Module = Minerals
-    out_8961_1 = ColumnFilterNode(pattern='^.*$')(df=out_8961_1)
+    out_8961_1 = column_filter(df=out_8961_1, pattern='^.*$')
     # Years
     out_8605_1 = out_8961_1.assign(Years=out_8961_1['Years'].astype(str))
 
@@ -1636,33 +1636,33 @@ def metanode_9097(port_01):
     # agr_domestic-production_afw_cereal[kcal]
 
     # Module = Pathway Explorer
-    fertilizer_application_Mt = ColumnFilterNode(pattern='^Country$|^Years$')(df=fertilizer_application_Mt)
+    fertilizer_application_Mt = column_filter(df=fertilizer_application_Mt, pattern='^Country$|^Years$')
     # Group by Country, Years (sum)
-    fertilizer_application_t = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=fertilizer_application_t)
+    fertilizer_application_t = group_by_dimensions(df=fertilizer_application_t, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     t = pd.concat([food_demand_t, fertilizer_application_t.set_index(fertilizer_application_t.index.astype(str) + '_dup')])
     # Module = Industry Ammonia
-    t = ColumnFilterNode(pattern='^.*$')(df=t)
+    t = column_filter(df=t, pattern='^.*$')
 
     # For : KPIs (Pathway Explorer)
     #  - Fertilizer and pesticides consumptions
 
     # Group by  Country, Years (sum)
-    amendment_application_t = GroupByDimensions(groupby_dimensions=['Country', 'Years', 'amendment-type'], aggregation_method='Sum')(df=amendment_application_t)
+    amendment_application_t = group_by_dimensions(df=amendment_application_t, groupby_dimensions=['Country', 'Years', 'amendment-type'], aggregation_method='Sum')
     # amendment-application-rate [t/ha]
-    amendment_application_rate_t_per_ha = UseVariableNode(selected_variable='amendment-application-rate[t/ha]')(input_table=amendment_application_rate_t_per_ha)
+    amendment_application_rate_t_per_ha = use_variable(input_table=amendment_application_rate_t_per_ha, selected_variable='amendment-application-rate[t/ha]')
     # Top: amendment-type = nitrogen, phosphore,  potash
     amendment_application_rate_t_per_ha = amendment_application_rate_t_per_ha.loc[amendment_application_rate_t_per_ha['amendment-type'].isin(['nitrogen', 'phosphore', 'potash'])].copy()
     # Group by  Country, Years (sum)
-    amendment_application_rate_t_per_ha = GroupByDimensions(groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')(df=amendment_application_rate_t_per_ha)
+    amendment_application_rate_t_per_ha = group_by_dimensions(df=amendment_application_rate_t_per_ha, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # Convert Unit t/ha to kg/ha (*1000)
     amendment_application_rate_kg_per_ha = amendment_application_rate_t_per_ha.drop(columns='amendment-application-rate[t/ha]').assign(**{'amendment-application-rate[kg/ha]': amendment_application_rate_t_per_ha['amendment-application-rate[t/ha]'] * 1000.0})
     amendment_application = pd.concat([amendment_application_rate_kg_per_ha, amendment_application_t.set_index(amendment_application_t.index.astype(str) + '_dup')])
     out_9557_1 = pd.concat([amendment_application, emissions_per_per.set_index(emissions_per_per.index.astype(str) + '_dup')])
     # Module = Pathway Explorer (KPIs)
-    out_9557_1 = ColumnFilterNode(pattern='^.*$')(df=out_9557_1)
+    out_9557_1 = column_filter(df=out_9557_1, pattern='^.*$')
     # KPI's + graphs metrics
     out_9558_1 = pd.concat([out_9557_1, fertilizer_application_Mt.set_index(fertilizer_application_Mt.index.astype(str) + '_dup')])
-    out_9337_1 = AddTrigram()(module_name=module_name, df=out_9558_1)
+    out_9337_1 = add_trigram(module_name=module_name, df=out_9558_1)
 
     return out_9337_1, out_9441_1, t, out_9090_1, energy_demand_TWh_2, energy_production_TWh, emissions_Mt_2, out_9605_1, out_8605_1, food_net_import_kcal_2, out_9579_1
 
