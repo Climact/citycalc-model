@@ -2,6 +2,7 @@ import logging
 import os.path
 import pickle
 import sys
+import re
 from pathlib import Path
 from typing import Any
 
@@ -182,3 +183,48 @@ def import_fts_ots(
             df_level_data = pd.concat([df_level_data, df_t], ignore_index=True)
 
     return df_ots, df_fts, df_level_data
+
+
+def patternreshape(pattern, case_sensitive="false"):
+    """One of the biggest challenge in the converter is to use the REGEX of the Knime workflow the same way in
+    the converter. The pattern reshape function allows to reshape the regex pattern in order to make that possible
+
+    :param pattern: REGEX pattern
+    :param case_sensitive: boolean
+    :return: reshaped pattern
+    """
+
+    # Knime and python are dealing differently with the REGEX
+    if pattern.startswith(" "):
+        # Remove empty space at the beginning of the pattern
+        pattern = pattern[1:]
+    if pattern.startswith("|"):
+        # Remove 'OR' character at the beginning of the pattern
+        pattern = pattern[1:]
+    if pattern.endswith("|"):
+        # Remove 'OR' character at the end of the pattern
+        pattern = pattern[:-1]
+    str_start = "^"  # For the regex to only look at the beginning of the word
+    str_end = "$"  # For the regex to look at the whole word
+    str_neg = "(?!"  # To avoid entering in negative lookahead
+    str_bracket = "("  # To raise exception if brackets
+    if str_neg not in pattern:
+        if str_bracket in pattern:
+            str_between_bracket = pattern[pattern.find("(") + 1 : pattern.find(")")]
+            if "|" in str_between_bracket:
+                raise ValueError(
+                    'Remove the bracket and the OR char in the pattern ("'
+                    + pattern
+                    + '")'
+                )
+        pattern_split = pattern.split("|")
+        # insert starting and ending string for each item of the pattern separated by OR char
+        pattern_split = [str_start + item + str_end for item in pattern_split]
+        pattern = "|".join(pattern_split)
+    else:
+        pattern = str_start + pattern + str_end
+    if case_sensitive == "true":
+        pattern = re.compile(pattern)
+    else:
+        pattern = re.compile(pattern, re.IGNORECASE)
+    return pattern

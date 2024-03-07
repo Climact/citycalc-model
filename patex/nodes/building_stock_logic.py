@@ -20,7 +20,7 @@ from typing import Any, List
 import pandas as pd
 import numpy as np
 
-from patex.nodes.node import Globals
+from patex.nodes.globals import Globals
 
 
 # Functions

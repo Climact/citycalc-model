@@ -21,7 +21,7 @@
 
 import pandas as pd
 
-from patex.nodes.node import Context, patternreshape
+from patex.utils import patternreshape
 
 
 def column_filter(

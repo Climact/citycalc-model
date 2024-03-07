@@ -1,6 +1,6 @@
 import pandas as pd
 
-from patex.nodes.node import Globals, PythonNode, FlowVars
+from patex.nodes.globals import Globals
 from patex.nodes import *
 
 from .metanode_9481 import metanode_9481

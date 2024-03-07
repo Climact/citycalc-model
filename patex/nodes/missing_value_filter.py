@@ -18,9 +18,9 @@
         - Enforce exclusion
         - Filter based on missing values
 """
-from patex.nodes.node import patternreshape
-
 import pandas as pd
+
+from patex.utils import patternreshape
 
 
 def missing_value_column_filter(

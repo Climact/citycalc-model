@@ -24,7 +24,7 @@ import re
 
 import pandas as pd
 
-from patex.nodes.node import Context, PythonNode, NativeNode
+
 
 
 PATTERN = re.compile("\$(.*?)\$")

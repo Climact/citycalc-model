@@ -1,4 +1,4 @@
-from patex.nodes.node import Globals
+from patex.nodes.globals import Globals
 from patex.patex.patex_node import patex_node
 
 
