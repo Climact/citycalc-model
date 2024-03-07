@@ -1,7 +1,7 @@
 import pandas as pd
 
-from patex.nodes.globals import Globals
-from patex.nodes import *
+from patex.helpers.globals import Globals
+from patex.helpers import *
 
 from .metanode_7248 import metanode_7248
 from .metanode_6428 import metanode_6428

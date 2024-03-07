@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 from patex.metrics import create_validation_key
-from patex.nodes.globals import Globals
+from patex.helpers.globals import Globals
 from patex.utils import get_lever_value, import_fts_ots, read_memoized
 
 

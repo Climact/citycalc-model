@@ -20,7 +20,7 @@
 """
 import pandas as pd
 
-from patex.nodes.globals import Globals
+from patex.helpers.globals import Globals
 
 
 def add_missing_years(

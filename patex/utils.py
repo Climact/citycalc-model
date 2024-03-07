@@ -1,5 +1,4 @@
 import logging
-import os.path
 import pickle
 import sys
 import re

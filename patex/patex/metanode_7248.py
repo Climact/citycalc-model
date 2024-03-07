@@ -1,7 +1,7 @@
 import pandas as pd
 
-from patex.nodes.globals import Globals
-from patex.nodes import *
+from patex.helpers.globals import Globals
+from patex.helpers import *
 
 
 def metanode_7248(port_01):
