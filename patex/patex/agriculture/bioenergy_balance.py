@@ -6,7 +6,7 @@ from patex.helpers import *
 
 # Bioenergy Balance module
 # (module-name = agriculture)
-def metanode_9076(port_01, port_02, port_03, port_04):
+def bioenergy_balance(industry, agriculture, land_use, power):
     # Emissions : Not used in old module !
     # 
     # Should be done here ? Or send to Climate Module ? (not send to Climate neither in old module) !
@@ -45,9 +45,6 @@ def metanode_9076(port_01, port_02, port_03, port_04):
 
     # Adapt data from other module => pivot and co
 
-    # ELECTRICITY
-    out_7991_1 = port_04
-
     # Energy and material - demand and production
 
     # Bioenergy demand
@@ -56,7 +53,7 @@ def metanode_9076(port_01, port_02, port_03, port_04):
     # => Should we keep waste ? What to do with them then ?
 
     # energy-demand [TWh]
-    energy_demand_TWh = use_variable(input_table=out_7991_1, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh = use_variable(input_table=power, selected_variable='energy-demand[TWh]')
     energy_demand_TWh = energy_demand_TWh.loc[~energy_demand_TWh['energy-carrier'].isin(['solid-waste', 'solid-waste-nonres', 'solid-waste-res'])].copy()
     # energy-demand [TWh]
     energy_demand_TWh = export_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
@@ -70,23 +67,21 @@ def metanode_9076(port_01, port_02, port_03, port_04):
     energy_demand_TWh_2 = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
-    # LAND-USE
-    out_7989_1 = port_03
 
     # Bioenergy and biomaterial production
     # 
     # Comes from industry and land-use modules
 
     # potential-production-for-industry [t]
-    potential_production_for_industry_t = use_variable(input_table=out_7989_1, selected_variable='potential-production-for-industry[t]')
+    potential_production_for_industry_t = use_variable(input_table=land_use, selected_variable='potential-production-for-industry[t]')
     # energy-production [TWh]
-    energy_production_TWh_3 = use_variable(input_table=out_7989_1, selected_variable='energy-production[TWh]')
+    energy_production_TWh_3 = use_variable(input_table=land_use, selected_variable='energy-production[TWh]')
     # OTS (only) energy-production [TWh] (additionnal production not modelised = sludges / agro-food-industrial wastes)
     energy_production_TWh = import_data(trigram='agr', variable_name='energy-production', variable_type='OTS (only)')
     # Same as last available year
     energy_production_TWh_2 = add_missing_years(df_data=energy_production_TWh)
     # wood-production [m3]
-    wood_production_m3 = use_variable(input_table=out_7989_1, selected_variable='wood-production[m3]')
+    wood_production_m3 = use_variable(input_table=land_use, selected_variable='wood-production[m3]')
     # OTS (only) forest-harvest-for-bioenergy [%]
     forest_harvest_for_bioenergy_percent = import_data(trigram='agr', variable_name='forest-harvest-for-bioenergy', variable_type='OTS (only)')
     # Same as last available year
@@ -125,10 +120,8 @@ def metanode_9076(port_01, port_02, port_03, port_04):
     energy_production_TWh = mcd(input_table_1=potential_energy_production_m3, input_table_2=forest_m3_to_TWh_conv_factor_TWh_per_m3, operation_selection='x * y', output_name='energy-production[TWh]')
     # Group by Country, Years, energy-carrier, origin (sum)
     energy_production_TWh = group_by_dimensions(df=energy_production_TWh, groupby_dimensions=['Country', 'Years', 'origin', 'energy-carrier'], aggregation_method='Sum')
-    # AGRICULTURE
-    out_5965_1 = port_02
     # energy-production [TWh]
-    energy_production_TWh_4 = use_variable(input_table=out_5965_1, selected_variable='energy-production[TWh]')
+    energy_production_TWh_4 = use_variable(input_table=agriculture, selected_variable='energy-production[TWh]')
     energy_production_TWh_3 = pd.concat([energy_production_TWh_4, energy_production_TWh_3.set_index(energy_production_TWh_3.index.astype(str) + '_dup')])
     energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
     energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
@@ -233,15 +226,13 @@ def metanode_9076(port_01, port_02, port_03, port_04):
     energy_production_TWh = use_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
     # Rename variable to bio-energy-production- by-energy-carrier-origin[TWh]
     out_9431_1 = energy_production_TWh.rename(columns={'energy-production[TWh]': 'bio-energy-production-by-energy-carrier-origin[TWh]'})
-    # INDUSTRY
-    out_9344_1 = port_01
 
     # Bio-material demand
     # 
     # Comes from industrial material demand
 
     # material-production [Mt]
-    material_production_Mt = use_variable(input_table=out_9344_1, selected_variable='material-production[Mt]')
+    material_production_Mt = use_variable(input_table=industry, selected_variable='material-production[Mt]')
     # Convert Unit Mt to t
     material_production_t = material_production_Mt.drop(columns='material-production[Mt]').assign(**{'material-production[t]': material_production_Mt['material-production[Mt]'] * 1000000.0})
     # material-production [t] (from industry)

@@ -4,7 +4,7 @@ from patex.helpers.globals import Globals
 from patex.helpers import *
 
 
-def metanode_1(port_01, port_02, port_03, port_04):
+def water(lifestyle, industry, agriculture, power):
 
     module_name = 'water'
 
@@ -14,19 +14,19 @@ def metanode_1(port_01, port_02, port_03, port_04):
     # - Population[cap] x water-requirement[m3/cap]
 
     # population [cap]
-    population_cap = use_variable(input_table=port_01, selected_variable='population[cap]')
+    population_cap = use_variable(input_table=lifestyle, selected_variable='population[cap]')
 
     # Livestock : 
     # - livestock-population[lsu] x livestock-water-requirement[m3/lsu]
 
     # livestock-population [lsu]
-    livestock_population_lsu = use_variable(input_table=port_03, selected_variable='livestock-population[lsu]')
+    livestock_population_lsu = use_variable(input_table=agriculture, selected_variable='livestock-population[lsu]')
 
     # Plant cooling : 
     # - energy-production[GWh] x cooling-water-requirement[m3/GWh]
 
     # energy-production [TWh]
-    energy_production_TWh = use_variable(input_table=port_04, selected_variable='energy-production[TWh]')
+    energy_production_TWh = use_variable(input_table=power, selected_variable='energy-production[TWh]')
     # Convert Unit TWh to GWh (*1000)
     energy_production_GWh = energy_production_TWh.drop(columns='energy-production[TWh]').assign(**{'energy-production[GWh]': energy_production_TWh['energy-production[TWh]'] * 1000.0})
 
@@ -34,7 +34,7 @@ def metanode_1(port_01, port_02, port_03, port_04):
     # - material-production[t] x industry-water-requirement[m3/t]
 
     # material-production [Mt]
-    material_production_Mt = use_variable(input_table=port_02, selected_variable='material-production[Mt]')
+    material_production_Mt = use_variable(input_table=industry, selected_variable='material-production[Mt]')
     # Convert Unit Mt to t (*1.000.000)
     material_production_t = material_production_Mt.drop(columns='material-production[Mt]').assign(**{'material-production[t]': material_production_Mt['material-production[Mt]'] * 1000000.0})
 
@@ -42,7 +42,7 @@ def metanode_1(port_01, port_02, port_03, port_04):
     # - crop-production[kcal] x irrigation-water-requirement[m3/kcal]
 
     # domestic-crop-production [kcal]
-    domestic_crop_production_kcal = use_variable(input_table=port_03, selected_variable='domestic-crop-production[kcal]')
+    domestic_crop_production_kcal = use_variable(input_table=agriculture, selected_variable='domestic-crop-production[kcal]')
     # OTS (only) water-requirement [m3/unit]
     water_requirement_m3_per_unit = import_data(trigram='wat', variable_name='water-requirement', variable_type='OTS (only)')
     # OTS (only) irrigation-water-requirement [m3/unit]

@@ -5,7 +5,7 @@ from patex.helpers import *
 
 
 # Buildings module
-def metanode_9109(port_01):
+def buildings(lifestyle):
     # Visual quality check : 
     # energy demand
     # By building-type and end-use
@@ -200,8 +200,6 @@ def metanode_9109(port_01):
     # Input data 
     # + inject module name (flow variable)
 
-    out_5965_1 = port_01
-
     # Product / material / ressource demand
 
     # Appliances - Production Demand Calculation
@@ -217,7 +215,7 @@ def metanode_9109(port_01):
     # Select Variables
 
     # product-substitution-rate [%] (from lifestyle)
-    product_substitution_rate_percent = use_variable(input_table=out_5965_1, selected_variable='product-substitution-rate[%]')
+    product_substitution_rate_percent = use_variable(input_table=lifestyle, selected_variable='product-substitution-rate[%]')
     # Convert Unit [%] to [-] (* 0.01) ?
     product_substitution_rate_ = product_substitution_rate_percent.drop(columns='product-substitution-rate[%]').assign(**{'product-substitution-rate[-]': product_substitution_rate_percent['product-substitution-rate[%]'] * 0.01})
     # Select Years > baseyear
@@ -245,7 +243,7 @@ def metanode_9109(port_01):
     # new-appliance-ratio [-]
     new_appliance_ratio = use_variable(input_table=new_appliance_ratio, selected_variable='new-appliance-ratio[-]')
     # appliance-own [num] (from lifestyle)
-    appliance_own_num = use_variable(input_table=out_5965_1, selected_variable='appliance-own[num]')
+    appliance_own_num = use_variable(input_table=lifestyle, selected_variable='appliance-own[num]')
     # new-appliances[num] = appliance-own[num] * new-appliance-ratio[-]
     new_appliances_num = mcd(input_table_1=appliance_own_num, input_table_2=new_appliance_ratio, operation_selection='x * y', output_name='new-appliances[num]')
     # new-appliances [num]
@@ -334,7 +332,7 @@ def metanode_9109(port_01):
     # Select variables from Lifestyle module
 
     # population [cap]
-    population_cap = use_variable(input_table=out_5965_1, selected_variable='population[cap]')
+    population_cap = use_variable(input_table=lifestyle, selected_variable='population[cap]')
 
     # Apply household-size levers (reduce)
     # => determine the nb of pers living in the same household
@@ -958,7 +956,7 @@ def metanode_9109(port_01):
     out_9512_1 = group_by_dimensions(df=out_9512_1, groupby_dimensions=['Country', 'Years', 'building-type', 'epc-category'], aggregation_method='Sum')
     out_1 = pd.concat([out_9474_1, out_9512_1.set_index(out_9512_1.index.astype(str) + '_dup')])
     # appliance-use [h]
-    appliance_use_h = use_variable(input_table=out_5965_1, selected_variable='appliance-use[h]')
+    appliance_use_h = use_variable(input_table=lifestyle, selected_variable='appliance-use[h]')
 
     # Apply energy-need (appliances) levers (reduce)
     # => determine the performance of each appliances (how much energy consumption is made by hour of use)
@@ -978,7 +976,7 @@ def metanode_9109(port_01):
     # Set to 1
 
     # heating-cooling-behaviour-index [-]
-    heating_cooling_behaviour_index = use_variable(input_table=out_5965_1, selected_variable='heating-cooling-behaviour-index[-]')
+    heating_cooling_behaviour_index = use_variable(input_table=lifestyle, selected_variable='heating-cooling-behaviour-index[-]')
     # Group by  Years, Country
     heating_cooling_behaviour_index_2 = group_by_dimensions(df=heating_cooling_behaviour_index, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # end-use = ventilation

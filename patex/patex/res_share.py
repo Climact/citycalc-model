@@ -4,19 +4,19 @@ from patex.helpers.globals import Globals
 from patex.helpers import *
 
 
-def metanode_9000(port_01, port_02, port_03, port_04, port_05):
+def res_share(buildings, transport, agriculture, industry, power):
 
     # sector = tra
-    port_02['sector'] = "tra"
+    transport['sector'] = "tra"
     # sector = bld
-    port_01['sector'] = "bld"
-    port = pd.concat([port_01, port_02.set_index(port_02.index.astype(str) + '_dup')])
+    buildings['sector'] = "bld"
+    port = pd.concat([buildings, transport.set_index(transport.index.astype(str) + '_dup')])
 
     # Sankey diagram preparation
     # OU EST-IL UTILISE ??
 
     # elc_net-energy-production-by- carrier-primary-carrier-way-of-prod [TWh]
-    elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh = use_variable(input_table=port_05, selected_variable='elc_net-energy-production-by-carrier-primary-carrier-way-of-prod[TWh]')
+    elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh = use_variable(input_table=power, selected_variable='elc_net-energy-production-by-carrier-primary-carrier-way-of-prod[TWh]')
     # Group by  Country, Years, primary-energy-carrier (sum)
     elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2 = group_by_dimensions(df=elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh, groupby_dimensions=['Country', 'Years', 'primary-energy-carrier'], aggregation_method='Sum')
     # Remove primary-energy-carrier with no values ("")
@@ -29,7 +29,7 @@ def metanode_9000(port_01, port_02, port_03, port_04, port_05):
     # Join Sectors
 
     # elc_energy-demand-by- energy-carrier[TWh]
-    elc_energy_demand_by_energy_carrier_TWh = use_variable(input_table=port_05, selected_variable='elc_energy-demand-by-energy-carrier[TWh]')
+    elc_energy_demand_by_energy_carrier_TWh = use_variable(input_table=power, selected_variable='elc_energy-demand-by-energy-carrier[TWh]')
     # Variable to energy-demand[TWh]
     out_8998_1 = elc_energy_demand_by_energy_carrier_TWh.rename(columns={'elc_energy-demand-by-energy-carrier[TWh]': 'energy-demand[TWh]'})
     # sector = elc
@@ -53,12 +53,12 @@ def metanode_9000(port_01, port_02, port_03, port_04, port_05):
     # pct-RES[%] = net-prod-xx[TWh] / net-prod-xx[TWh] total
     pct_RES_percent = mcd(input_table_1=elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh, input_table_2=elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2, operation_selection='y / x', output_name='pct-RES[%]')
     # sector = agr
-    port_03['sector'] = "agr"
+    agriculture['sector'] = "agr"
     # energy-demand [TWh]
-    energy_demand_TWh = use_variable(input_table=port_04, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
     # sector = ind
     energy_demand_TWh['sector'] = "ind"
-    out_3929_1 = pd.concat([energy_demand_TWh, port_03.set_index(port_03.index.astype(str) + '_dup')])
+    out_3929_1 = pd.concat([energy_demand_TWh, agriculture.set_index(agriculture.index.astype(str) + '_dup')])
     out_3930_1 = pd.concat([port, out_3929_1.set_index(out_3929_1.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_3930_1, out_8998_1.set_index(out_8998_1.index.astype(str) + '_dup')])
     # Remove : - heat - ambiant ?! - marinefueoil (bio, syn, ff) - kersoene (bio, syn, ff)

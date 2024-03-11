@@ -7,7 +7,7 @@ from .metanode_9481 import metanode_9481
 
 
 # Agriculture module
-def metanode_9097(port_01):
+def agriculture(lifestyle):
     # To Do List - energy:
     # 
     # -Mix evolution depedning on the practices
@@ -172,16 +172,13 @@ def metanode_9097(port_01):
 
     # Adapt data from other module => pivot and co
 
-    # LIFESTYLE
-    out_5965_1 = port_01
-
     # Potential for bio-energy production
     # Note : Some of the bioenergy production is made further, inside Land-Use node (when production comes from forest, settlement, bioenergy-crops)
 
     # Biomass coming from wastes (other than food wastes)
 
     # energy-production [TWh] (from lifestyle)
-    energy_production_TWh = use_variable(input_table=out_5965_1, selected_variable='energy-production[TWh]')
+    energy_production_TWh = use_variable(input_table=lifestyle, selected_variable='energy-production[TWh]')
     # Group by  Country, Years, energy-carrier (sum)
     energy_production_TWh = group_by_dimensions(df=energy_production_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = other-wastes
@@ -209,7 +206,7 @@ def metanode_9097(port_01):
     # - Domestic food production linked to import/export [kcal] (all categories)
 
     # food-waste [kcal] (from lifestyle)
-    food_waste_kcal = use_variable(input_table=out_5965_1, selected_variable='food-waste[kcal]')
+    food_waste_kcal = use_variable(input_table=lifestyle, selected_variable='food-waste[kcal]')
 
     # Biomass coming from food wastes
     # We only consider food waste linked tocrops (not beverage, livestock, ...)
@@ -236,7 +233,7 @@ def metanode_9097(port_01):
     energy_production_TWh_2['origin'] = "food-wastes"
     energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
     # food-demand [kcal] (from lifestyle)
-    food_demand_kcal = use_variable(input_table=out_5965_1, selected_variable='food-demand[kcal]')
+    food_demand_kcal = use_variable(input_table=lifestyle, selected_variable='food-demand[kcal]')
     # overall-food-demand[kcal] = food-demand[kcal] + food-waste[kcal]
     overall_food_demand_kcal = mcd(input_table_1=food_waste_kcal, input_table_2=food_demand_kcal, operation_selection='x + y', output_name='overall-food-demand[kcal]')
     # overall-food-demand [kcal]

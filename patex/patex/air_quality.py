@@ -4,7 +4,7 @@ from patex.helpers.globals import Globals
 from patex.helpers import *
 
 
-def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
+def air_quality(buildings, transport, agriculture, land_use, industry, power):
     # Concatenate pollutant values
 
 
@@ -32,7 +32,7 @@ def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
     # conversion material to material-group METTRE DANS G.S.
     out_9567_1 = pd.DataFrame(columns=['material', 'material-group', 'conversion[-]'], data=[['aluminium', 'non-ferrous-group', 1.0], ['cement', 'other-industries-group', 1.0], ['ceramic-and-others', 'other-industries-group', 1.0], ['chemical-ammonia', 'chemical-group', 1.0], ['chemical-olefin', 'chemical-group', 1.0], ['chemical-other', 'chemical-group', 1.0], ['food', 'other-industries-group', 1.0], ['glass', 'other-industries-group', 1.0], ['lime', 'other-industries-group', 1.0], ['non-ferrous', 'non-ferrous-group', 1.0], ['other-industries', 'other-industries-group', 1.0], ['paper', 'other-industries-group', 1.0], ['steel', 'steel-group', 1.0], ['wood', 'other-industries-group', 1.0]])
     # (ELC) energy-demand [TWh]
-    energy_demand_TWh = use_variable(input_table=port_06, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh = use_variable(input_table=power, selected_variable='energy-demand[TWh]')
 
     def helper_9653(input_table) -> pd.DataFrame:
         # Copy input to output
@@ -59,7 +59,7 @@ def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
     # - xx
 
     # (AGR) N-manure-quantity [kgN]
-    N_manure_quantity_kgN = use_variable(input_table=port_03, selected_variable='N-manure-quantity[kgN]')
+    N_manure_quantity_kgN = use_variable(input_table=agriculture, selected_variable='N-manure-quantity[kgN]')
     # Convert Unit kgN to ktN
     N_manure_quantity_ktN = N_manure_quantity_kgN.drop(columns='N-manure-quantity[kgN]').assign(**{'N-manure-quantity[ktN]': N_manure_quantity_kgN['N-manure-quantity[kgN]'] * 1e-06})
 
@@ -67,17 +67,17 @@ def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
     # - xx
 
     # (AGR) energy-demand [TWh]
-    energy_demand_TWh_2 = use_variable(input_table=port_03, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh_2 = use_variable(input_table=agriculture, selected_variable='energy-demand[TWh]')
     # vehicule-type = HDV
     energy_demand_TWh_3 = energy_demand_TWh_2.assign(**{'vehicule-type': "HDV"})
     # (AGR) livestock-population [lsu]
-    livestock_population_lsu = use_variable(input_table=port_03, selected_variable='livestock-population[lsu]')
+    livestock_population_lsu = use_variable(input_table=agriculture, selected_variable='livestock-population[lsu]')
     # (AGR) amendment-application [t]
-    amendment_application_t = use_variable(input_table=port_03, selected_variable='amendment-application[t]')
+    amendment_application_t = use_variable(input_table=agriculture, selected_variable='amendment-application[t]')
     # Convert Unit t to ktN (* 0.46 / 1000) we have around 46% of N in urea and nitrogen
     amendment_application_ktN = amendment_application_t.drop(columns='amendment-application[t]').assign(**{'amendment-application[ktN]': amendment_application_t['amendment-application[t]'] * 0.00046})
     # (IND) energy-demand [TWh]
-    energy_demand_TWh_2 = use_variable(input_table=port_05, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh_2 = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
 
     def helper_9652(input_table) -> pd.DataFrame:
         # Copy input to output
@@ -100,11 +100,11 @@ def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
     # energy-demand[TWh] (replace) = energy-demand[TWh] * conversion[-]
     energy_demand_TWh_2 = mcd(input_table_1=out_9652_1, input_table_2=out_9567_1, operation_selection='x * y', output_name='energy-demand[TWh]')
     # (IND) material-production [Mt]  Not considered in emission-factor : chemical-other chemical-olefin food wood (ok with that ?)
-    material_production_Mt = use_variable(input_table=port_05, selected_variable='material-production[Mt]')
+    material_production_Mt = use_variable(input_table=industry, selected_variable='material-production[Mt]')
     # (LUS) land-management [ha]
-    land_management_ha = use_variable(input_table=port_04, selected_variable='land-management[ha]')
+    land_management_ha = use_variable(input_table=land_use, selected_variable='land-management[ha]')
     # (TRA) energy-demand [TWh]
-    energy_demand_TWh_4 = use_variable(input_table=port_02, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh_4 = use_variable(input_table=transport, selected_variable='energy-demand[TWh]')
     # Group by energy-carrier, vehicule-type (sum)
     energy_demand_TWh_4 = group_by_dimensions(df=energy_demand_TWh_4, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'energy-carrier'], aggregation_method='Sum')
     energy_demand_TWh_3 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_3.set_index(energy_demand_TWh_3.index.astype(str) + '_dup')])
@@ -130,7 +130,7 @@ def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
     # Convert synfuels to fffuels
     out_9651_1 = helper_9651(input_table=energy_demand_TWh_3)
     # (TRA) final-transport-demand [vkm]
-    final_transport_demand_vkm = use_variable(input_table=port_02, selected_variable='final-transport-demand[vkm]')
+    final_transport_demand_vkm = use_variable(input_table=transport, selected_variable='final-transport-demand[vkm]')
     # Top : vehicule-type= LDV Bottom : other veh.-types
     final_transport_demand_vkm_2 = final_transport_demand_vkm.loc[final_transport_demand_vkm['vehicule-type'].isin(['LDV'])].copy()
     final_transport_demand_vkm_excluded = final_transport_demand_vkm.loc[~final_transport_demand_vkm['vehicule-type'].isin(['LDV'])].copy()
@@ -143,7 +143,7 @@ def metanode_9102(port_01, port_02, port_03, port_04, port_05, port_06):
     # - xx
 
     # (BLD) energy-demand [TWh]
-    energy_demand_TWh_3 = use_variable(input_table=port_01, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh_3 = use_variable(input_table=buildings, selected_variable='energy-demand[TWh]')
 
     def helper_7514(input_table) -> pd.DataFrame:
         # Copy input to output

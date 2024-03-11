@@ -5,7 +5,7 @@ from patex.helpers import *
 
 
 # Industry module
-def metanode_9099(port_01, port_02, port_03, port_04):
+def industry(lifestyle, buildings, transport, agriculture):
     # Input Data + inject variables names (module)
 
 
@@ -86,15 +86,13 @@ def metanode_9099(port_01, port_02, port_03, port_04):
 
     # material group
     out_7718_1 = pd.DataFrame(columns=['material', 'material-group'], data=[['aluminium', 'metals-group'], ['steel', 'metals-group'], ['non-ferrous', 'metals-group'], ['cement', 'non-metallic-minerals-group'], ['ceramic-and-others', 'non-metallic-minerals-group'], ['glass', 'non-metallic-minerals-group'], ['lime', 'non-metallic-minerals-group'], ['paper', 'other-industries-group'], ['food', 'other-industries-group'], ['other-industries', 'other-industries-group'], ['wood', 'other-industries-group'], ['chemical-olefin', 'chemicals-group'], ['chemical-other', 'chemicals-group'], ['chemical-chlorine', 'chemicals-group'], ['chemical-ammonia', 'chemicals-group']])
-    # Agriculture
-    out_9267_1 = port_04
 
     # TEMP > delete when previous has been migrated
 
     # Data from agriculture
 
     # food-demand [t]
-    food_demand_t = use_variable(input_table=out_9267_1, selected_variable='food-demand[t]')
+    food_demand_t = use_variable(input_table=agriculture, selected_variable='food-demand[t]')
     # unit = t
     food_demand_t['unit'] = "t"
     # product = food
@@ -102,7 +100,7 @@ def metanode_9099(port_01, port_02, port_03, port_04):
     # food-demand[t] as product-demand[unit]
     out_9275_1 = food_demand_t.rename(columns={'food-demand[t]': 'product-demand[unit]'})
     # fertilizer-application [t]
-    fertilizer_application_t = use_variable(input_table=out_9267_1, selected_variable='fertilizer-application[t]')
+    fertilizer_application_t = use_variable(input_table=agriculture, selected_variable='fertilizer-application[t]')
 
     # Data from power 
     # (coming directly from levers, no data received from ELC module as it is downstream of the IND module)
@@ -152,13 +150,11 @@ def metanode_9099(port_01, port_02, port_03, port_04):
         return output_table
     # food (AGR) ==> processed-food (IND)  => REMOVE THIS AND APPLY CHANGES IN INDUSTRY GOOGLE SHEET
     out_9733_1 = helper_9733(input_table=out_1)
-    # Transport
-    out_7509_1 = port_03
 
     # Data from transport
 
     # material-length-demand [km]
-    material_length_demand_km = use_variable(input_table=out_7509_1, selected_variable='material-length-demand[km]')
+    material_length_demand_km = use_variable(input_table=transport, selected_variable='material-length-demand[km]')
     # unit = km
     material_length_demand_km['unit'] = "km"
     # material to product
@@ -179,7 +175,7 @@ def metanode_9099(port_01, port_02, port_03, port_04):
     # roads (TRA) ==> infrastructure-road (IND) rails (TRA) ==> infrastructure-rail (IND) trolley-cables (TRA) ==> infrastructure-catenary (IND)  => REMOVE THIS AND APPLY CHANGES IN INDUSTRY GOOGLE SHEET
     out_8158_1 = helper_8158(input_table=out_8129_1)
     # final-veh-fleet-ind [number]
-    final_veh_fleet_ind_number = use_variable(input_table=out_7509_1, selected_variable='final-veh-fleet-ind[number]')
+    final_veh_fleet_ind_number = use_variable(input_table=transport, selected_variable='final-veh-fleet-ind[number]')
     # unit = num
     final_veh_fleet_ind_number['unit'] = "num"
     # join vehicule-type and motot-type as product
@@ -202,13 +198,11 @@ def metanode_9099(port_01, port_02, port_03, port_04):
     out_1 = pd.concat([out_8157_1, out_8158_1.set_index(out_8158_1.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_1, out_9733_1.set_index(out_9733_1.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_1, out_9771_1.set_index(out_9771_1.index.astype(str) + '_dup')])
-    # Buildings
-    out_7508_1 = port_02
 
     # Data from buildings
 
     # floor-area-yearly [m2]
-    floor_area_yearly_m2 = use_variable(input_table=out_7508_1, selected_variable='floor-area-yearly[m2]')
+    floor_area_yearly_m2 = use_variable(input_table=buildings, selected_variable='floor-area-yearly[m2]')
     # unit = m2
     floor_area_yearly_m2['unit'] = "m2"
     # join area-type,  building-type and  renovation-category as product
@@ -232,7 +226,7 @@ def metanode_9099(port_01, port_02, port_03, port_04):
     # constructed- ==> construction-  renovated- ==> renovation- dep ==> deep med-low ==> mid-low med-high ==> mid-high shl ==> shallow
     out_6732_1 = helper_6732(input_table=out_8103_1)
     # new-appliances [num]
-    new_appliances_num = use_variable(input_table=out_7508_1, selected_variable='new-appliances[num]')
+    new_appliances_num = use_variable(input_table=buildings, selected_variable='new-appliances[num]')
     # unit = num
     new_appliances_num['unit'] = "num"
     # appliances to product
@@ -258,7 +252,7 @@ def metanode_9099(port_01, port_02, port_03, port_04):
     # dishwasher (BLD) => appliance-dishwashers (IND) fridge (BLD) => appliance-fridges (IND) others (BLD) => electronic-smartphone (IND) computer (BLD) => electronic-computer (IND) tv (BLD) => electronic-tv (IND) wmachine (BLD) => appliance-wash-machines (IND) freezer (BLD) => appliance-freezer (IND) dryer (BLD) => dryer-machines (IND)  => REMOVE THIS AND APPLY CHANGES IN INDUSTRY GOOGLE SHEET
     out_8156_1 = helper_8156(input_table=out_8106_1)
     # new-pipeline-length [km]
-    new_pipes_length_km = use_variable(input_table=out_7508_1, selected_variable='new-pipes-length[km]')
+    new_pipes_length_km = use_variable(input_table=buildings, selected_variable='new-pipes-length[km]')
     # unit = km
     new_pipes_length_km['unit'] = "km"
     # product = pipes
@@ -278,9 +272,7 @@ def metanode_9099(port_01, port_02, port_03, port_04):
     out_9801_1 = helper_9801(input_table=out_8111_1)
     out_1_2 = pd.concat([out_9801_1, out_6732_1.set_index(out_6732_1.index.astype(str) + '_dup')])
     out_1_2 = pd.concat([out_1_2, out_8156_1.set_index(out_8156_1.index.astype(str) + '_dup')])
-    # Lifestyle
-    out_5965_1 = port_01
-    out_1_2 = pd.concat([out_5965_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([lifestyle, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
     # product-demand [unit]
     product_demand_unit = export_variable(input_table=out_1, selected_variable='product-demand[unit]')

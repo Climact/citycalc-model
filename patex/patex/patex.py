@@ -3,19 +3,17 @@ import pandas as pd
 from patex.helpers.globals import Globals
 from patex.helpers import *
 
-from .metanode_9094 import metanode_9094
-from .metanode_9096 import metanode_9096
-from .metanode_9109 import metanode_9109
-from .metanode_9097 import metanode_9097
-from .metanode_9099 import metanode_9099
-from .metanode_9100 import metanode_9100
-from .metanode_1 import metanode_1
-from .metanode_9000 import metanode_9000
-from .metanode_9098 import metanode_9098
-from .metanode_9102 import metanode_9102
-from .metanode_9076 import metanode_9076
-from .metanode_9101 import metanode_9101
-from .metanode_9053 import metanode_9053
+from .agriculture import agriculture, land_use, bioenergy_balance
+from .air_quality import air_quality
+from .buildings import buildings
+from .climate_emissions import climate_emissions
+from .electricity_supply import electricity_supply
+from .industry import industry
+from .lifestyle import lifestyle
+from .res_share import res_share
+from .scope_2_3 import scope_2_3
+from .transport import transport
+from .water import water
 
 
 def patex(
@@ -104,85 +102,85 @@ def patex_node():
     # Lifestyle
 
     # Lifestyle module
-    out_9094_1, _, out_9094_3, out_9094_4, out_9094_5, out_9094_6, out_9094_7, _, _ = metanode_9094()
+    lfs_out, _, lfs_bld, lfs_tra, lfs_ind, lfs_agr, lfs_wat, _, _ = lifestyle()
 
     # Import historical and future time series for all levers
 
     # Transport
 
     # Transport module
-    out_9096_1, out_9096_2, out_9096_3, _, _, _, out_9096_7, _, out_9096_9, _ = metanode_9096(port_01=out_9094_4)
+    tra_out, tra_ind, tra_pow, _, _, _, tra_clt, _, tra_air, _ = transport(lifestyle=lfs_tra)
 
     # Buildings
 
     # Buildings module
-    out_9109_1, _, out_9109_3, out_9109_4, out_9109_5, out_9109_6, _ = metanode_9109(port_01=out_9094_3)
+    bld_out, _, bld_ind, bld_pow, bld_clt, bld_air, _ = buildings(lifestyle=lfs_bld)
 
     # Agriculture
 
     # Agriculture module
-    out_9097_1, _, out_9097_3, out_9097_4, out_9097_5, out_9097_6, out_9097_7, out_9097_8, _, out_9097_10, out_9097_11 = metanode_9097(port_01=out_9094_6)
+    agr_out, _, agr_ind, agr_lus, agr_pow, agr_bio, agr_clt, agr_air, _, agr_sco, agr_wat = agriculture(lifestyle=lfs_agr)
 
     # Industry
 
     # Industry module
-    out_9099_1, _, out_9099_3, out_9099_4, out_9099_5, out_9099_6, _, out_9099_8, out_9099_9 = metanode_9099(port_01=out_9094_5, port_02=out_9109_3, port_03=out_9096_2, port_04=out_9097_3)
+    ind_out, _, ind_bio, ind_pow, ind_clt, ind_air, _, ind_wat, ind_sco = industry(lifestyle=lfs_ind, buildings=bld_ind, transport=tra_ind, agriculture=agr_ind)
 
     # Power Supply
 
     # Power supply module
-    out_9100_1, _, out_9100_3, out_9100_4, out_9100_5, _, out_9100_7, out_9100_8 = metanode_9100(port_01=out_9096_3, port_02=out_9109_4, port_03=out_9099_4, port_04=out_9097_5)
+    pow_out, _, pow_clt, pow_bio, pow_air, _, pow_sco, pow_wat = electricity_supply(transport=tra_pow, buildings=bld_pow, industry=ind_pow, agriculture=agr_pow)
 
     # Water
 
-    out_1_1, _ = metanode_1(port_01=out_9094_7, port_02=out_9099_8, port_03=out_9097_11, port_04=out_9100_8)
+    wat_out, _ = water(lifestyle=lfs_wat, industry=ind_wat, agriculture=agr_wat, power=pow_wat)
 
     # Energy calculation: RES share and Sankey
 
     # Wrond input data: it should come from the powersupply module (output to TPE) using the final-energy-demand
 
-    out_9000_1, out_9000_2 = metanode_9000(port_02=out_9096_3, port_03=out_9097_5, port_04=out_9099_4, port_05=out_9100_1, port_01=out_9109_4)
+    res_share_out_1, res_share_out_2 = res_share(buildings=bld_pow, transport=tra_pow, agriculture=agr_pow, industry=ind_pow, power=pow_out)
 
     # Land use
 
     # Land-Use module (module-name = agriculture)
-    out_9098_1, _, out_9098_3, out_9098_4, out_9098_5 = metanode_9098(port_01=out_9097_4)
+    lus_out, _, lus_bio, lus_clt, lus_air = land_use(agriculture=agr_lus)
 
     # Air Quality
 
-    out_9102_1, _ = metanode_9102(port_02=out_9096_9, port_01=out_9109_6, port_03=out_9097_8, port_04=out_9098_5, port_05=out_9099_6, port_06=out_9100_5)
+    air_out, _ = air_quality(buildings=bld_air, transport=tra_air, agriculture=agr_air, land_use=lus_air, industry=ind_air, power=pow_air)
 
     # BioEnergy
 
 
-    out_9098_3 = column_filter(df=out_9098_3, columns_to_drop=[])
+    lus_bio = column_filter(df=lus_bio, columns_to_drop=[])
     # Bioenergy Balance module (module-name = agriculture)
-    out_9076_1, _, out_9076_3 = metanode_9076(port_02=out_9097_6, port_01=out_9099_3, port_04=out_9100_4, port_03=out_9098_3)
+    bio_out, _, bio_sco = bioenergy_balance(industry=ind_bio, agriculture=agr_bio, land_use=lus_bio, power=pow_bio)
 
     # Scope 2/3
 
-    out_9101_1 = metanode_9101(port_01=out_9100_7, port_02=out_9099_9, port_03=out_9097_10, port_04=out_9076_3)
+    sco_out = scope_2_3(power=pow_sco, industry=ind_sco, agriculture=agr_sco, bioenergy_balance=bio_sco)
 
     # EMISSIONS
 
-    out_9053_1, out_9053_2 = metanode_9053(port_02=out_9096_7, port_04=out_9097_7, port_01=out_9109_5, port_03=out_9099_5, port_05=out_9098_4, port_06=out_9100_3)
+    clt_out_1, clt_out_2 = climate_emissions(buildings=bld_clt, transport=tra_clt, industry=ind_clt, agriculture=agr_clt, land_use=lus_clt, power=pow_clt)
 
     return {
-        'node_9109_out_1': out_9109_1,
-        'node_9076_out_1': out_9076_1,
-        'node_9096_out_1': out_9096_1,
-        'node_9100_out_1': out_9100_1,
-        'node_9097_out_1': out_9097_1,
-        'node_9099_out_1': out_9099_1,
-        'node_9098_out_1': out_9098_1,
-        'node_9094_out_1': out_9094_1,
-        'node_9053_out_1': out_9053_1,
-        'node_9053_out_2': out_9053_2,
-        'node_9000_out_1': out_9000_1,
-        'node_9000_out_2': out_9000_2,
-        'node_9101_out_1': out_9101_1,
-        'node_1_out_1': out_1_1,
-        'node_9102_out_1': out_9102_1,
+        'node_9109_out_1': bld_out,
+        'node_9076_out_1': bio_out,
+        'node_9096_out_1': tra_out,
+        'node_9100_out_1': pow_out,
+        'node_9097_out_1': agr_out,
+        'node_9099_out_1': ind_out,
+        'node_9098_out_1': lus_out,
+        'node_9094_out_1': lfs_out,
+        'node_9053_out_1': clt_out_1,
+        'node_9053_out_2': clt_out_2,
+        'node_9000_out_1': res_share_out_1,
+        'node_9000_out_2': res_share_out_2,
+        'node_9101_out_1': sco_out,
+        'node_1_out_1': wat_out,
+        'node_9102_out_1': air_out,
     }
 
 

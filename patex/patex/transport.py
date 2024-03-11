@@ -5,7 +5,7 @@ from patex.helpers import *
 
 
 # Transport module
-def metanode_9096(port_01):
+def transport(lifestyle):
     # Passenger
 
 
@@ -277,9 +277,6 @@ def metanode_9096(port_01):
     # Input data 
     # + inject module name (flow variable)
 
-    # LIFESTYLE
-    out_5965_1 = port_01
-
     # Transport demand
 
     # Passenger
@@ -287,16 +284,16 @@ def metanode_9096(port_01):
     # Select variables from Lifestyle module
 
     # (LFS) distance-traveled (pkm)
-    distance_traveled_pkm = use_variable(input_table=out_5965_1, selected_variable='distance-traveled[pkm]')
+    distance_traveled_pkm = use_variable(input_table=lifestyle, selected_variable='distance-traveled[pkm]')
     # (LFS) transport-demand aviation (pkm)
-    transport_demand_pkm_2 = use_variable(input_table=out_5965_1, selected_variable='transport-demand[pkm]')
+    transport_demand_pkm_2 = use_variable(input_table=lifestyle, selected_variable='transport-demand[pkm]')
 
     # KPI's (require extra computation)
 
     # Transport Demand
 
     # (LFS) capita (cap)
-    population_cap = use_variable(input_table=out_5965_1, selected_variable='population[cap]')
+    population_cap = use_variable(input_table=lifestyle, selected_variable='population[cap]')
 
     # Renewal-rate : aggregated by transport-user + vehicle-type
     # Renewal-need

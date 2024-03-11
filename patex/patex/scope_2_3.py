@@ -4,14 +4,14 @@ from patex.helpers.globals import Globals
 from patex.helpers import *
 
 
-def metanode_9101(port_01, port_02, port_03, port_04):
+def scope_2_3(power, industry, agriculture, bioenergy_balance):
 
     module_name = 'scope_2_3'
 
     # From Energy (incl bio) import to CO2-equivalent emissions
 
     # from ELC energy-imported[TWh]
-    energy_imported_TWh = use_variable(input_table=port_01, selected_variable='energy-imported[TWh]')
+    energy_imported_TWh = use_variable(input_table=power, selected_variable='energy-imported[TWh]')
     # OTS/FTS metric-name [unit]
     indirect_emission_factor_unit = import_data(trigram='sco', variable_name='indirect-emission-factor')
     # Keep EF energy
@@ -115,7 +115,7 @@ def metanode_9101(port_01, port_02, port_03, port_04):
     # From Industry import to CO2-equivalent emissions
 
     # from IND material-import[t]
-    material_import_t = use_variable(input_table=port_02, selected_variable='material-import[t]')
+    material_import_t = use_variable(input_table=industry, selected_variable='material-import[t]')
     # Group by country, years,  category (sum)
     material_import_t = group_by_dimensions(df=material_import_t, groupby_dimensions=['Country', 'Years', 'material'], aggregation_method='Sum')
     # emissions-indirect[tCO2e] (industry-material) = indirect-emission-factor[tCO2e/t] x material-import[t]
@@ -125,7 +125,7 @@ def metanode_9101(port_01, port_02, port_03, port_04):
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_2 = group_by_dimensions(df=emissions_indirect_MtCO2e_2, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
     # from IND product-import[unit]
-    product_import_unit = use_variable(input_table=port_02, selected_variable='product-import[unit]')
+    product_import_unit = use_variable(input_table=industry, selected_variable='product-import[unit]')
     # Group by country, years,  category (sum)
     product_import_unit = group_by_dimensions(df=product_import_unit, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # emissions-indirect[tCO2e] (industry-product) = indirect-emission-factor[tCO2e/t] x industry-product[t]
@@ -139,7 +139,7 @@ def metanode_9101(port_01, port_02, port_03, port_04):
     # From Agriculture import to CO2-equivalent emissions
 
     # from AGR food-net-import-product[kcal]
-    food_net_import_product_kcal = use_variable(input_table=port_03, selected_variable='food-net-import-product[kcal]')
+    food_net_import_product_kcal = use_variable(input_table=agriculture, selected_variable='food-net-import-product[kcal]')
     # Convert Unit kcal to  Mkcal
     food_net_import_product_Mkcal = food_net_import_product_kcal.drop(columns='food-net-import-product[kcal]').assign(**{'food-net-import-product[Mkcal]': food_net_import_product_kcal['food-net-import-product[kcal]'] * 1e-06})
     # emissions-indirect[tCO2e] (food-product) = indirect-emission-factor[tCO2e/Mkcal] x food-product[Mkcal]
@@ -149,13 +149,13 @@ def metanode_9101(port_01, port_02, port_03, port_04):
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_3 = group_by_dimensions(df=emissions_indirect_MtCO2e_3, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
     # from BIO energy-imported[TWh]
-    energy_imported_TWh = use_variable(input_table=port_04, selected_variable='energy-imported[TWh]')
+    energy_imported_TWh = use_variable(input_table=bioenergy_balance, selected_variable='energy-imported[TWh]')
     # emissions-indirect[MtCO2e] (bioenergy-production) = energy-imported[TWh]  x  indirect-emission-factor[MtCO2e/TWh]
     emissions_indirect_MtCO2e_4 = mcd(input_table_1=out_9600_1_excluded_excluded_excluded_excluded, input_table_2=energy_imported_TWh, operation_selection='x * y', output_name='emissions-indirect[MtCO2e]')
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_4 = group_by_dimensions(df=emissions_indirect_MtCO2e_4, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
     # from AGR food-net-import[kcal]
-    food_net_import_kcal = use_variable(input_table=port_03, selected_variable='food-net-import[kcal]')
+    food_net_import_kcal = use_variable(input_table=agriculture, selected_variable='food-net-import[kcal]')
     # Convert Unit kcal to  Mkcal
     food_net_import_Mkcal = food_net_import_kcal.drop(columns='food-net-import[kcal]').assign(**{'food-net-import[Mkcal]': food_net_import_kcal['food-net-import[kcal]'] * 1e-06})
     # emissions-indirect[tCO2e] (food-raw) = indirect-emission-factor[tCO2e/Mkcal] x food-raw[Mkcal]
@@ -172,7 +172,7 @@ def metanode_9101(port_01, port_02, port_03, port_04):
     emissions_indirect_MtCO2e_4 = group_by_dimensions(df=emissions_indirect_MtCO2e_3, groupby_dimensions=['Years', 'Country', 'sector-import'], aggregation_method='Sum')
     emissions_indirect_MtCO2e_3 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_4.set_index(emissions_indirect_MtCO2e_4.index.astype(str) + '_dup')])
     # from IND subproduct-import[unit]
-    subproduct_import_unit = use_variable(input_table=port_02, selected_variable='subproduct-import[unit]')
+    subproduct_import_unit = use_variable(input_table=industry, selected_variable='subproduct-import[unit]')
     # Group by country, years,  category (sum)
     subproduct_import_unit = group_by_dimensions(df=subproduct_import_unit, groupby_dimensions=['Country', 'Years', 'material'], aggregation_method='Sum')
     # emissions-indirect[tCO2e] (industry-subproduct) = indirect-emission-factor[tCO2e/t] x industry-subproduct[t]

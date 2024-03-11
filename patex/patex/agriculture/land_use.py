@@ -6,7 +6,7 @@ from patex.helpers import *
 
 # Land-Use module
 # (module-name = agriculture)
-def metanode_9098(port_01):
+def land_use(agriculture):
     # Calibration RATES
 
 
@@ -149,9 +149,6 @@ def metanode_9098(port_01):
 
     # Adapt data from other module => pivot and co
 
-    # AGRICULTURE
-    out_5965_1 = port_01
-
     # Emissions
 
     # Land remaining and changing
@@ -168,7 +165,7 @@ def metanode_9098(port_01):
     # Get % of woody cropland (woody => fruit cropland) and apply it to climatic / ecological zone split
 
     # cropland-management [ha]
-    cropland_management_ha_2 = use_variable(input_table=out_5965_1, selected_variable='cropland-management[ha]')
+    cropland_management_ha_2 = use_variable(input_table=agriculture, selected_variable='cropland-management[ha]')
     # OTS (only) woody-fruit-ratio [%]
     woody_fruit_ratio_percent = import_data(trigram='agr', variable_name='woody-fruit-ratio', variable_type='OTS (only)')
     # Same as last available year
@@ -201,7 +198,7 @@ def metanode_9098(port_01):
     # - Demand for agriculture land, including biodiversity frozen lands [ha]
 
     # land-management [ha] (cropland and pasture)
-    land_management_ha = use_variable(input_table=out_5965_1, selected_variable='land-management[ha]')
+    land_management_ha = use_variable(input_table=agriculture, selected_variable='land-management[ha]')
 
     # Other land management (settlements, industrial-crops, others, ...)
 

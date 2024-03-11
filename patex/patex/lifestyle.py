@@ -5,7 +5,7 @@ from patex.helpers import *
 
 
 # Lifestyle module
-def metanode_9094():
+def lifestyle():
     # Apply here MCE 
     # => based on  ?? eco_added-value-industry ??
     # 

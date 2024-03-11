@@ -20,7 +20,7 @@ from .metanode_6514 import metanode_6514
 
 
 # Power supply module
-def metanode_9100(port_01, port_02, port_03, port_04):
+def electricity_supply(transport, buildings, industry, agriculture):
     # Calibration RATES
 
 
@@ -335,9 +335,6 @@ def metanode_9100(port_01, port_02, port_03, port_04):
 
     # Adapt data from other module => pivot and co
 
-    # Agriculture
-    out_7479_1 = port_04
-
     # Additional demand for electricity [TWh] due to :
     # - Losses
     # - Refineries demand
@@ -360,13 +357,11 @@ def metanode_9100(port_01, port_02, port_03, port_04):
     # sector = losses
     energy_demand_TWh_2['sector'] = "losses"
     energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
-    # Industry
-    out_7478_1 = port_03
 
     # CO2 production (Carbon Capture)
 
     # CC [Mt]
-    CC_Mt = use_variable(input_table=out_7478_1, selected_variable='CC[Mt]')
+    CC_Mt = use_variable(input_table=industry, selected_variable='CC[Mt]')
     # sector = ind
     CC_Mt['sector'] = "ind"
 
@@ -386,29 +381,25 @@ def metanode_9100(port_01, port_02, port_03, port_04):
     # Note : CCU (carbon capture use) is considered as energy-demand where CO2 = energy-carrier
 
     # energy-demand [TWh]
-    energy_demand_TWh_2 = use_variable(input_table=out_7478_1, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh_2 = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
     # sector = ind
     energy_demand_TWh_2['sector'] = "ind"
-    out_5843_1 = pd.concat([energy_demand_TWh_2, out_7479_1.set_index(out_7479_1.index.astype(str) + '_dup')])
+    out_5843_1 = pd.concat([energy_demand_TWh_2, agriculture.set_index(agriculture.index.astype(str) + '_dup')])
 
     # CO2 demand (Carbon Capture Use)
 
     # CCU [Mt]
-    CCU_Mt = use_variable(input_table=out_7478_1, selected_variable='CCU[Mt]')
+    CCU_Mt = use_variable(input_table=industry, selected_variable='CCU[Mt]')
     # sector = ind
     CCU_Mt['sector'] = "ind"
     # CCU [Mt]
     CCU_Mt = export_variable(input_table=CCU_Mt, selected_variable='CCU[Mt]')
-    # Buildings
-    out_7477_1 = port_02
     # sector = bld
-    out_7477_1['sector'] = "bld"
-    out_7477_1 = out_7477_1.loc[~out_7477_1['energy-carrier'].isin(['ambiant'])].copy()
-    # Transport
-    out_5965_1 = port_01
+    buildings['sector'] = "bld"
+    buildings = buildings.loc[~buildings['energy-carrier'].isin(['ambiant'])].copy()
     # sector = tra
-    out_5965_1['sector'] = "tra"
-    out_1 = pd.concat([out_5965_1, out_7477_1.set_index(out_7477_1.index.astype(str) + '_dup')])
+    transport['sector'] = "tra"
+    out_1 = pd.concat([transport, buildings.set_index(buildings.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_1, out_5843_1.set_index(out_5843_1.index.astype(str) + '_dup')])
     out_6998_1 = pd.concat([out_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
     # energy-demand [TWh]

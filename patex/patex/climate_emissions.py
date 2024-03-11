@@ -4,7 +4,7 @@ from patex.helpers.globals import Globals
 from patex.helpers import *
 
 
-def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
+def climate_emissions(buildings, transport, industry, agriculture, land_use, power):
     # Avoid double counting in emissions
     # 
     # We exclude some gaes capture from the emission table to avoid double counting.
@@ -32,7 +32,7 @@ def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
     # Data from other modules
 
     # emissions[Mt]
-    emissions_Mt = use_variable(input_table=port_06, selected_variable='emissions[Mt]')
+    emissions_Mt = use_variable(input_table=power, selected_variable='emissions[Mt]')
     # From Power : Top : sector = ind Bottom : rest
     emissions_Mt_2 = emissions_Mt.loc[emissions_Mt['sector'].isin(['ind'])].copy()
     emissions_Mt_excluded = emissions_Mt.loc[~emissions_Mt['sector'].isin(['ind'])].copy()
@@ -42,9 +42,9 @@ def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
     emissions_Mt = emissions_Mt_2.assign(**{'origin-module': "ind"})
     emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_excluded.set_index(emissions_Mt_excluded.index.astype(str) + '_dup')])
     # Add origin-module = bld
-    port_01['origin-module'] = "bld"
+    buildings['origin-module'] = "bld"
     # carbon-intensity[gCO2e/kWh]
-    carbon_intensity_gCO2eq_per_kWh = use_variable(input_table=port_06, selected_variable='carbon-intensity[gCO2eq/kWh]')
+    carbon_intensity_gCO2eq_per_kWh = use_variable(input_table=power, selected_variable='carbon-intensity[gCO2eq/kWh]')
 
     # NEW KPI
 
@@ -57,12 +57,12 @@ def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
     # g/kWh -> Mt/TWh
     carbon_intensity_MtCO2eq_per_TWh = carbon_intensity_gCO2eq_per_kWh.drop(columns='carbon-intensity[gCO2eq/kWh]').assign(**{'carbon-intensity[MtCO2eq/TWh]': carbon_intensity_gCO2eq_per_kWh['carbon-intensity[gCO2eq/kWh]'] * 0.001})
     # Add origin-module = lus
-    port_05['origin-module'] = "lus"
+    land_use['origin-module'] = "lus"
     # Add origin-module = tra
-    port_02['origin-module'] = "tra"
-    port = pd.concat([port_01, port_02.set_index(port_02.index.astype(str) + '_dup')])
+    transport['origin-module'] = "tra"
+    port = pd.concat([buildings, transport.set_index(transport.index.astype(str) + '_dup')])
     # energy-demand[TWh]
-    energy_demand_TWh = use_variable(input_table=port_03, selected_variable='energy-demand[TWh]')
+    energy_demand_TWh = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
 
     # Industry - CO2 intensity of gross final energy consumption [tCO2eq/kWh]
 
@@ -79,7 +79,7 @@ def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
     # Group by Country, Years, material, route, tech (sum)
     emissions_MtCO2eq = group_by_dimensions(df=emissions_MtCO2eq, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology'], aggregation_method='Sum')
     # emissions[Mt]
-    emissions_Mt_2 = use_variable(input_table=port_03, selected_variable='emissions[Mt]')
+    emissions_Mt_2 = use_variable(input_table=industry, selected_variable='emissions[Mt]')
     # Add origin-module = ind
     emissions_Mt_2['origin-module'] = "ind"
     out_9198_1 = pd.concat([port, emissions_Mt_2.set_index(emissions_Mt_2.index.astype(str) + '_dup')])
@@ -97,8 +97,8 @@ def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
     # Switch  variable to double
     gwp_100 = math_formula(df=clt_gwp, convert_to_int=False, replaced_column='gwp-100[-]', splitted='$gwp-100[-]$')
     # Add origin-module = agr
-    port_04['origin-module'] = "agr"
-    port = pd.concat([port_04, port_05.set_index(port_05.index.astype(str) + '_dup')])
+    agriculture['origin-module'] = "agr"
+    port = pd.concat([agriculture, land_use.set_index(land_use.index.astype(str) + '_dup')])
     out_9200_1 = pd.concat([port, emissions.set_index(emissions.index.astype(str) + '_dup')])
     out_1 = pd.concat([out_9198_1, out_9200_1.set_index(out_9200_1.index.astype(str) + '_dup')])
     # emissions[MtCO2e] = emissions[Mt] x gwp[unit]
@@ -425,7 +425,7 @@ def metanode_9053(port_01, port_02, port_03, port_04, port_05, port_06):
     # ind_emissions-per-energy-demand[tCO2eq/kWh]
     ind_emissions_per_energy_demand_tCO2eq_per_kWh = export_variable(input_table=ind_emissions_per_energy_demand_tCO2eq_per_kWh, selected_variable='ind_emissions-per-energy-demand[tCO2eq/kWh]')
     # material-production[Mt]
-    material_production_Mt = use_variable(input_table=port_03, selected_variable='material-production[Mt]')
+    material_production_Mt = use_variable(input_table=industry, selected_variable='material-production[Mt]')
     # material-production[Mt]
     material_production_Mt = use_variable(input_table=material_production_Mt, selected_variable='material-production[Mt]')
     # Keep way-of-production = carbstone, e-MTO, e-dehydration, dry-kiln
