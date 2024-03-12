@@ -3,16 +3,6 @@ import pandas as pd
 from patex.helpers.globals import Globals
 from patex.helpers import *
 
-"""
-- Grouping everything in a similar way as the knime
-- Deleting (a lot of) comments for more concice and relevant ones
-- Some naming/way of computing just don't make sense
-- Groupong with function ? Could improve readability but wmight not not be reused.
-- Units should be kept (?) ==> no unit lead to strange naming (see non-urban factor)
-- The export/use variable can make the code lengthier that it need to be
-"""
-
-
 # Lifestyle module
 def lifestyle():
 
@@ -76,8 +66,31 @@ def lifestyle():
     non_urban_parameter_percent = mcd(input_table_1=non_urban_factor_a, input_table_2=population_distribution_percent, operation_selection='x * y', output_name='non-urban-parameter[%]')
     non_urban_parameter_percent = mcd(input_table_1=non_urban_parameter_percent, input_table_2=non_urban_factor_b_, operation_selection='x + y', output_name='non-urban-parameter[%]')
     non_urban_parameter_percent = group_by_dimensions(df=non_urban_parameter_percent, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
+    non_urban_parameter_percent = use_variable(input_table=non_urban_parameter_percent, selected_variable='non-urban-parameter[%]')
 
 
+    # Distance traveled [pkm]
+    pkm_inland_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-inland-demand')
+    pkm_inland_demand_pkm_per_cap_per_year = group_by_dimensions(df=pkm_inland_demand_pkm_per_cap_per_year, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+    pkm_inland_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
+    
+    ## Urban
+    distance_traveled_nonurb_pkm = mcd(input_table_1=non_urban_parameter_percent, input_table_2=pkm_inland_demand_pkm, operation_selection='x * y', output_name='distance-traveled[pkm]')
+    distance_traveled_nonurb_pkm = distance_traveled_nonurb_pkm.assign(**{'distance-type': "nonurban"})
+    ## Non-urban
+    distance_traveled_urb_pkm = mcd(input_table_1=distance_traveled_nonurb_pkm, input_table_2=pkm_inland_demand_pkm, operation_selection='y - x', output_name='distance-traveled[pkm]')
+    nshift_share_percent = import_data(trigram='lfs', variable_name='nshift-share', variable_type='RCP')
+    distance_traveled_urb_pkm = mcd(input_table_1=distance_traveled_urb_pkm, input_table_2=nshift_share_percent, operation_selection='x * (1-y)', output_name='distance-traveled[pkm]')
+    distance_traveled_urb_pkm = group_by_dimensions(df=distance_traveled_urb_pkm, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
+    
+    ## Urban + Non-urban
+    distance_traveled_pkm = pd.concat([distance_traveled_nonurb_pkm, distance_traveled_urb_pkm.set_index(distance_traveled_urb_pkm.index.astype(str) + '_dup')])
+    distance_traveled_pkm = export_variable(input_table=distance_traveled_pkm, selected_variable='distance-traveled[pkm]')
+    pkm = pd.concat([distance_traveled_pkm, transport_demand_pkm.set_index(transport_demand_pkm.index.astype(str) + '_dup')])
+
+    ## Output
+    out_8252_1 = pd.concat([population_cap_3, pkm.set_index(pkm.index.astype(str) + '_dup')])
+    out_8252_1 = column_filter(df=out_8252_1, pattern='^.*$')
 
     # 4. Industry
     #------------
@@ -119,37 +132,6 @@ def lifestyle():
     population_cap = column_filter(df=population_cap_2, pattern='^.*$')
 
 
-    
-
-    # Transport
-
-    # Distance traveled : 
-    # - Inland distance traveled [pkm] (active and non-active)
-    # - International distance traveled [pkm] (aviation)
-
-    # Apply urban population lever (shift)
-    # => determine the % of population livig in urban area
-
-    # OTS/FTS population-distribution [%]
-
-   
-
-    # Inland
-    # 1) Sum all demand by Country / Years
-    # 2) Get total demand by Country = demand per passenger [pkm/cap/year] * population[cap/year]
-
-    # Inland - Non urban
-    # => = Total demand[pkm] * non-urban-parameter[%]
-
-    # non-urban-parameter [%]
-    non_urban_parameter_percent = use_variable(input_table=non_urban_parameter_percent, selected_variable='non-urban-parameter[%]')
-
-    # Apply pkm levers (avoid)
-    # => determine the km traveled per passenger
-    # - Inland
-    # - International
-
-    
 
     # Energy production based on waste (other than food wastes)
 
@@ -292,38 +274,7 @@ def lifestyle():
     out_8245_1 = pd.concat([energy_production_TWh, food_kcal.set_index(food_kcal.index.astype(str) + '_dup')])
     # Module = Agriculture
     out_8245_1 = column_filter(df=out_8245_1, pattern='^.*$')
-    # OTS/FTS pkm-inland-demand [pkm/cap/year]
-    pkm_inland_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-inland-demand')
-    # Group by  Country, Years (SUM)
-    pkm_inland_demand_pkm_per_cap_per_year = group_by_dimensions(df=pkm_inland_demand_pkm_per_cap_per_year, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # pkm-inland-demand[pkm] = pkm-inland-demand[pkm/cap/year] * population[cap]
-    pkm_inland_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
-    # distance-traveled[pkm] = non-urban-parameter[%] * pkm-inland-demand[pkm]
-    distance_traveled_pkm_2 = mcd(input_table_1=non_urban_parameter_percent, input_table_2=pkm_inland_demand_pkm, operation_selection='x * y', output_name='distance-traveled[pkm]')
-    # Replace urban by non-urban
-    distance_traveled_pkm = distance_traveled_pkm_2.assign(**{'distance-type': "nonurban"})
-
-    # Inland - Urban
-    # => = (Total demand[pkm] - inland-distance-traveled[pkm] from non-urban) * (1 - nshif-share[%])
-
-    # inland-distance-traveled[pkm] (replace) = pkm-inland-demand[pkm] (total) - inland-distance-traveled[pkm] (non-urban)
-    distance_traveled_pkm_2 = mcd(input_table_1=distance_traveled_pkm_2, input_table_2=pkm_inland_demand_pkm, operation_selection='y - x', output_name='distance-traveled[pkm]')
-    # RCP nshift-share [%]
-    nshift_share_percent = import_data(trigram='lfs', variable_name='nshift-share', variable_type='RCP')
-    # distance-traveled[pkm] = distance-traveled[pkm]] * (1 - nshift-share[%])
-    distance_traveled_pkm_2 = mcd(input_table_1=distance_traveled_pkm_2, input_table_2=nshift_share_percent, operation_selection='x * (1-y)', output_name='distance-traveled[pkm]')
-    # Group by Country, Years, distance-type (SUM) (remove Null dimension)
-    distance_traveled_pkm_2 = group_by_dimensions(df=distance_traveled_pkm_2, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
-    # Urban + Non-urban
-    distance_traveled_pkm = pd.concat([distance_traveled_pkm, distance_traveled_pkm_2.set_index(distance_traveled_pkm_2.index.astype(str) + '_dup')])
-    # distance-traveled [pkm]
-    distance_traveled_pkm = export_variable(input_table=distance_traveled_pkm, selected_variable='distance-traveled[pkm]')
-    # Transport
-    pkm = pd.concat([distance_traveled_pkm, transport_demand_pkm.set_index(transport_demand_pkm.index.astype(str) + '_dup')])
-    # Adding cap for Transport
-    out_8252_1 = pd.concat([population_cap_3, pkm.set_index(pkm.index.astype(str) + '_dup')])
-    # Module = Transport
-    out_8252_1 = column_filter(df=out_8252_1, pattern='^.*$')
+    
 
     
 
