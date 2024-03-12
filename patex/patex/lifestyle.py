@@ -3,35 +3,97 @@ import pandas as pd
 from patex.helpers.globals import Globals
 from patex.helpers import *
 
+"""
+- Grouping everything in a similar way as the knime
+- Deleting (a lot of) comments for more concice and relevant ones
+- Some naming/way of computing just don't make sense
+- Groupong with function ? Could improve readability but wmight not not be reused.
+- Units should be kept (?) ==> no unit lead to strange naming (see non-urban factor)
+- The export/use variable can make the code lengthier that it need to be
+"""
+
 
 # Lifestyle module
 def lifestyle():
-    # Apply here MCE 
-    # => based on  ?? eco_added-value-industry ??
-    # 
-    # A appliquer sur FTS / OTS importé ou sur tout (après apply link-material-to-activity) ?
 
-
-    # May be, this logic should be changed ?
-    # Heating comfort should not be the same than cooling ?
-    # 
-    # Cfr ticket https://climact.atlassian.net/browse/XCALC-1109
-
-
-    # Apply diet lever (shift)
-    # => determine the diet of the population (kcal consummed by person and per day)
-
-
-    # Apply kcal requirement lever (shift)
-    # => determine the kcal requirement of the population
-
-
-    # For remaining kcal requirements (compared to food demand) :
-    # Distribute remaining food demand between different type of aliments (via food-demand-share values)
-
-
-
+    # 0. Module parameters
+    #-------------------
     module_name = 'lifestyle'
+
+
+    # 1. Population
+    #---------------
+
+    # Population [cap]
+    population_cap = import_data(trigram='lfs', variable_name='population') # OTS/FTS
+    population_cap = group_by_dimensions(df=population_cap, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+    population_cap_3 = export_variable(input_table=population_cap, selected_variable='population[cap]') # NOTE: Could be deleted/ made at an other place?
+    population_cap_2 = use_variable(input_table=population_cap_3, selected_variable='population[cap]')
+
+
+    # 2. Buildings
+    #-------------
+
+    # Total number of household [num], from the the household size and the total population
+    household_size_cap_per_household = import_data(trigram='lfs', variable_name='household-size') # OTS/FTS
+    households_total_num = mcd(input_table_1=population_cap_2, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households-total[num]')
+    households_total_num = export_variable(input_table=households_total_num, selected_variable='households-total[num]')
+    
+    # Product substitution rate [%] NOTE: determine after which time product are changed (0 = when arrived to lifetime / < 0 = before lifetime is reached / > 0 = after lifetime is reached)
+    product_substitution_rate_percent = import_data(trigram='lfs', variable_name='product-substitution-rate') # OTS/FTS
+    product_substitution_rate_percent = export_variable(input_table=product_substitution_rate_percent, selected_variable='product-substitution-rate[%]') # NOTE: Could be deleted/ made at an other place?
+    
+    # Appliance ownership [num]
+    appliance_own_num_per_household = import_data(trigram='lfs', variable_name='appliance-own') # OTS/FTS
+    households_total_num = use_variable(input_table=households_total_num, selected_variable='households-total[num]')
+    households_total_num_2 = group_by_dimensions(df=households_total_num, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum') # NOTE: how to handle ranaming after grouing?
+    appliance_own_num = mcd(input_table_1=households_total_num_2, input_table_2=appliance_own_num_per_household, operation_selection='x * y', output_name='appliance-own[num]')
+    appliance_own_num = export_variable(input_table=appliance_own_num, selected_variable='appliance-own[num]')
+
+    # Appliances use [h]
+    appliance_use_h_per_year_times_num = import_data(trigram='lfs', variable_name='appliance-use')
+    appliance_use_h = mcd(input_table_1=appliance_own_num, input_table_2=appliance_use_h_per_year_times_num, operation_selection='x * y', output_name='appliance-use[h]')
+    appliance_use_h = export_variable(input_table=appliance_use_h, selected_variable='appliance-use[h]')
+    appliance = pd.concat([appliance_own_num, appliance_use_h.set_index(appliance_use_h.index.astype(str) + '_dup')])
+
+    # prepare output, to be improved
+    out_8216_1 = pd.concat([households_total_num, population_cap_3.set_index(population_cap_3.index.astype(str) + '_dup')])
+    out_8211_1 = pd.concat([appliance, product_substitution_rate_percent.set_index(product_substitution_rate_percent.index.astype(str) + '_dup')])
+
+    # 3. Transport
+    #-------------
+
+    # International transport demand [pkm]
+    pkm_international_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-international-demand')
+    transport_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_international_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='transport-demand[pkm]')
+    transport_demand_pkm['transport-user'] = "passenger"
+    transport_demand_pkm = export_variable(input_table=transport_demand_pkm, selected_variable='transport-demand[pkm]')
+
+    # Non-urban parameter NOTE:non-urban-parameter = a * urban-pop[%] + b
+    non_urban_factor_a = import_data(trigram='lfs', variable_name='non-urban-factor-a', variable_type='RCP')
+    non_urban_factor_b_ = import_data(trigram='lfs', variable_name='non-urban-factor-b', variable_type='RCP')
+    population_distribution_percent = import_data(trigram='lfs', variable_name='population-distribution')
+    non_urban_parameter_percent = mcd(input_table_1=non_urban_factor_a, input_table_2=population_distribution_percent, operation_selection='x * y', output_name='non-urban-parameter[%]')
+    non_urban_parameter_percent = mcd(input_table_1=non_urban_parameter_percent, input_table_2=non_urban_factor_b_, operation_selection='x + y', output_name='non-urban-parameter[%]')
+    non_urban_parameter_percent = group_by_dimensions(df=non_urban_parameter_percent, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
+
+
+
+    # 4. Industry
+    #------------
+    # Compute the product demand for paper pack (and other packaging) [t]
+    product_demand_per_cap_unit_per_cap = import_data(trigram='lfs', variable_name='product-demand-per-cap') #OTS/FTS
+    product_demand_unit = mcd(input_table_1=population_cap_2, input_table_2=product_demand_per_cap_unit_per_cap, operation_selection='x * y', output_name='product-demand[unit]')
+    product_demand_unit = export_variable(input_table=product_demand_unit, selected_variable='product-demand[unit]')
+
+    # Prepare output --> Function ?
+    product_demand_unit = column_filter(df=product_demand_unit, pattern='^.*$')
+
+    # 5. AFOLU
+    #---------
+
+    # 6. Supply
+    #----------
 
     # Agriculture
 
@@ -45,17 +107,6 @@ def lifestyle():
     # ratio[-] = 1 (no need to  account for energy efficiency differences in food)
     ratio = out_9207_1.assign(**{'ratio[-]': 1.0})
 
-    # Population
-
-    # Apply population levers (avoid)
-    # => determine the amount of inhabitant per country
-
-    # OTS/FTS population [cap]
-    population_cap = import_data(trigram='lfs', variable_name='population')
-    # Group by  Country, Years (SUM)
-    population_cap = group_by_dimensions(df=population_cap, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # population [cap]
-    population_cap_3 = export_variable(input_table=population_cap, selected_variable='population[cap]')
 
     # Formating data for other modules + Pathway Explorer
 
@@ -64,77 +115,11 @@ def lifestyle():
     # - Population
 
     # population [cap]
-    population_cap_2 = use_variable(input_table=population_cap_3, selected_variable='population[cap]')
     # Module = water
     population_cap = column_filter(df=population_cap_2, pattern='^.*$')
 
-    # Buildings
 
-    # Appliances : 
-    # - Appliance-own [num]
-    # - Appliances-use [h]
-    # - Product-substitution-rate[%]   (product = appliances and other type of product (ex. cars))
-
-    # Apply product substitution rate levers (avoid / improve)
-    # => determine after which time product are changed (0 = when arrived to lifetime / < 0 = before lifetime is reached / > 0 = after lifetime is reached)
-    # Ex. -0.1 = at 90% of their lifetime
-    # Ex. 0.1 = at 110% of their lifetime
-
-    # OTS/FTS product-substitution-rate [%]
-    product_substitution_rate_percent = import_data(trigram='lfs', variable_name='product-substitution-rate')
-    # product-substitution-rate [%]
-    product_substitution_rate_percent = export_variable(input_table=product_substitution_rate_percent, selected_variable='product-substitution-rate[%]')
-
-    # Apply appliances own levers (avoid)
-    # => determine the amount of appliances used per house
-
-    # OTS/FTS appliance-own [num/household]
-    appliance_own_num_per_household = import_data(trigram='lfs', variable_name='appliance-own')
-
-    # Household : 
-    # - Total amount of household [num]
-    # - Share of appartement [%]
-    # - Floor space [1000m2]
-
-    # Apply household size levers (avoid)
-    # => determine the amount of person living in a same house
-
-    # OTS/FTS household-size [cap/household]
-    household_size_cap_per_household = import_data(trigram='lfs', variable_name='household-size')
-    # households-total[num] = population[cap] / household-size [cap/households]
-    households_total_num = mcd(input_table_1=population_cap_2, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households-total[num]')
-    # households-total [num]
-    households_total_num = export_variable(input_table=households_total_num, selected_variable='households-total[num]')
-    out_8216_1 = pd.concat([households_total_num, population_cap_3.set_index(population_cap_3.index.astype(str) + '_dup')])
-
-    # For : Pathway Explorer
-    # 
-    # - Food Demand
-    # - Food Waste
-    # - House Hold [num]
-
-    # households-total[num]
-    households_total_num = use_variable(input_table=households_total_num, selected_variable='households-total[num]')
-    # Group by  Country, Years (SUM)
-    households_total_num_2 = group_by_dimensions(df=households_total_num, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # appliance-own[num] = appliance-own[num/household] * households-total[num]
-    appliance_own_num = mcd(input_table_1=households_total_num_2, input_table_2=appliance_own_num_per_household, operation_selection='x * y', output_name='appliance-own[num]')
-    # appliance-own [num]
-    appliance_own_num = export_variable(input_table=appliance_own_num, selected_variable='appliance-own[num]')
-
-    # Apply appliances use levers (avoid)
-    # => determine the hour spend on each appliances
-
-    # OTS/FTS appliance-use [h/year*num]
-    appliance_use_h_per_year_times_num = import_data(trigram='lfs', variable_name='appliance-use')
-    # appliance-use[h] = appliance-own[num] * appliance-use[h/year*num]
-    appliance_use_h = mcd(input_table_1=appliance_own_num, input_table_2=appliance_use_h_per_year_times_num, operation_selection='x * y', output_name='appliance-use[h]')
-    # appliance-use [h]
-    appliance_use_h = export_variable(input_table=appliance_use_h, selected_variable='appliance-use[h]')
-    # Appliances
-    appliance = pd.concat([appliance_own_num, appliance_use_h.set_index(appliance_use_h.index.astype(str) + '_dup')])
-    # Appliances
-    out_8211_1 = pd.concat([appliance, product_substitution_rate_percent.set_index(product_substitution_rate_percent.index.astype(str) + '_dup')])
+    
 
     # Transport
 
@@ -146,21 +131,8 @@ def lifestyle():
     # => determine the % of population livig in urban area
 
     # OTS/FTS population-distribution [%]
-    population_distribution_percent = import_data(trigram='lfs', variable_name='population-distribution')
 
-    # Non-urban parameter
-    # => non-urban-parameter = a * urban-pop[%] + b
-
-    # RCP non-urban-factor-a [-]
-    non_urban_factor_a_ = import_data(trigram='lfs', variable_name='non-urban-factor-a', variable_type='RCP')
-    # non-urban-parameter[%] = population-distribution[%] * non-urban-factor-a[-]
-    non_urban_parameter_percent = mcd(input_table_1=non_urban_factor_a_, input_table_2=population_distribution_percent, operation_selection='x * y', output_name='non-urban-parameter[%]')
-    # RCP non-urban-factor-b [-]
-    non_urban_factor_b_ = import_data(trigram='lfs', variable_name='non-urban-factor-b', variable_type='RCP')
-    # non-urban-parameter[%] (replace) = non-urban-parameter[%] + non-urban-factor-b[-]
-    non_urban_parameter_percent = mcd(input_table_1=non_urban_parameter_percent, input_table_2=non_urban_factor_b_, operation_selection='x + y', output_name='non-urban-parameter[%]')
-    # Group by Country, Years (SUM) (remove Null dimension)
-    non_urban_parameter_percent = group_by_dimensions(df=non_urban_parameter_percent, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
+   
 
     # Inland
     # 1) Sum all demand by Country / Years
@@ -177,18 +149,7 @@ def lifestyle():
     # - Inland
     # - International
 
-    # OTS/FTS pkm-international-demand [pkm/cap/year]
-    pkm_international_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-international-demand')
-
-    # International
-    # 1) Get total demand by Country = demand per passenger [pkm/cap/year] * population[cap/year]
-
-    # transport-demand[pkm] = pkm-international-demand[pkm/cap/year] * population[cap]
-    transport_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_international_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='transport-demand[pkm]')
-    # Add transport-user = passenger
-    transport_demand_pkm['transport-user'] = "passenger"
-    # transport-demand [pkm]
-    transport_demand_pkm = export_variable(input_table=transport_demand_pkm, selected_variable='transport-demand[pkm]')
+    
 
     # Energy production based on waste (other than food wastes)
 
@@ -364,22 +325,7 @@ def lifestyle():
     # Module = Transport
     out_8252_1 = column_filter(df=out_8252_1, pattern='^.*$')
 
-    # Industry
-
-    # Product demand : 
-    # - Paper pack (and other packaging) [t]
-
-    # Apply paper-pack levers (avoid)
-    # => determine the tons of packaging (paper, plastic, ...) used per cap
-
-    # OTS/FTS product-demand-per-cap [unit/cap]
-    product_demand_per_cap_unit_per_cap = import_data(trigram='lfs', variable_name='product-demand-per-cap')
-    # product-demand[unit] = population[cap] * product-demand-per-cap[unit/cap]
-    product_demand_unit = mcd(input_table_1=population_cap_2, input_table_2=product_demand_per_cap_unit_per_cap, operation_selection='x * y', output_name='product-demand[unit]')
-    # product-demand [unit]
-    product_demand_unit = export_variable(input_table=product_demand_unit, selected_variable='product-demand[unit]')
-    # Module = Industry
-    product_demand_unit = column_filter(df=product_demand_unit, pattern='^.*$')
+    
 
     # Heating and Cooling behaviour : 
     # - heating-cooling-behaviour-index[-]
