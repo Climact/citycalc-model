@@ -74,16 +74,16 @@ def lifestyle():
     pkm_inland_demand_pkm_per_cap_per_year = group_by_dimensions(df=pkm_inland_demand_pkm_per_cap_per_year, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     pkm_inland_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
     
-    ## Urban
-    distance_traveled_nonurb_pkm = mcd(input_table_1=non_urban_parameter_percent, input_table_2=pkm_inland_demand_pkm, operation_selection='x * y', output_name='distance-traveled[pkm]')
-    distance_traveled_nonurb_pkm = distance_traveled_nonurb_pkm.assign(**{'distance-type': "nonurban"})
     ## Non-urban
+    distance_traveled_nonurb_pkm = mcd(input_table_1=non_urban_parameter_percent, input_table_2=pkm_inland_demand_pkm, operation_selection='x * y', output_name='distance-traveled[pkm]')
+    ## Urban
     distance_traveled_urb_pkm = mcd(input_table_1=distance_traveled_nonurb_pkm, input_table_2=pkm_inland_demand_pkm, operation_selection='y - x', output_name='distance-traveled[pkm]')
     nshift_share_percent = import_data(trigram='lfs', variable_name='nshift-share', variable_type='RCP')
     distance_traveled_urb_pkm = mcd(input_table_1=distance_traveled_urb_pkm, input_table_2=nshift_share_percent, operation_selection='x * (1-y)', output_name='distance-traveled[pkm]')
     distance_traveled_urb_pkm = group_by_dimensions(df=distance_traveled_urb_pkm, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
     
     ## Urban + Non-urban
+    distance_traveled_nonurb_pkm = distance_traveled_nonurb_pkm.assign(**{'distance-type': "nonurban"})
     distance_traveled_pkm = pd.concat([distance_traveled_nonurb_pkm, distance_traveled_urb_pkm.set_index(distance_traveled_urb_pkm.index.astype(str) + '_dup')])
     distance_traveled_pkm = export_variable(input_table=distance_traveled_pkm, selected_variable='distance-traveled[pkm]')
     pkm = pd.concat([distance_traveled_pkm, transport_demand_pkm.set_index(transport_demand_pkm.index.astype(str) + '_dup')])
