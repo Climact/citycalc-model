@@ -111,8 +111,50 @@ def lifestyle():
     energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
 
-    # 6. Supply
-    #----------
+    # Food Demand [kcal]
+    ## Compute food supply [kcal]
+    food_supply_kcal_per_cap_per_day = import_data(trigram='lfs', variable_name='total-food-supply', variable_type='OTS (only)')
+    food_supply_kcal_per_cap_per_day = add_missing_years(df_data=food_supply_kcal_per_cap_per_day)
+    food_supply_kcal_per_cap_per_day = group_by_dimensions(df=food_supply_kcal_per_cap_per_day, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+    food_supply_kcal_per_cap_per_year = food_supply_kcal_per_cap_per_day.assign(**{'food-supply[kcal/cap/year]': food_supply_kcal_per_cap_per_day['total-food-supply[kcal/cap/day]']*365.0})
+    food_supply_kcal_per_cap_per_year = use_variable(input_table=food_supply_kcal_per_cap_per_year, selected_variable='food-supply[kcal/cap/year]')
+    food_supply_kcal = mcd(input_table_1=population_cap_2, input_table_2=food_supply_kcal_per_cap_per_year, operation_selection='x * y', output_name='food-supply[kcal]')
+    ### Apply food-supply-share [%]
+    food_supply_share_percent = import_data(trigram='lfs', variable_name='food-supply-share', variable_type='RCP')
+    food_supply_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_supply_share_percent, operation_selection='x * y', output_name='food-supply[kcal]')
+    ### Apply calibration on food supply [kcal]
+    food_supply_kcal = use_variable(input_table=food_supply_kcal, selected_variable='food-supply[kcal]')
+    food_supply_kcal_calibration = import_data(trigram='lfs', variable_name='food-supply', variable_type='Calibration')
+    food_supply_kcal, _, calibration_factor_food_supply = calibration(input_table=food_supply_kcal, cal_table=food_supply_kcal_calibration, data_to_be_cal='food-supply[kcal]', data_cal='food-supply[kcal]')
+    ### Apply food-waste-share [%]
+    food_waste_share_percent = import_data(trigram='lfs', variable_name='food-waste-share', variable_type='RCP')
+    food_waste_share_percent = group_by_dimensions(df=food_waste_share_percent, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+
+    food_consumption_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_waste_share_percent, operation_selection='x * (1-y)', output_name='food-consumption[kcal]')
+
+    # Apply food consumption lever (reduce)
+    # => determine the evolution of food demand for :
+    # - livestock
+    # - crop products
+    # - auqtic animals
+
+    # OTS/FTS food-consumption [%]
+    food_consumption_percent = import_data(trigram='lfs', variable_name='food-consumption')
+    # food-comsumption[kcal] (replace) = food-comsumption[kcal] x food-comsumption[%]  LEFT JOIN If no evolution : keep it constant (1)
+    food_consumption_kcal = mcd(input_table_1=food_consumption_kcal, input_table_2=food_consumption_percent, operation_selection='x * y', output_name='food-consumption[kcal]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
+    # Group by category, treatment product (sum)
+    food_consumption_kcal_2 = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['category', 'product', 'treatment'], aggregation_method='Sum')
+    # ratio[-] = 1 (used to reassociate other dimensions linked to product)
+    ratio_2 = food_consumption_kcal_2.assign(**{'ratio[-]': 1.0})
+    # Remove food-consumption [kcal]
+    ratio_2 = column_filter(df=ratio_2, columns_to_drop=['food-consumption[kcal]'])
+    # Group by  Country, Years, product (sum)
+    food_consumption_kcal = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
+
+    # Apply diet switch lever (switch)
+    # => determine the :
+    # - % of red meat converted to white meat
+    # - % of meat (including white meat) converted to vegetal proteins
 
     # Agriculture
 
@@ -126,50 +168,19 @@ def lifestyle():
     # ratio[-] = 1 (no need to  account for energy efficiency differences in food)
     ratio = out_9207_1.assign(**{'ratio[-]': 1.0})
 
+    # OTS/FTS diet-switch [%]
+    diet_switch_percent = import_data(trigram='lfs', variable_name='diet-switch')
+    # Diet Switch red meat to white meat
+    out_8268_1 = x_switch(demand_table=food_consumption_kcal, switch_table=diet_switch_percent, correlation_table=ratio, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='red-meat', category_to_selected='white-meat')
+    # Diet Switch all meat to vegetal meat
+    out_8269_1 = x_switch(demand_table=out_8268_1, switch_table=diet_switch_percent, correlation_table=ratio, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='meat', category_to_selected='vegetal-protein')
+    # food-comsumption[kcal] (replace) = food-comsumption[kcal] x ratio[-]
+    food_consumption_kcal = mcd(input_table_1=ratio_2, input_table_2=out_8269_1, operation_selection='x * y', output_name='food-consumption[kcal]')
+    # TO CLEAN !!! (clean interface + output to agr and in agr module)  food-consumption as food-demand
+    out_9216_1 = food_consumption_kcal.rename(columns={'food-consumption[kcal]': 'food-demand[kcal]'})
+    # food-demand [kcal]
+    food_demand_kcal = export_variable(input_table=out_9216_1, selected_variable='food-demand[kcal]')
 
-    # Formating data for other modules + Pathway Explorer
-
-    # For : Pathway Explorer (+ water / air quality / minerals)
-    # 
-    # - Population
-
-    # population [cap]
-    # Module = water
-    population_cap = column_filter(df=population_cap_2, pattern='^.*$')
-
-
-
-    
-    # OTS (only) total-food-supply [kcal/cap/day]
-    total_food_supply_kcal_per_cap_per_day = import_data(trigram='lfs', variable_name='total-food-supply', variable_type='OTS (only)')
-    # Same as last available year
-    total_food_supply_kcal_per_cap_per_day = add_missing_years(df_data=total_food_supply_kcal_per_cap_per_day)
-    # Group by  Country, Years (sum)
-    total_food_supply_kcal_per_cap_per_day = group_by_dimensions(df=total_food_supply_kcal_per_cap_per_day, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # food-supply[kcal/cap/year]  = total-food-supply[kcal/cap/day] x 365
-    food_supply_kcal_per_cap_per_year = total_food_supply_kcal_per_cap_per_day.assign(**{'food-supply[kcal/cap/year]': total_food_supply_kcal_per_cap_per_day['total-food-supply[kcal/cap/day]']*365.0})
-    # food-supply [kcal/cap/year] 
-    food_supply_kcal_per_cap_per_year = use_variable(input_table=food_supply_kcal_per_cap_per_year, selected_variable='food-supply[kcal/cap/year]')
-    # food-supply[kcal] = food-supply[kcal/cap/year] x population[cap]
-    food_supply_kcal = mcd(input_table_1=population_cap_2, input_table_2=food_supply_kcal_per_cap_per_year, operation_selection='x * y', output_name='food-supply[kcal]')
-    # RCP food-supply-share [%]
-    food_supply_share_percent = import_data(trigram='lfs', variable_name='food-supply-share', variable_type='RCP')
-    # food-supply[kcal] (detailed by food) = food-supply[kcal] x food-supply-share [%]
-    food_supply_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_supply_share_percent, operation_selection='x * y', output_name='food-supply[kcal]')
-
-    # Calibration
-    # Food supply
-
-    # food-supply [kcal] 
-    food_supply_kcal_2 = use_variable(input_table=food_supply_kcal, selected_variable='food-supply[kcal]')
-    # CAL food-supply [kcal]
-    food_supply_kcal = import_data(trigram='lfs', variable_name='food-supply', variable_type='Calibration')
-    # Apply Calibration on food-supply[kcal]
-    food_supply_kcal, _, out_8165_3 = calibration(input_table=food_supply_kcal_2, cal_table=food_supply_kcal, data_to_be_cal='food-supply[kcal]', data_cal='food-supply[kcal]')
-    # RCP food-waste-share [%]
-    food_waste_share_percent = import_data(trigram='lfs', variable_name='food-waste-share', variable_type='RCP')
-    # Group by  Country, Years (sum)
-    food_waste_share_percent = group_by_dimensions(df=food_waste_share_percent, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
 
     # Waste
 
@@ -198,44 +209,27 @@ def lifestyle():
     # Convert Unit kcal/cap to kcal/cap/day (/365 => x 0.00274)
     food_waste_per_cap_kcal_per_cap_per_day = food_waste_per_cap_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_per_cap_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
     # food-comsumption[kcal] = food-supply[kcal] x 1 - food-waste-share[%]
-    food_consumption_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_waste_share_percent, operation_selection='x * (1-y)', output_name='food-consumption[kcal]')
 
-    # Apply food consumption lever (reduce)
-    # => determine the evolution of food demand for :
-    # - livestock
-    # - crop products
-    # - auqtic animals
+    # 6. Supply
+    #----------
 
-    # OTS/FTS food-consumption [%]
-    food_consumption_percent = import_data(trigram='lfs', variable_name='food-consumption')
-    # food-comsumption[kcal] (replace) = food-comsumption[kcal] x food-comsumption[%]  LEFT JOIN If no evolution : keep it constant (1)
-    food_consumption_kcal = mcd(input_table_1=food_consumption_kcal, input_table_2=food_consumption_percent, operation_selection='x * y', output_name='food-consumption[kcal]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
-    # Group by category, treatment product (sum)
-    food_consumption_kcal_2 = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['category', 'product', 'treatment'], aggregation_method='Sum')
-    # ratio[-] = 1 (used to reassociate other dimensions linked to product)
-    ratio_2 = food_consumption_kcal_2.assign(**{'ratio[-]': 1.0})
-    # Remove food-consumption [kcal]
-    ratio_2 = column_filter(df=ratio_2, columns_to_drop=['food-consumption[kcal]'])
-    # Group by  Country, Years, product (sum)
-    food_consumption_kcal = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
+    
 
-    # Apply diet switch lever (switch)
-    # => determine the :
-    # - % of red meat converted to white meat
-    # - % of meat (including white meat) converted to vegetal proteins
 
-    # OTS/FTS diet-switch [%]
-    diet_switch_percent = import_data(trigram='lfs', variable_name='diet-switch')
-    # Diet Switch red meat to white meat
-    out_8268_1 = x_switch(demand_table=food_consumption_kcal, switch_table=diet_switch_percent, correlation_table=ratio, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='red-meat', category_to_selected='white-meat')
-    # Diet Switch all meat to vegetal meat
-    out_8269_1 = x_switch(demand_table=out_8268_1, switch_table=diet_switch_percent, correlation_table=ratio, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='meat', category_to_selected='vegetal-protein')
-    # food-comsumption[kcal] (replace) = food-comsumption[kcal] x ratio[-]
-    food_consumption_kcal = mcd(input_table_1=ratio_2, input_table_2=out_8269_1, operation_selection='x * y', output_name='food-consumption[kcal]')
-    # TO CLEAN !!! (clean interface + output to agr and in agr module)  food-consumption as food-demand
-    out_9216_1 = food_consumption_kcal.rename(columns={'food-consumption[kcal]': 'food-demand[kcal]'})
-    # food-demand [kcal]
-    food_demand_kcal = export_variable(input_table=out_9216_1, selected_variable='food-demand[kcal]')
+    # Formating data for other modules + Pathway Explorer
+
+    # For : Pathway Explorer (+ water / air quality / minerals)
+    # 
+    # - Population
+
+    # population [cap]
+    # Module = water
+    population_cap = column_filter(df=population_cap_2, pattern='^.*$')
+
+
+
+    
+
     # Agriculture
     food_kcal = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
     # food-demand[kcal]
@@ -260,7 +254,7 @@ def lifestyle():
     # Cal_rate for food-demand [kcal]
 
     # Cal rate for food-supply [kcal]
-    cal_rate_food_supply_kcal = use_variable(input_table=out_8165_3, selected_variable='cal_rate_food-supply[kcal]')
+    cal_rate_food_supply_kcal = use_variable(input_table=calibration_factor_food_supply, selected_variable='cal_rate_food-supply[kcal]')
     # Module = Calibration
     cal_rate_food_supply_kcal = column_filter(df=cal_rate_food_supply_kcal, pattern='^.*$')
 
