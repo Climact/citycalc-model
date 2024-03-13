@@ -46,9 +46,25 @@ def lifestyle():
     appliance_use_h = export_variable(input_table=appliance_use_h, selected_variable='appliance-use[h]')
     appliance = pd.concat([appliance_own_num, appliance_use_h.set_index(appliance_use_h.index.astype(str) + '_dup')])
 
+    # Heating and Cooling behaviour : 
+    # - heating-cooling-behaviour-index[-]
+    # => T°C of comfort for heating ; we compare it to baseyear value to know if we have to increase/decrease space heating
+    # => We consider that the increase/decrease of comfort for heating is the same for space cooling
+    # Ex. basyear T°C = 18°C => increase comfort to 20°C (heating) => + 2°C comfort for heating and -2°C for cooling
+    heatcool_behaviour_deg_C = import_data(trigram='lfs', variable_name='heatcool-behaviour')
+    heatcool_behaviour_deg_C_BASEYEAR, _ = filter_dimension(df=heatcool_behaviour_deg_C, dimension='Years', operation_selection='=', value_years=Globals.get().base_year)
+    heatcool_behaviour_deg_C_BASEYEAR = group_by_dimensions(df=heatcool_behaviour_deg_C_BASEYEAR, groupby_dimensions=['Country'], aggregation_method='Sum')
+    heating_behaviour_index = mcd(input_table_1=heatcool_behaviour_deg_C_BASEYEAR, input_table_2=heatcool_behaviour_deg_C, operation_selection='y / x', output_name='heating-cooling-behaviour-index[-]')
+    cooling_behaviour_index = heating_behaviour_index.assign(**{'end-use': "cooling"})
+    heating_cooling_behaviour_index = pd.concat([cooling_behaviour_index, heating_behaviour_index.set_index(heating_behaviour_index.index.astype(str) + '_dup')])
+    heating_cooling_behaviour_index = export_variable(input_table=heating_cooling_behaviour_index, selected_variable='heating-cooling-behaviour-index[-]')
+
     # prepare output, to be improved
     out_8216_1 = pd.concat([households_total_num, population_cap_3.set_index(population_cap_3.index.astype(str) + '_dup')])
     out_8211_1 = pd.concat([appliance, product_substitution_rate_percent.set_index(product_substitution_rate_percent.index.astype(str) + '_dup')])
+    out_8213_1 = pd.concat([out_8211_1, heating_cooling_behaviour_index.set_index(heating_cooling_behaviour_index.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_8216_1, out_8213_1.set_index(out_8213_1.index.astype(str) + '_dup')])
+    out_1 = column_filter(df=out_1, pattern='^.*$')
 
     # 3. Transport
     #-------------
@@ -203,42 +219,5 @@ def lifestyle():
     # Module = Calibration
     cal_rate_food_supply_kcal = column_filter(df=cal_rate_food_supply_kcal, pattern='^.*$')
 
-    
-    
-    
-
-    
-
-    # Heating and Cooling behaviour : 
-    # - heating-cooling-behaviour-index[-]
-    # => T°C of comfort for heating ; we compare it to baseyear value to know if we have to increase/decrease space heating
-    # => We consider that the increase/decrease of comfort for heating is the same for space cooling
-    # Ex. basyear T°C = 18°C => increase comfort to 20°C (heating) => + 2°C comfort for heating and -2°C for cooling
-
-    # Apply heat-cool behaviour degrees levers (avoid)
-    # => determine the T°C of comfort (heating)
-
-    # OTS/FTS heatcool-behaviour [°C]
-    heatcool_behaviour_deg_C = import_data(trigram='lfs', variable_name='heatcool-behaviour')
-    # Filter baseyear
-    heatcool_behaviour_deg_C_2, _ = filter_dimension(df=heatcool_behaviour_deg_C, dimension='Years', operation_selection='=', value_years=Globals.get().base_year)
-    # Group by  Country (SUM)
-    heatcool_behaviour_deg_C_2 = group_by_dimensions(df=heatcool_behaviour_deg_C_2, groupby_dimensions=['Country'], aggregation_method='Sum')
-    # heating-cooling-behaviour-index [-] = heatcool-behaviour[°C] / heatcool-behaviour[°C] from baseyear
-    heating_cooling_behaviour_index = mcd(input_table_1=heatcool_behaviour_deg_C_2, input_table_2=heatcool_behaviour_deg_C, operation_selection='y / x', output_name='heating-cooling-behaviour-index[-]')
-    # Replace heating by cooling (we consider logic for heating is the same than for cooling)
-    heating_cooling_behaviour_index_2 = heating_cooling_behaviour_index.assign(**{'end-use': "cooling"})
-    # Heating + cooling
-    heating_cooling_behaviour_index = pd.concat([heating_cooling_behaviour_index_2, heating_cooling_behaviour_index.set_index(heating_cooling_behaviour_index.index.astype(str) + '_dup')])
-    # heating-cooling-behaviour-index [-]
-    heating_cooling_behaviour_index = export_variable(input_table=heating_cooling_behaviour_index, selected_variable='heating-cooling-behaviour-index[-]')
-    # Appliances
-    out_8213_1 = pd.concat([out_8211_1, heating_cooling_behaviour_index.set_index(heating_cooling_behaviour_index.index.astype(str) + '_dup')])
-    # Buildings
-    out_1 = pd.concat([out_8216_1, out_8213_1.set_index(out_8213_1.index.astype(str) + '_dup')])
-    # Module = Buildings
-    out_1 = column_filter(df=out_1, pattern='^.*$')
 
     return concat_with_trigram, cal_rate_food_supply_kcal, out_1, out_8252_1, product_demand_unit, agr_concat, population_cap, population_cap, population_cap
-
-
