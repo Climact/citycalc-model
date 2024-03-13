@@ -153,28 +153,29 @@ def lifestyle():
     food_demand_kcal = food_consumption_kcal.rename(columns={'food-consumption[kcal]': 'food-demand[kcal]'})
     food_demand_kcal = export_variable(input_table=food_demand_kcal, selected_variable='food-demand[kcal]')
 
-
-    # Waste
-
-    # Food Waste Calculation
-
-    # food-waste[kcal] = food-supply[kcal] x food-waste-share[%]
+    # Food Waste [kcal]
     food_waste_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_waste_share_percent, operation_selection='x * y', output_name='food-waste[kcal]')
-
-    # Apply food waste lever (reduce)
-    # => determine the evolution of food waste
-
-    # OTS/FTS food-waste [%]
     food_waste_percent = import_data(trigram='lfs', variable_name='food-waste')
-    # Group by  Country, Years (sum)
     food_waste_percent = group_by_dimensions(df=food_waste_percent, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # food-waste[kcal] (replace) = food-waste[kcal] x food-waste[%]
     food_waste_kcal = mcd(input_table_1=food_waste_kcal, input_table_2=food_waste_percent, operation_selection='x * y', output_name='food-waste[kcal]')
-    # food-waste [kcal]
     food_waste_kcal = export_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
-    # food-waste[kcal]
+
+    agr_concat = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
+    agr_concat = pd.concat([energy_production_TWh, agr_concat.set_index(agr_concat.index.astype(str) + '_dup')])
+    agr_concat = column_filter(df=agr_concat, pattern='^.*$')
+
+
+    # 6. Supply
+    #----------
+    
+    # 7. Formating
+    #-------------
+
+    
+
+
+
     food_waste_kcal_2 = use_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
-    # Group by  Country, Years (sum)
     food_waste_kcal_3 = group_by_dimensions(df=food_waste_kcal_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # food-waste-per-cap[kcal/cap] = food-waste[kcal] / population[cap]
     food_waste_per_cap_kcal_per_cap = mcd(input_table_1=food_waste_kcal_3, input_table_2=population_cap_2, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
@@ -182,13 +183,6 @@ def lifestyle():
     food_waste_per_cap_kcal_per_cap_per_day = food_waste_per_cap_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_per_cap_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
     # food-comsumption[kcal] = food-supply[kcal] x 1 - food-waste-share[%]
 
-    # 6. Supply
-    #----------
-
-    
-
-
-    # Formating data for other modules + Pathway Explorer
 
     # For : Pathway Explorer (+ water / air quality / minerals)
     # 
@@ -203,7 +197,6 @@ def lifestyle():
     
 
     # Agriculture
-    food_kcal = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
     # food-demand[kcal]
     food_demand_kcal = use_variable(input_table=food_demand_kcal, selected_variable='food-demand[kcal]')
     # Group by  Country, Years (sum)
@@ -231,10 +224,7 @@ def lifestyle():
     cal_rate_food_supply_kcal = column_filter(df=cal_rate_food_supply_kcal, pattern='^.*$')
 
     
-    # Agriculture
-    out_8245_1 = pd.concat([energy_production_TWh, food_kcal.set_index(food_kcal.index.astype(str) + '_dup')])
-    # Module = Agriculture
-    out_8245_1 = column_filter(df=out_8245_1, pattern='^.*$')
+    
     
 
     
@@ -269,6 +259,6 @@ def lifestyle():
     # Module = Buildings
     out_1 = column_filter(df=out_1, pattern='^.*$')
 
-    return out_8244_1, cal_rate_food_supply_kcal, out_1, out_8252_1, product_demand_unit, out_8245_1, population_cap, population_cap, population_cap
+    return out_8244_1, cal_rate_food_supply_kcal, out_1, out_8252_1, product_demand_unit, agr_concat, population_cap, population_cap, population_cap
 
 
