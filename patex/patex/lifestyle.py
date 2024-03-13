@@ -129,57 +129,29 @@ def lifestyle():
     ### Apply food-waste-share [%]
     food_waste_share_percent = import_data(trigram='lfs', variable_name='food-waste-share', variable_type='RCP')
     food_waste_share_percent = group_by_dimensions(df=food_waste_share_percent, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-
     food_consumption_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_waste_share_percent, operation_selection='x * (1-y)', output_name='food-consumption[kcal]')
-
-    # Apply food consumption lever (reduce)
-    # => determine the evolution of food demand for :
-    # - livestock
-    # - crop products
-    # - auqtic animals
-
-    # OTS/FTS food-consumption [%]
+    ### Apply food consumption lever (reduce)
     food_consumption_percent = import_data(trigram='lfs', variable_name='food-consumption')
-    # food-comsumption[kcal] (replace) = food-comsumption[kcal] x food-comsumption[%]  LEFT JOIN If no evolution : keep it constant (1)
     food_consumption_kcal = mcd(input_table_1=food_consumption_kcal, input_table_2=food_consumption_percent, operation_selection='x * y', output_name='food-consumption[kcal]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
-    # Group by category, treatment product (sum)
-    food_consumption_kcal_2 = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['category', 'product', 'treatment'], aggregation_method='Sum')
-    # ratio[-] = 1 (used to reassociate other dimensions linked to product)
-    ratio_2 = food_consumption_kcal_2.assign(**{'ratio[-]': 1.0})
-    # Remove food-consumption [kcal]
-    ratio_2 = column_filter(df=ratio_2, columns_to_drop=['food-consumption[kcal]'])
-    # Group by  Country, Years, product (sum)
+    ### Apply Diet switch
+    #### ratio[-] = 1 (used to reassociate other dimensions linked to product)    
+    food_consumption_DIMENSION = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['category', 'product', 'treatment'], aggregation_method='Sum')
+    food_consumption_DIMENSION = food_consumption_DIMENSION.assign(**{'ratio[-]': 1.0})
+    food_consumption_DIMENSION = column_filter(df=food_consumption_DIMENSION, columns_to_drop=['food-consumption[kcal]'])
+    ####  ratio[-] = 1 (used to determined which dimension is taken into account in the switch) NOTE: TO BE DEFINED IN GS
+    food_consumption_SWITCH = pd.DataFrame(columns=['category-from', 'energy-carrier-from', 'category-to', 'energy-carrier-to'], data=[['red-meat', 'meat-bovine', 'white-meat', 'meat-poultry'], ['red-meat', 'meat-sheep', 'white-meat', 'meat-poultry'], ['red-meat', 'meat-other', 'white-meat', 'meat-poultry'], ['meat', 'meat-bovine', 'vegetal-protein', 'pulse'], ['meat', 'meat-sheep', 'vegetal-protein', 'pulse'], ['meat', 'meat-other', 'vegetal-protein', 'pulse'], ['meat', 'meat-poultry', 'vegetal-protein', 'pulse'], ['meat', 'meat-pig', 'vegetal-protein', 'pulse']])
+    food_consumption_SWITCH = food_consumption_SWITCH.assign(**{'ratio[-]': 1.0})# ratio[-] = 1 (no need to  account for energy efficiency differences in food)
+    #### Compute food consumption
     food_consumption_kcal = group_by_dimensions(df=food_consumption_kcal, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
-
-    # Apply diet switch lever (switch)
-    # => determine the :
-    # - % of red meat converted to white meat
-    # - % of meat (including white meat) converted to vegetal proteins
-
-    # Agriculture
-
-    # Food
-
-    # Diet (Food demand) Calculation
-
-    # Define in G.S. !!!
-
-    out_9207_1 = pd.DataFrame(columns=['category-from', 'energy-carrier-from', 'category-to', 'energy-carrier-to'], data=[['red-meat', 'meat-bovine', 'white-meat', 'meat-poultry'], ['red-meat', 'meat-sheep', 'white-meat', 'meat-poultry'], ['red-meat', 'meat-other', 'white-meat', 'meat-poultry'], ['meat', 'meat-bovine', 'vegetal-protein', 'pulse'], ['meat', 'meat-sheep', 'vegetal-protein', 'pulse'], ['meat', 'meat-other', 'vegetal-protein', 'pulse'], ['meat', 'meat-poultry', 'vegetal-protein', 'pulse'], ['meat', 'meat-pig', 'vegetal-protein', 'pulse']])
-    # ratio[-] = 1 (no need to  account for energy efficiency differences in food)
-    ratio = out_9207_1.assign(**{'ratio[-]': 1.0})
-
-    # OTS/FTS diet-switch [%]
     diet_switch_percent = import_data(trigram='lfs', variable_name='diet-switch')
-    # Diet Switch red meat to white meat
-    out_8268_1 = x_switch(demand_table=food_consumption_kcal, switch_table=diet_switch_percent, correlation_table=ratio, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='red-meat', category_to_selected='white-meat')
-    # Diet Switch all meat to vegetal meat
-    out_8269_1 = x_switch(demand_table=out_8268_1, switch_table=diet_switch_percent, correlation_table=ratio, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='meat', category_to_selected='vegetal-protein')
-    # food-comsumption[kcal] (replace) = food-comsumption[kcal] x ratio[-]
-    food_consumption_kcal = mcd(input_table_1=ratio_2, input_table_2=out_8269_1, operation_selection='x * y', output_name='food-consumption[kcal]')
-    # TO CLEAN !!! (clean interface + output to agr and in agr module)  food-consumption as food-demand
-    out_9216_1 = food_consumption_kcal.rename(columns={'food-consumption[kcal]': 'food-demand[kcal]'})
-    # food-demand [kcal]
-    food_demand_kcal = export_variable(input_table=out_9216_1, selected_variable='food-demand[kcal]')
+    ##### Diet Switch red meat to white meat
+    food_consumption_kcal = x_switch(demand_table=food_consumption_kcal, switch_table=diet_switch_percent, correlation_table=food_consumption_SWITCH, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='red-meat', category_to_selected='white-meat')
+    ##### Diet Switch all meat to vegetal meat
+    food_consumption_kcal = x_switch(demand_table=food_consumption_kcal, switch_table=diet_switch_percent, correlation_table=food_consumption_SWITCH, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='meat', category_to_selected='vegetal-protein')
+    food_consumption_kcal = mcd(input_table_1=food_consumption_DIMENSION, input_table_2=food_consumption_kcal, operation_selection='x * y', output_name='food-consumption[kcal]')
+    #### Renaming to mactch with interface TO CLEAN !!! (clean interface + output to agr and in agr module)  food-consumption as food-demand
+    food_demand_kcal = food_consumption_kcal.rename(columns={'food-consumption[kcal]': 'food-demand[kcal]'})
+    food_demand_kcal = export_variable(input_table=food_demand_kcal, selected_variable='food-demand[kcal]')
 
 
     # Waste
