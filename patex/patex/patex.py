@@ -102,7 +102,7 @@ def patex_node():
     # Lifestyle
 
     # Lifestyle module
-    lfs_out, _, lfs_bld, lfs_tra, lfs_ind, lfs_agr, lfs_wat, _, _ = lifestyle()
+    lfs_out, _, lfs_bld, lfs_tra, lfs_ind, lfs_agr, lfs_wat = lifestyle()
 
     # Import historical and future time series for all levers
 

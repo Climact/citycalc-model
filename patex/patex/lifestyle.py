@@ -17,8 +17,7 @@ def lifestyle():
     # Population [cap]
     population_cap = import_data(trigram='lfs', variable_name='population') # OTS/FTS
     population_cap = group_by_dimensions(df=population_cap, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    population_cap_3 = export_variable(input_table=population_cap, selected_variable='population[cap]') # NOTE: Could be deleted/ made at an other place?
-    population_cap_2 = use_variable(input_table=population_cap_3, selected_variable='population[cap]')
+    population_cap = export_variable(input_table=population_cap, selected_variable='population[cap]') # NOTE: Could be deleted/ made at an other place?
 
 
     # 2. Buildings
@@ -26,7 +25,7 @@ def lifestyle():
 
     # Total number of household [num], from the the household size and the total population
     household_size_cap_per_household = import_data(trigram='lfs', variable_name='household-size') # OTS/FTS
-    households_total_num = mcd(input_table_1=population_cap_2, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households-total[num]')
+    households_total_num = mcd(input_table_1=population_cap, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households-total[num]')
     households_total_num = export_variable(input_table=households_total_num, selected_variable='households-total[num]')
     
     # Product substitution rate [%] NOTE: determine after which time product are changed (0 = when arrived to lifetime / < 0 = before lifetime is reached / > 0 = after lifetime is reached)
@@ -46,11 +45,12 @@ def lifestyle():
     appliance_use_h = export_variable(input_table=appliance_use_h, selected_variable='appliance-use[h]')
     appliance = pd.concat([appliance_own_num, appliance_use_h.set_index(appliance_use_h.index.astype(str) + '_dup')])
 
-    # Heating and Cooling behaviour : 
-    # - heating-cooling-behaviour-index[-]
-    # => T°C of comfort for heating ; we compare it to baseyear value to know if we have to increase/decrease space heating
-    # => We consider that the increase/decrease of comfort for heating is the same for space cooling
-    # Ex. basyear T°C = 18°C => increase comfort to 20°C (heating) => + 2°C comfort for heating and -2°C for cooling
+    # Heating and Cooling behaviour 
+    ## INFO:
+    ## - heating-cooling-behaviour-index[-]
+    ## => T°C of comfort for heating ; we compare it to baseyear value to know if we have to increase/decrease space heating
+    ## => We consider that the increase/decrease of comfort for heating is the same for space cooling
+    ## Ex. basyear T°C = 18°C => increase comfort to 20°C (heating) => + 2°C comfort for heating and -2°C for cooling
     heatcool_behaviour_deg_C = import_data(trigram='lfs', variable_name='heatcool-behaviour')
     heatcool_behaviour_deg_C_BASEYEAR, _ = filter_dimension(df=heatcool_behaviour_deg_C, dimension='Years', operation_selection='=', value_years=Globals.get().base_year)
     heatcool_behaviour_deg_C_BASEYEAR = group_by_dimensions(df=heatcool_behaviour_deg_C_BASEYEAR, groupby_dimensions=['Country'], aggregation_method='Sum')
@@ -59,19 +59,19 @@ def lifestyle():
     heating_cooling_behaviour_index = pd.concat([cooling_behaviour_index, heating_behaviour_index.set_index(heating_behaviour_index.index.astype(str) + '_dup')])
     heating_cooling_behaviour_index = export_variable(input_table=heating_cooling_behaviour_index, selected_variable='heating-cooling-behaviour-index[-]')
 
-    # prepare output, to be improved
-    out_8216_1 = pd.concat([households_total_num, population_cap_3.set_index(population_cap_3.index.astype(str) + '_dup')])
-    out_8211_1 = pd.concat([appliance, product_substitution_rate_percent.set_index(product_substitution_rate_percent.index.astype(str) + '_dup')])
-    out_8213_1 = pd.concat([out_8211_1, heating_cooling_behaviour_index.set_index(heating_cooling_behaviour_index.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_8216_1, out_8213_1.set_index(out_8213_1.index.astype(str) + '_dup')])
-    out_1 = column_filter(df=out_1, pattern='^.*$')
+    # Output
+    concat_1 = pd.concat([households_total_num, population_cap.set_index(population_cap.index.astype(str) + '_dup')])
+    concat_2 = pd.concat([appliance, product_substitution_rate_percent.set_index(product_substitution_rate_percent.index.astype(str) + '_dup')])
+    concat_3 = pd.concat([concat_2, heating_cooling_behaviour_index.set_index(heating_cooling_behaviour_index.index.astype(str) + '_dup')])
+    output_bld = pd.concat([concat_1, concat_3.set_index(concat_3.index.astype(str) + '_dup')])
+    output_bld = column_filter(df=output_bld, pattern='^.*$')
 
     # 3. Transport
     #-------------
 
     # International transport demand [pkm]
     pkm_international_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-international-demand')
-    transport_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_international_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='transport-demand[pkm]')
+    transport_demand_pkm = mcd(input_table_1=population_cap, input_table_2=pkm_international_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='transport-demand[pkm]')
     transport_demand_pkm['transport-user'] = "passenger"
     transport_demand_pkm = export_variable(input_table=transport_demand_pkm, selected_variable='transport-demand[pkm]')
 
@@ -79,7 +79,7 @@ def lifestyle():
     # Distance traveled [pkm]
     pkm_inland_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-inland-demand')
     pkm_inland_demand_pkm_per_cap_per_year = group_by_dimensions(df=pkm_inland_demand_pkm_per_cap_per_year, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    pkm_inland_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
+    pkm_inland_demand_pkm = mcd(input_table_1=population_cap, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
     
     ## Non-urban parameter NOTE:non-urban-parameter = a * urban-pop[%] + b
     non_urban_factor_a = import_data(trigram='lfs', variable_name='non-urban-factor-a', variable_type='RCP')
@@ -105,25 +105,25 @@ def lifestyle():
     pkm = pd.concat([distance_traveled_pkm, transport_demand_pkm.set_index(transport_demand_pkm.index.astype(str) + '_dup')])
 
     ## Output
-    out_8252_1 = pd.concat([population_cap_3, pkm.set_index(pkm.index.astype(str) + '_dup')])
-    out_8252_1 = column_filter(df=out_8252_1, pattern='^.*$')
+    output_tra = pd.concat([population_cap, pkm.set_index(pkm.index.astype(str) + '_dup')])
+    output_tra = column_filter(df=output_tra, pattern='^.*$')
 
     # 4. Industry
     #------------
     # Compute the product demand for paper pack (and other packaging) [t]
     product_demand_per_cap_unit_per_cap = import_data(trigram='lfs', variable_name='product-demand-per-cap') #OTS/FTS
-    product_demand_unit = mcd(input_table_1=population_cap_2, input_table_2=product_demand_per_cap_unit_per_cap, operation_selection='x * y', output_name='product-demand[unit]')
+    product_demand_unit = mcd(input_table_1=population_cap, input_table_2=product_demand_per_cap_unit_per_cap, operation_selection='x * y', output_name='product-demand[unit]')
     product_demand_unit = export_variable(input_table=product_demand_unit, selected_variable='product-demand[unit]')
 
     # Prepare output --> Function ?
-    product_demand_unit = column_filter(df=product_demand_unit, pattern='^.*$')
+    output_ind = column_filter(df=product_demand_unit, pattern='^.*$')
 
     # 5. AFOLU
     #---------
     
     # Energy production based on waste (other than food wastes) [TWh]
     domestic_energy_production_TWh_per_cap = import_data(trigram='lfs', variable_name='domestic-energy-production')
-    energy_production_TWh = mcd(input_table_1=population_cap_2, input_table_2=domestic_energy_production_TWh_per_cap, operation_selection='x * y', output_name='energy-production[TWh]')
+    energy_production_TWh = mcd(input_table_1=population_cap, input_table_2=domestic_energy_production_TWh_per_cap, operation_selection='x * y', output_name='energy-production[TWh]')
     energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
 
@@ -134,7 +134,7 @@ def lifestyle():
     food_supply_kcal_per_cap_per_day = group_by_dimensions(df=food_supply_kcal_per_cap_per_day, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     food_supply_kcal_per_cap_per_year = food_supply_kcal_per_cap_per_day.assign(**{'food-supply[kcal/cap/year]': food_supply_kcal_per_cap_per_day['total-food-supply[kcal/cap/day]']*365.0})
     food_supply_kcal_per_cap_per_year = use_variable(input_table=food_supply_kcal_per_cap_per_year, selected_variable='food-supply[kcal/cap/year]')
-    food_supply_kcal = mcd(input_table_1=population_cap_2, input_table_2=food_supply_kcal_per_cap_per_year, operation_selection='x * y', output_name='food-supply[kcal]')
+    food_supply_kcal = mcd(input_table_1=population_cap, input_table_2=food_supply_kcal_per_cap_per_year, operation_selection='x * y', output_name='food-supply[kcal]')
     ### Apply food-supply-share [%]
     food_supply_share_percent = import_data(trigram='lfs', variable_name='food-supply-share', variable_type='RCP')
     food_supply_kcal = mcd(input_table_1=food_supply_kcal, input_table_2=food_supply_share_percent, operation_selection='x * y', output_name='food-supply[kcal]')
@@ -176,9 +176,9 @@ def lifestyle():
     food_waste_kcal = mcd(input_table_1=food_waste_kcal, input_table_2=food_waste_percent, operation_selection='x * y', output_name='food-waste[kcal]')
     food_waste_kcal = export_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
 
-    agr_concat = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
-    agr_concat = pd.concat([energy_production_TWh, agr_concat.set_index(agr_concat.index.astype(str) + '_dup')])
-    agr_concat = column_filter(df=agr_concat, pattern='^.*$')
+    output_afo = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
+    output_afo = pd.concat([energy_production_TWh, output_afo.set_index(output_afo.index.astype(str) + '_dup')])
+    output_afo = column_filter(df=output_afo, pattern='^.*$')
 
 
     # 6. Supply
@@ -188,36 +188,31 @@ def lifestyle():
     #-------------
 
     ## For other modules
-    population_cap = column_filter(df=population_cap_2, pattern='^.*$')
+    output_wat = column_filter(df=population_cap, pattern='^.*$')
     
     ## For interface
     ### Food waste
     food_waste_kcal = use_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
     food_waste_kcal_grouped = group_by_dimensions(df=food_waste_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    food_waste_per_cap_kcal_per_cap = mcd(input_table_1=food_waste_kcal_grouped, input_table_2=population_cap_2, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
+    food_waste_per_cap_kcal_per_cap = mcd(input_table_1=food_waste_kcal_grouped, input_table_2=population_cap, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
     food_waste_per_cap_kcal_per_cap_per_day = food_waste_per_cap_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_per_cap_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
     ### Food demand
     food_demand_kcal = use_variable(input_table=food_demand_kcal, selected_variable='food-demand[kcal]')
     food_demand_kcal_2 = group_by_dimensions(df=food_demand_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    food_demand_per_cap_kcal_per_cap = mcd(input_table_1=food_demand_kcal_2, input_table_2=population_cap_2, operation_selection='x / y', output_name='food-demand-per-cap[kcal/cap]')
+    food_demand_per_cap_kcal_per_cap = mcd(input_table_1=food_demand_kcal_2, input_table_2=population_cap, operation_selection='x / y', output_name='food-demand-per-cap[kcal/cap]')
     food_demand_per_cap_kcal_per_cap_per_day = food_demand_per_cap_kcal_per_cap.drop(columns='food-demand-per-cap[kcal/cap]').assign(**{'food-demand-per-cap[kcal/cap/day]': food_demand_per_cap_kcal_per_cap['food-demand-per-cap[kcal/cap]'] * 0.00274})
 
-    concat = pd.concat([food_demand_kcal, population_cap_2.set_index(population_cap_2.index.astype(str) + '_dup')])
+    concat = pd.concat([food_demand_kcal, population_cap.set_index(population_cap.index.astype(str) + '_dup')])
     concat = pd.concat([concat, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
     concat = pd.concat([concat, food_demand_per_cap_kcal_per_cap_per_day.set_index(food_demand_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
     concat = pd.concat([concat, food_waste_per_cap_kcal_per_cap_per_day.set_index(food_waste_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
     concat = pd.concat([concat, households_total_num.set_index(households_total_num.index.astype(str) + '_dup')])
-    concat_with_trigram = add_trigram(module_name=module_name, df=concat)
-    concat_with_trigram = column_filter(df=concat_with_trigram, pattern='^.*$')
+    output_interface = add_trigram(module_name=module_name, df=concat)
+    output_interface = column_filter(df=output_interface, pattern='^.*$')
 
     # Calibration RATES
-
-    # Cal_rate for food-demand [kcal]
-
-    # Cal rate for food-supply [kcal]
-    cal_rate_food_supply_kcal = use_variable(input_table=calibration_factor_food_supply, selected_variable='cal_rate_food-supply[kcal]')
-    # Module = Calibration
-    cal_rate_food_supply_kcal = column_filter(df=cal_rate_food_supply_kcal, pattern='^.*$')
+    cal_rate = use_variable(input_table=calibration_factor_food_supply, selected_variable='cal_rate_food-supply[kcal]')
+    cal_rate = column_filter(df=cal_rate, pattern='^.*$')
 
 
-    return concat_with_trigram, cal_rate_food_supply_kcal, out_1, out_8252_1, product_demand_unit, agr_concat, population_cap, population_cap, population_cap
+    return output_interface, cal_rate, output_bld, output_tra, output_ind, output_afo, output_wat
