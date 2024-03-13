@@ -59,7 +59,13 @@ def lifestyle():
     transport_demand_pkm['transport-user'] = "passenger"
     transport_demand_pkm = export_variable(input_table=transport_demand_pkm, selected_variable='transport-demand[pkm]')
 
-    # Non-urban parameter NOTE:non-urban-parameter = a * urban-pop[%] + b
+
+    # Distance traveled [pkm]
+    pkm_inland_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-inland-demand')
+    pkm_inland_demand_pkm_per_cap_per_year = group_by_dimensions(df=pkm_inland_demand_pkm_per_cap_per_year, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+    pkm_inland_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
+    
+    ## Non-urban parameter NOTE:non-urban-parameter = a * urban-pop[%] + b
     non_urban_factor_a = import_data(trigram='lfs', variable_name='non-urban-factor-a', variable_type='RCP')
     non_urban_factor_b_ = import_data(trigram='lfs', variable_name='non-urban-factor-b', variable_type='RCP')
     population_distribution_percent = import_data(trigram='lfs', variable_name='population-distribution')
@@ -67,15 +73,9 @@ def lifestyle():
     non_urban_parameter_percent = mcd(input_table_1=non_urban_parameter_percent, input_table_2=non_urban_factor_b_, operation_selection='x + y', output_name='non-urban-parameter[%]')
     non_urban_parameter_percent = group_by_dimensions(df=non_urban_parameter_percent, groupby_dimensions=['Country', 'Years', 'distance-type'], aggregation_method='Sum')
     non_urban_parameter_percent = use_variable(input_table=non_urban_parameter_percent, selected_variable='non-urban-parameter[%]')
-
-
-    # Distance traveled [pkm]
-    pkm_inland_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-inland-demand')
-    pkm_inland_demand_pkm_per_cap_per_year = group_by_dimensions(df=pkm_inland_demand_pkm_per_cap_per_year, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    pkm_inland_demand_pkm = mcd(input_table_1=population_cap_2, input_table_2=pkm_inland_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='pkm-inland-demand[pkm]')
-    
     ## Non-urban
     distance_traveled_nonurb_pkm = mcd(input_table_1=non_urban_parameter_percent, input_table_2=pkm_inland_demand_pkm, operation_selection='x * y', output_name='distance-traveled[pkm]')
+    
     ## Urban
     distance_traveled_urb_pkm = mcd(input_table_1=distance_traveled_nonurb_pkm, input_table_2=pkm_inland_demand_pkm, operation_selection='y - x', output_name='distance-traveled[pkm]')
     nshift_share_percent = import_data(trigram='lfs', variable_name='nshift-share', variable_type='RCP')
@@ -104,6 +104,12 @@ def lifestyle():
 
     # 5. AFOLU
     #---------
+    
+    # Energy production based on waste (other than food wastes) [TWh]
+    domestic_energy_production_TWh_per_cap = import_data(trigram='lfs', variable_name='domestic-energy-production')
+    energy_production_TWh = mcd(input_table_1=population_cap_2, input_table_2=domestic_energy_production_TWh_per_cap, operation_selection='x * y', output_name='energy-production[TWh]')
+    energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
+
 
     # 6. Supply
     #----------
@@ -133,13 +139,7 @@ def lifestyle():
 
 
 
-    # Energy production based on waste (other than food wastes)
-
-    # Apply domestic-energy-production lever 
-    # => determine the amount of energy that could be produced based on waste (other than food waste)
-
-    # OTS/FTS domestic-energy-production [TWh/cap]
-    domestic_energy_production_TWh_per_cap = import_data(trigram='lfs', variable_name='domestic-energy-production')
+    
     # OTS (only) total-food-supply [kcal/cap/day]
     total_food_supply_kcal_per_cap_per_day = import_data(trigram='lfs', variable_name='total-food-supply', variable_type='OTS (only)')
     # Same as last available year
@@ -264,12 +264,7 @@ def lifestyle():
     # Module = Calibration
     cal_rate_food_supply_kcal = column_filter(df=cal_rate_food_supply_kcal, pattern='^.*$')
 
-    # Domestic energy production [TWh]
-
-    # energy-production[TWh] = domestic-energy-production[TWh/cap] x population[cap]
-    energy_production_TWh = mcd(input_table_1=population_cap_2, input_table_2=domestic_energy_production_TWh_per_cap, operation_selection='x * y', output_name='energy-production[TWh]')
-    # energy-production [TWh]
-    energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
+    
     # Agriculture
     out_8245_1 = pd.concat([energy_production_TWh, food_kcal.set_index(food_kcal.index.astype(str) + '_dup')])
     # Module = Agriculture
