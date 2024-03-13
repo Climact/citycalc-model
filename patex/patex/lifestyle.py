@@ -171,48 +171,28 @@ def lifestyle():
     # 7. Formating
     #-------------
 
-    
-
-
-
-    food_waste_kcal_2 = use_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
-    food_waste_kcal_3 = group_by_dimensions(df=food_waste_kcal_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # food-waste-per-cap[kcal/cap] = food-waste[kcal] / population[cap]
-    food_waste_per_cap_kcal_per_cap = mcd(input_table_1=food_waste_kcal_3, input_table_2=population_cap_2, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
-    # Convert Unit kcal/cap to kcal/cap/day (/365 => x 0.00274)
-    food_waste_per_cap_kcal_per_cap_per_day = food_waste_per_cap_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_per_cap_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
-    # food-comsumption[kcal] = food-supply[kcal] x 1 - food-waste-share[%]
-
-
-    # For : Pathway Explorer (+ water / air quality / minerals)
-    # 
-    # - Population
-
-    # population [cap]
-    # Module = water
+    ## For other modules
     population_cap = column_filter(df=population_cap_2, pattern='^.*$')
-
-
-
     
-
-    # Agriculture
-    # food-demand[kcal]
+    ## For interface
+    ### Food waste
+    food_waste_kcal = use_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
+    food_waste_kcal_grouped = group_by_dimensions(df=food_waste_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+    food_waste_per_cap_kcal_per_cap = mcd(input_table_1=food_waste_kcal_grouped, input_table_2=population_cap_2, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
+    food_waste_per_cap_kcal_per_cap_per_day = food_waste_per_cap_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_per_cap_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
+    ### Food demand
     food_demand_kcal = use_variable(input_table=food_demand_kcal, selected_variable='food-demand[kcal]')
-    # Group by  Country, Years (sum)
     food_demand_kcal_2 = group_by_dimensions(df=food_demand_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    # food-demand-per-cap[kcal/cap] = food-demand[kcal] / population[cap]
     food_demand_per_cap_kcal_per_cap = mcd(input_table_1=food_demand_kcal_2, input_table_2=population_cap_2, operation_selection='x / y', output_name='food-demand-per-cap[kcal/cap]')
-    # Convert Unit kcal/cap to kcal/cap/day (/365 => x 0.00274)
     food_demand_per_cap_kcal_per_cap_per_day = food_demand_per_cap_kcal_per_cap.drop(columns='food-demand-per-cap[kcal/cap]').assign(**{'food-demand-per-cap[kcal/cap/day]': food_demand_per_cap_kcal_per_cap['food-demand-per-cap[kcal/cap]'] * 0.00274})
-    out_8241_1 = pd.concat([food_demand_kcal, population_cap_2.set_index(population_cap_2.index.astype(str) + '_dup')])
-    out_8242_1 = pd.concat([out_8241_1, food_waste_kcal_2.set_index(food_waste_kcal_2.index.astype(str) + '_dup')])
-    out_9224_1 = pd.concat([out_8242_1, food_demand_per_cap_kcal_per_cap_per_day.set_index(food_demand_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
-    out_9225_1 = pd.concat([out_9224_1, food_waste_per_cap_kcal_per_cap_per_day.set_index(food_waste_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
-    out_8243_1 = pd.concat([out_9225_1, households_total_num.set_index(households_total_num.index.astype(str) + '_dup')])
-    out_8244_1 = add_trigram(module_name=module_name, df=out_8243_1)
-    # Module = Pathway Explorer
-    out_8244_1 = column_filter(df=out_8244_1, pattern='^.*$')
+
+    concat = pd.concat([food_demand_kcal, population_cap_2.set_index(population_cap_2.index.astype(str) + '_dup')])
+    concat = pd.concat([concat, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
+    concat = pd.concat([concat, food_demand_per_cap_kcal_per_cap_per_day.set_index(food_demand_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
+    concat = pd.concat([concat, food_waste_per_cap_kcal_per_cap_per_day.set_index(food_waste_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
+    concat = pd.concat([concat, households_total_num.set_index(households_total_num.index.astype(str) + '_dup')])
+    concat_with_trigram = add_trigram(module_name=module_name, df=concat)
+    concat_with_trigram = column_filter(df=concat_with_trigram, pattern='^.*$')
 
     # Calibration RATES
 
@@ -259,6 +239,6 @@ def lifestyle():
     # Module = Buildings
     out_1 = column_filter(df=out_1, pattern='^.*$')
 
-    return out_8244_1, cal_rate_food_supply_kcal, out_1, out_8252_1, product_demand_unit, agr_concat, population_cap, population_cap, population_cap
+    return concat_with_trigram, cal_rate_food_supply_kcal, out_1, out_8252_1, product_demand_unit, agr_concat, population_cap, population_cap, population_cap
 
 
