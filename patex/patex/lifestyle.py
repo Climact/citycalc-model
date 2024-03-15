@@ -33,7 +33,7 @@ def lifestyle():
 
     # 5. AFOLU
     #---------
-    output_afo, calibration_factor_food_supply = afolu(pop=population_cap)
+    output_afo = afolu(pop=population_cap)
 
     # 6. Supply
     #----------
@@ -55,7 +55,7 @@ def lifestyle():
     food_demand_kcal_2 = group_by_dimensions(df=food_demand_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     food_demand_per_cap_kcal_per_cap = mcd(input_table_1=food_demand_kcal_2, input_table_2=population_cap, operation_selection='x / y', output_name='food-demand-per-cap[kcal/cap]')
     food_demand_per_cap_kcal_per_cap_per_day = food_demand_per_cap_kcal_per_cap.drop(columns='food-demand-per-cap[kcal/cap]').assign(**{'food-demand-per-cap[kcal/cap/day]': food_demand_per_cap_kcal_per_cap['food-demand-per-cap[kcal/cap]'] * 0.00274})
-
+    ### Houshold number
     households_total_num = use_variable(input_table=output_bld, selected_variable='households-total[num]')
 
     concat = pd.concat([food_demand_kcal, population_cap.set_index(population_cap.index.astype(str) + '_dup')])
@@ -67,7 +67,7 @@ def lifestyle():
     output_interface = column_filter(df=output_interface, pattern='^.*$')
 
     # Calibration RATES
-    cal_rate = use_variable(input_table=calibration_factor_food_supply, selected_variable='cal_rate_food-supply[kcal]')
+    cal_rate = use_variable(input_table=output_afo, selected_variable='cal_rate_food-supply[kcal]')
     cal_rate = column_filter(df=cal_rate, pattern='^.*$')
 
     return output_interface, cal_rate, output_bld, output_tra, output_ind, output_afo, output_wat
@@ -231,7 +231,7 @@ def afolu(pop):
 
     output_afo = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
     output_afo = pd.concat([energy_production_TWh, output_afo.set_index(output_afo.index.astype(str) + '_dup')])
-    # output_afo = pd.concat([calibration_factor_food_supply, output_afo.set_index(output_afo.index.astype(str) + '_dup')])
+    output_afo = pd.concat([calibration_factor_food_supply, output_afo.set_index(output_afo.index.astype(str) + '_dup')])
     output_afo = column_filter(df=output_afo, pattern='^.*$')
 
-    return output_afo, calibration_factor_food_supply
+    return output_afo
