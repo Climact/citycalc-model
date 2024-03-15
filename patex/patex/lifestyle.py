@@ -77,23 +77,19 @@ def building(pop):
     # Total number of household [num], from the the household size and the total population
     household_size_cap_per_household = import_data(trigram='lfs', variable_name='household-size') # OTS/FTS
     households_total_num = mcd(input_table_1=pop, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households-total[num]')
-    households_total_num = export_variable(input_table=households_total_num, selected_variable='households-total[num]')
     
     # Product substitution rate [%] NOTE: determine after which time product are changed (0 = when arrived to lifetime / < 0 = before lifetime is reached / > 0 = after lifetime is reached)
     product_substitution_rate_percent = import_data(trigram='lfs', variable_name='product-substitution-rate') # OTS/FTS
-    product_substitution_rate_percent = export_variable(input_table=product_substitution_rate_percent, selected_variable='product-substitution-rate[%]') # NOTE: Could be deleted/ made at an other place?
     
     # Appliance ownership [num]
     appliance_own_num_per_household = import_data(trigram='lfs', variable_name='appliance-own') # OTS/FTS
     households_total_num = use_variable(input_table=households_total_num, selected_variable='households-total[num]')
     households_total_num_2 = group_by_dimensions(df=households_total_num, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum') # NOTE: how to handle ranaming after grouing?
     appliance_own_num = mcd(input_table_1=households_total_num_2, input_table_2=appliance_own_num_per_household, operation_selection='x * y', output_name='appliance-own[num]')
-    appliance_own_num = export_variable(input_table=appliance_own_num, selected_variable='appliance-own[num]')
 
     # Appliances use [h]
     appliance_use_h_per_year_times_num = import_data(trigram='lfs', variable_name='appliance-use')
     appliance_use_h = mcd(input_table_1=appliance_own_num, input_table_2=appliance_use_h_per_year_times_num, operation_selection='x * y', output_name='appliance-use[h]')
-    appliance_use_h = export_variable(input_table=appliance_use_h, selected_variable='appliance-use[h]')
     appliance = pd.concat([appliance_own_num, appliance_use_h.set_index(appliance_use_h.index.astype(str) + '_dup')])
 
     # Heating and Cooling behaviour 
@@ -125,7 +121,6 @@ def transport(pop):
     pkm_international_demand_pkm_per_cap_per_year = import_data(trigram='lfs', variable_name='pkm-international-demand')
     transport_demand_pkm = mcd(input_table_1=pop, input_table_2=pkm_international_demand_pkm_per_cap_per_year, operation_selection='x * y', output_name='transport-demand[pkm]')
     transport_demand_pkm['transport-user'] = "passenger"
-    transport_demand_pkm = export_variable(input_table=transport_demand_pkm, selected_variable='transport-demand[pkm]')
 
 
     # Distance traveled [pkm]
@@ -177,7 +172,6 @@ def afolu(pop):
     # Energy production based on waste (other than food wastes) [TWh]
     domestic_energy_production_TWh_per_cap = import_data(trigram='lfs', variable_name='domestic-energy-production')
     energy_production_TWh = mcd(input_table_1=pop, input_table_2=domestic_energy_production_TWh_per_cap, operation_selection='x * y', output_name='energy-production[TWh]')
-    energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
 
     # Food Demand [kcal]
