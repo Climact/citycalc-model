@@ -38,7 +38,7 @@ def lifestyle():
     # 6. Supply
     #----------
     
-    # 7. Formating
+    # 7. Formatting
     #-------------
 
     ## For other modules
@@ -55,7 +55,7 @@ def lifestyle():
     food_demand_kcal_2 = group_by_dimensions(df=food_demand_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     food_demand_per_cap_kcal_per_cap = mcd(input_table_1=food_demand_kcal_2, input_table_2=population_cap, operation_selection='x / y', output_name='food-demand-per-cap[kcal/cap]')
     food_demand_per_cap_kcal_per_cap_per_day = food_demand_per_cap_kcal_per_cap.drop(columns='food-demand-per-cap[kcal/cap]').assign(**{'food-demand-per-cap[kcal/cap/day]': food_demand_per_cap_kcal_per_cap['food-demand-per-cap[kcal/cap]'] * 0.00274})
-    ### Houshold number
+    ### Household number
     households_total_num = use_variable(input_table=output_bld, selected_variable='households-total[num]')
 
     concat = pd.concat([food_demand_kcal, population_cap.set_index(population_cap.index.astype(str) + '_dup')])
@@ -97,11 +97,11 @@ def building(pop):
     ## - heating-cooling-behaviour-index[-]
     ## => T°C of comfort for heating ; we compare it to baseyear value to know if we have to increase/decrease space heating
     ## => We consider that the increase/decrease of comfort for heating is the same for space cooling
-    ## Ex. basyear T°C = 18°C => increase comfort to 20°C (heating) => + 2°C comfort for heating and -2°C for cooling
-    heatcool_behaviour_deg_C = import_data(trigram='lfs', variable_name='heatcool-behaviour')
-    heatcool_behaviour_deg_C_BASEYEAR, _ = filter_dimension(df=heatcool_behaviour_deg_C, dimension='Years', operation_selection='=', value_years=Globals.get().base_year)
-    heatcool_behaviour_deg_C_BASEYEAR = group_by_dimensions(df=heatcool_behaviour_deg_C_BASEYEAR, groupby_dimensions=['Country'], aggregation_method='Sum')
-    heating_behaviour_index = mcd(input_table_1=heatcool_behaviour_deg_C_BASEYEAR, input_table_2=heatcool_behaviour_deg_C, operation_selection='y / x', output_name='heating-cooling-behaviour-index[-]')
+    ## Ex. baseyear T°C = 18°C => increase comfort to 20°C (heating) => + 2°C comfort for heating and -2°C for cooling
+    heatcool_behaviour_deg_celsius = import_data(trigram='lfs', variable_name='heatcool-behaviour')
+    heatcool_behaviour_deg_celsius_baseyear, _ = filter_dimension(df=heatcool_behaviour_deg_celsius, dimension='Years', operation_selection='=', value_years=Globals.get().base_year)
+    heatcool_behaviour_deg_celsius_baseyear = group_by_dimensions(df=heatcool_behaviour_deg_celsius_baseyear, groupby_dimensions=['Country'], aggregation_method='Sum')
+    heating_behaviour_index = mcd(input_table_1=heatcool_behaviour_deg_celsius_baseyear, input_table_2=heatcool_behaviour_deg_celsius, operation_selection='y / x', output_name='heating-cooling-behaviour-index[-]')
     cooling_behaviour_index = heating_behaviour_index.assign(**{'end-use': "cooling"})
     heating_cooling_behaviour_index = pd.concat([cooling_behaviour_index, heating_behaviour_index.set_index(heating_behaviour_index.index.astype(str) + '_dup')])
     heating_cooling_behaviour_index = export_variable(input_table=heating_cooling_behaviour_index, selected_variable='heating-cooling-behaviour-index[-]')
@@ -212,7 +212,7 @@ def afolu(pop):
     ##### Diet Switch all meat to vegetal meat
     food_consumption_kcal = x_switch(demand_table=food_consumption_kcal, switch_table=diet_switch_percent, correlation_table=food_consumption_SWITCH, col_energy='food-consumption[kcal]', col_energy_carrier='product', category_from_selected='meat', category_to_selected='vegetal-protein')
     food_consumption_kcal = mcd(input_table_1=food_consumption_DIMENSION, input_table_2=food_consumption_kcal, operation_selection='x * y', output_name='food-consumption[kcal]')
-    #### Renaming to mactch with interface TO CLEAN !!! (clean interface + output to agr and in agr module)  food-consumption as food-demand
+    #### Renaming to match with interface TO CLEAN !!! (clean interface + output to agr and in agr module)  food-consumption as food-demand
     food_demand_kcal = food_consumption_kcal.rename(columns={'food-consumption[kcal]': 'food-demand[kcal]'})
     food_demand_kcal = export_variable(input_table=food_demand_kcal, selected_variable='food-demand[kcal]')
 
