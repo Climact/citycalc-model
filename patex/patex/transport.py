@@ -963,15 +963,12 @@ def transport(lifestyle):
     veh_fleet_historical_number = export_variable(input_table=veh_fleet_historical_number, selected_variable='veh-fleet-historical[number]')
 
     def helper_5573(input_table) -> pd.DataFrame:
-        # Copy input to output
-        output_table = input_table.copy()
+        mask_PHEV = (input_table["motor-type"] == "PHEV") | (input_table["motor-type"] == "PHEVCE")
         
-        mask_PHEV = (output_table["motor-type"] == "PHEV") | (output_table["motor-type"] == "PHEVCE")
-        
-        output_table_elec = output_table.loc[mask_PHEV,:]
+        output_table_elec = input_table.loc[mask_PHEV,:].copy()
         output_table_elec["energy-carrier"] = "electricity"
         
-        output_table = pd.concat([output_table, output_table_elec], ignore_index = True)
+        output_table = pd.concat([input_table, output_table_elec], ignore_index = True)
         return output_table
     # Copy/Paste values for motor-type = PHEV(CE) from diesel to elec
     out_5573_1 = helper_5573(input_table=veh_fleet_historical_number)
@@ -1425,16 +1422,13 @@ def transport(lifestyle):
     final_transport_demand_vkm = mcd(input_table_1=technology_share_percent_2, input_table_2=veh_transport_demand_vkm, operation_selection='x * y', output_name='final-transport-demand[vkm]', fill_value_bool='Inner Join')
 
     def helper_5272(input_table) -> pd.DataFrame:
-        # Copy input to output
-        output_table = input_table.copy()
-        
         # Get values
-        mask_PHEV_diesel = (output_table["motor-type"].str.contains("PHEV")) & (output_table["energy-carrier"] == "liquid-ff-diesel")
+        mask_PHEV_diesel = (input_table["motor-type"].str.contains("PHEV")) & (input_table["energy-carrier"] == "liquid-ff-diesel")
         # Table with diesel => change it into elec
-        table_temp = output_table.loc[mask_PHEV_diesel, :]
+        table_temp = input_table.loc[mask_PHEV_diesel, :].copy()
         table_temp["energy-carrier"] = "electricity"
         # Concatenate with output_table
-        output_table = pd.concat([output_table, table_temp], ignore_index = True)
+        output_table = pd.concat([input_table, table_temp], ignore_index = True)
         return output_table
     # Copy PHEV(CE)*diesel in new columns PHEV(CE)*elec
     out_5272_1 = helper_5272(input_table=final_transport_demand_vkm)
@@ -1482,19 +1476,13 @@ def transport(lifestyle):
     out_5134_1 = joiner(df_left=final_transport_demand_km, df_right=out_5133_1, joiner='inner', left_input=['vehicule-type'], right_input=['vehicule-type'])
 
     def helper_5178(input_table) -> pd.DataFrame:
-        # Import pandas
-        
-        
-        # Copy input to output
-        output_table = input_table.copy()
-        
         # Copy rails => to tram
-        mask_rails = (output_table["material"] == "rails")
-        trolley_table = output_table.loc[mask_rails, :]
+        mask_rails = (input_table["material"] == "rails")
+        trolley_table = input_table.loc[mask_rails, :].copy()
         trolley_table["material"] = "trolley-cables"
         
         # Concat tables
-        output_table = pd.concat([output_table, trolley_table], ignore_index=True)
+        output_table = pd.concat([input_table, trolley_table], ignore_index=True)
         return output_table
     out_5178_1 = helper_5178(input_table=out_5134_1)
     # Group by  material (sum)
@@ -1547,19 +1535,13 @@ def transport(lifestyle):
     length_km = add_missing_years(df_data=length_km)
 
     def helper_5179(input_table) -> pd.DataFrame:
-        # Import pandas
-        
-        
-        # Copy input to output
-        output_table = input_table.copy()
-        
         # Copy rails => to tram
-        mask_rails = (output_table["material"] == "rails")
-        trolley_table = output_table.loc[mask_rails, :]
+        mask_rails = (input_table["material"] == "rails")
+        trolley_table = input_table.loc[mask_rails, :].copy()
         trolley_table["material"] = "trolley-cables"
         
         # Concat tables
-        output_table = pd.concat([output_table, trolley_table], ignore_index=True)
+        output_table = pd.concat([input_table, trolley_table], ignore_index=True)
         return output_table
     out_5179_1 = helper_5179(input_table=length_km)
     # corr-length[km] = length[km] * mult-corr
