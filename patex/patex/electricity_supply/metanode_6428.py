@@ -241,9 +241,9 @@ def metanode_6428(port_01):
     # energy-carrier = electricity (not heat)
     energy_production_TWh_3['energy-carrier'] = "electricity"
     # Node 5876
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2])
     # Node 5876
-    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh])
 
     # Apply efficiency-improvement levers 
     # => determine the level of primary energy demand required to produce heat demand
@@ -394,7 +394,7 @@ def metanode_6428(port_01):
     # energy-carrier as primary-energy-carrier
     out_9452_1 = primary_energy_demand_TWh_2.rename(columns={'energy-carrier': 'primary-energy-carrier'})
     # primary-energy-demand [TWh] for : - Heat production - Carbon capture
-    out_9451_1 = pd.concat([primary_energy_demand_TWh, out_9452_1.set_index(out_9452_1.index.astype(str) + '_dup')])
+    out_9451_1 = pd.concat([primary_energy_demand_TWh, out_9452_1])
     # Group by  Country, Years, way-of-production primary-energy-carrier (sum)
     out_9451_1 = group_by_dimensions(df=out_9451_1, groupby_dimensions=['Country', 'Years', 'way-of-production', 'primary-energy-carrier'], aggregation_method='Sum')
     # primary-energy-demand [TWh]  for : - Heat production - Carbon capture
@@ -441,7 +441,7 @@ def metanode_6428(port_01):
     cal_rate_emissions_Mt = use_variable(input_table=out_7099_3, selected_variable='cal_rate_emissions[Mt]')
     # cal rate for primary-energy-demand[TWh]
     cal_rate_primary_energy_demand_TWh = use_variable(input_table=out_7096_3, selected_variable='cal_rate_primary-energy-demand[TWh]')
-    cal_rate = pd.concat([cal_rate_primary_energy_demand_TWh, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
+    cal_rate = pd.concat([cal_rate_primary_energy_demand_TWh, cal_rate_emissions_Mt])
 
     # Calibration
 
@@ -505,7 +505,7 @@ def metanode_6428(port_01):
     capex_MEUR = mcd(input_table_1=energy_production_cost_user_, input_table_2=out_9527_1, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by  Country, Years (sum)
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'cost-user', 'Years'], aggregation_method='Sum')
-    MEUR = pd.concat([opex_MEUR, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([opex_MEUR, capex_MEUR])
 
     # Capex / Opex
 

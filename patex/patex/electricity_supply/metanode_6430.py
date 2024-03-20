@@ -95,7 +95,7 @@ def metanode_6430(port_01):
     capex_MEUR = mcd(input_table_1=energy_production_cost_user_, input_table_2=out_9527_1, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by  Country, Years (sum)
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'cost-user', 'Years'], aggregation_method='Sum')
-    MEUR = pd.concat([opex_MEUR, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([opex_MEUR, capex_MEUR])
 
     # Formating data for other modules + Pathway Explorer
 

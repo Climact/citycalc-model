@@ -225,7 +225,7 @@ def buildings(lifestyle):
     # product-substitution-factor[-] = 1 + product-substitution-rate[-]
     product_substitution_factor_2 = product_substitution_rate_.assign(**{'product-substitution-factor[-]': 1.0+product_substitution_rate_['product-substitution-rate[-]']})
     # Historical and Future
-    product_substitution_factor = pd.concat([product_substitution_factor_2, product_substitution_factor.set_index(product_substitution_factor.index.astype(str) + '_dup')])
+    product_substitution_factor = pd.concat([product_substitution_factor_2, product_substitution_factor])
     # product-substitution-factor [-]
     product_substitution_factor = use_variable(input_table=product_substitution_factor, selected_variable='product-substitution-factor[-]')
 
@@ -355,7 +355,7 @@ def buildings(lifestyle):
     households_num_3 = mcd(input_table_1=households_num, input_table_2=household_share_appartment_percent, operation_selection='x * (1-y)', output_name='households[num]')
     # add building-use = sfh
     households_num_3['building-use'] = "sfh"
-    households_num_2 = pd.concat([households_num_2, households_num_3.set_index(households_num_3.index.astype(str) + '_dup')])
+    households_num_2 = pd.concat([households_num_2, households_num_3])
     # households [num]
     households_num_2 = export_variable(input_table=households_num_2, selected_variable='households[num]')
 
@@ -415,7 +415,7 @@ def buildings(lifestyle):
     floor_area_demand_1000m2 = import_data(trigram='bld', variable_name='floor-area-demand')
     # Convert Unit 1000m2 to m2 (*1000)
     floor_area_demand_m2 = floor_area_demand_1000m2.drop(columns='floor-area-demand[1000m2]').assign(**{'floor-area-demand[m2]': floor_area_demand_1000m2['floor-area-demand[1000m2]'] * 1000.0})
-    floor_area_demand_m2_2 = pd.concat([floor_area_demand_m2_2, floor_area_demand_m2.set_index(floor_area_demand_m2.index.astype(str) + '_dup')])
+    floor_area_demand_m2_2 = pd.concat([floor_area_demand_m2_2, floor_area_demand_m2])
     # floor-area-demand [m2]
     floor_area_demand_m2_2 = export_variable(input_table=floor_area_demand_m2_2, selected_variable='floor-area-demand[m2]')
 
@@ -477,7 +477,7 @@ def buildings(lifestyle):
     floor_area_demand_m2, _ = filter_dimension(df=floor_area_demand_m2, dimension='Years', operation_selection='=', value_years='2000')
     # to floor-area[m2]
     out_9381_1 = floor_area_demand_m2.rename(columns={'floor-area-demand[m2]': 'floor-area[m2]'})
-    out_9380_1 = pd.concat([floor_area_m2, out_9381_1.set_index(out_9381_1.index.astype(str) + '_dup')])
+    out_9380_1 = pd.concat([floor_area_m2, out_9381_1])
     out_9380_1 = column_filter(df=out_9380_1, columns_to_drop=['Years'])
     # floor-area-offer[m2] = floora-area[m2] * undemolition-rate-acc[-]
     floor_area_offer_m2 = mcd(input_table_1=out_9380_1, input_table_2=undemolition_rate_acc, operation_selection='x * y', output_name='floor-area-offer[m2]')
@@ -733,7 +733,7 @@ def buildings(lifestyle):
     yearly_change_m2_2 = group_by_dimensions(df=yearly_change_m2_2, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type', 'renovation-category'], aggregation_method='Sum')
     # yearly-change [m2] (constructed)
     yearly_change_m2_2 = export_variable(input_table=yearly_change_m2_2, selected_variable='yearly-change[m2]')
-    yearly_change_m2 = pd.concat([yearly_change_m2, yearly_change_m2_2.set_index(yearly_change_m2_2.index.astype(str) + '_dup')])
+    yearly_change_m2 = pd.concat([yearly_change_m2, yearly_change_m2_2])
     # Convert Unit m2 to Mm2
     yearly_change_Mm2 = yearly_change_m2.drop(columns='yearly-change[m2]').assign(**{'yearly-change[Mm2]': yearly_change_m2['yearly-change[m2]'] * 1e-06})
     # yearly-change [Mm2]
@@ -792,7 +792,7 @@ def buildings(lifestyle):
     floor_area_yearly_m2 = out_9473_1.drop(columns='floor-area-yearly[Mm2]').assign(**{'floor-area-yearly[m2]': out_9473_1['floor-area-yearly[Mm2]'] * 1000000.0})
     # Group by  Country, Years, area-type, building-type (sum)
     floor_area_yearly_m2_2 = group_by_dimensions(df=floor_area_yearly_m2, groupby_dimensions=['Country', 'Years', 'building-type', 'renovation-category', 'area-type'], aggregation_method='Sum')
-    out_8495_1 = pd.concat([new_appliances_num, floor_area_yearly_m2_2.set_index(floor_area_yearly_m2_2.index.astype(str) + '_dup')])
+    out_8495_1 = pd.concat([new_appliances_num, floor_area_yearly_m2_2])
 
     # Pivot
 
@@ -850,8 +850,8 @@ def buildings(lifestyle):
     building_stock_m2_3 = mcd(input_table_1=building_stock_m2_3, input_table_2=construction_epc_mix_percent, operation_selection='x * y', output_name='building-stock[m2]')
     # buidling-stock [m2] (constructed)
     building_stock_m2_3 = export_variable(input_table=building_stock_m2_3, selected_variable='building-stock[m2]')
-    building_stock_m2 = pd.concat([building_stock_m2, building_stock_m2_3.set_index(building_stock_m2_3.index.astype(str) + '_dup')])
-    building_stock_m2 = pd.concat([building_stock_m2_2, building_stock_m2.set_index(building_stock_m2.index.astype(str) + '_dup')])
+    building_stock_m2 = pd.concat([building_stock_m2, building_stock_m2_3])
+    building_stock_m2 = pd.concat([building_stock_m2_2, building_stock_m2])
     # Convert Unit m2 to Mm2
     building_stock_Mm2 = building_stock_m2.drop(columns='building-stock[m2]').assign(**{'building-stock[Mm2]': building_stock_m2['building-stock[m2]'] * 1e-06})
     # buidling-stock [Mm2]
@@ -901,7 +901,7 @@ def buildings(lifestyle):
     renovated_share_percent = mcd(input_table_1=building_stock_Mm2_5, input_table_2=building_stock_Mm2_3, operation_selection='x / y', output_name='renovated-share[%]')
     # renovated share-by-category[%] = renovated-area-by-category[Mm2] / total-area[Mm2]
     renovated_share_by_category_percent = mcd(input_table_1=building_stock_Mm2_4, input_table_2=building_stock_Mm2_3, operation_selection='x / y', output_name='renovated-share-by-category[%]')
-    renovated_share_percent = pd.concat([renovated_share_percent, renovated_share_by_category_percent.set_index(renovated_share_by_category_percent.index.astype(str) + '_dup')])
+    renovated_share_percent = pd.concat([renovated_share_percent, renovated_share_by_category_percent])
 
     # Renovation depth 
     # Average final energy consumption for space heating [kWh/m²]
@@ -954,7 +954,7 @@ def buildings(lifestyle):
     out_9512_1 = building_stock_Mm2.rename(columns={'building-stock[Mm2]': 'epc-floor-area-acc[Mm2]'})
     # Group by  Country, Years, building-type, epc-category (SUM)
     out_9512_1 = group_by_dimensions(df=out_9512_1, groupby_dimensions=['Country', 'Years', 'building-type', 'epc-category'], aggregation_method='Sum')
-    out_1 = pd.concat([out_9474_1, out_9512_1.set_index(out_9512_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9474_1, out_9512_1])
     # appliance-use [h]
     appliance_use_h = use_variable(input_table=lifestyle, selected_variable='appliance-use[h]')
 
@@ -984,13 +984,13 @@ def buildings(lifestyle):
     # Set value to 1
     heating_cooling_behaviour_index_2['heating-cooling-behaviour-index[-]'] = 1.0
     # Node 7821
-    heating_cooling_behaviour_index = pd.concat([heating_cooling_behaviour_index, heating_cooling_behaviour_index_2.set_index(heating_cooling_behaviour_index_2.index.astype(str) + '_dup')])
+    heating_cooling_behaviour_index = pd.concat([heating_cooling_behaviour_index, heating_cooling_behaviour_index_2])
     # energy-need-by-m2[kWh/m2] (replace) = energy-need-by-m2[kWh/m2] * heating-cooling-behaviour-index[-]  LEFT OUTER JOIN If behaviour-index missing, set to 1 (no change in energy-need)
     energy_need_by_m2_kWh_per_m2 = mcd(input_table_1=energy_need_by_m2_kWh__per__m2_year_excluded, input_table_2=heating_cooling_behaviour_index, operation_selection='x * y', output_name='energy-need-by-m2[kWh/m2]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
     # energy-demand[GWh] = cooled-area[Mm2] * energy-need-by-m2[kWh/m2]
     energy_demand_GWh_4 = mcd(input_table_1=cooled_area_Mm2, input_table_2=energy_need_by_m2_kWh_per_m2, operation_selection='x * y', output_name='energy-demand[GWh]')
     # Join cooling and other end-use
-    energy_demand_GWh_3 = pd.concat([energy_demand_GWh_3, energy_demand_GWh_4.set_index(energy_demand_GWh_4.index.astype(str) + '_dup')])
+    energy_demand_GWh_3 = pd.concat([energy_demand_GWh_3, energy_demand_GWh_4])
 
     # Energy need : heating and ventilation (residential and non-residential)
     # => For heating : Add energy-need for renovated buildings = energy need (residential) * energy-achieved
@@ -1004,9 +1004,9 @@ def buildings(lifestyle):
     energy_demand_GWh_4 = mcd(input_table_1=building_stock_Mm2_3, input_table_2=energy_need_kWh_per_m2, operation_selection='x * y', output_name='energy-demand[GWh]')
     # Group by  Country, Years, building-type, building-use, end-use
     energy_demand_GWh_4 = group_by_dimensions(df=energy_demand_GWh_4, groupby_dimensions=['Country', 'Years', 'building-type', 'building-use', 'area-type', 'end-use'], aggregation_method='Sum')
-    energy_demand_GWh_3 = pd.concat([energy_demand_GWh_3, energy_demand_GWh_4.set_index(energy_demand_GWh_4.index.astype(str) + '_dup')])
-    energy_demand_GWh = pd.concat([energy_demand_GWh, energy_demand_GWh_3.set_index(energy_demand_GWh_3.index.astype(str) + '_dup')])
-    energy_demand_GWh = pd.concat([energy_demand_GWh_2, energy_demand_GWh.set_index(energy_demand_GWh.index.astype(str) + '_dup')])
+    energy_demand_GWh_3 = pd.concat([energy_demand_GWh_3, energy_demand_GWh_4])
+    energy_demand_GWh = pd.concat([energy_demand_GWh, energy_demand_GWh_3])
+    energy_demand_GWh = pd.concat([energy_demand_GWh_2, energy_demand_GWh])
     # If missing (string) set to "" (renovation-category)
     energy_demand_GWh = missing_value(df=energy_demand_GWh, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     energy_demand_GWh = energy_demand_GWh.loc[~energy_demand_GWh['building-use'].isin(['offices-private', 'offices-public'])].copy()
@@ -1064,7 +1064,7 @@ def buildings(lifestyle):
     technology_mix_percent = mcd(input_table_1=technology_mix_percent, input_table_2=solid_biomass_share_percent, operation_selection='x * (1-y)', output_name='technology-mix[%]', fill_value_bool='Left [x] Outer Join')
     # energy-demand[GWh] (replace) = energy-demand[GWh] * technology-mix[%]
     energy_demand_GWh = mcd(input_table_1=energy_demand_GWh, input_table_2=technology_mix_percent, operation_selection='x * y', output_name='energy-demand[GWh]', fill_value_bool='Inner Join')
-    out_7732_1 = pd.concat([energy_demand_GWh, out_7970_1.set_index(out_7970_1.index.astype(str) + '_dup')])
+    out_7732_1 = pd.concat([energy_demand_GWh, out_7970_1])
 
     # Apply energy-efficiency levers (improve)
     # => determine which amount of energy-demand is provided by solid-biomass
@@ -1209,7 +1209,7 @@ def buildings(lifestyle):
     energy_demand_TWh_excluded = energy_demand_TWh_excluded.loc[energy_demand_TWh_excluded['area-type'].isin(['renovated'])].copy()
     # energy-demand[TWh] = energy-demand[TWh] * deep-renovation[m2/m2]
     energy_demand_TWh_2 = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=deep_renovation_m2_per_m2, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_3, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_3, energy_demand_TWh_2])
     # Group by  Country, Years, building-type, building-use, end-use, energy-way-of-prod, energy-carrier
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'building-use', 'energy-way-of-prod', 'energy-carrier'], aggregation_method='Sum')
     # TWh to TW Assumption : heating during 4 full months (=122 days = 2928 hours) (1 kWh = 3.41E-4)
@@ -1231,13 +1231,13 @@ def buildings(lifestyle):
     capex_MEUR_2 = group_by_dimensions(df=capex_MEUR_3, groupby_dimensions=['Country', 'Years', 'energy-way-of-prod'], aggregation_method='Sum')
     # capex-by-energy-carrier [MEUR]
     out_9330_1 = capex_MEUR_2.rename(columns={'capex[MEUR]': 'capex-by-energy-carrier[MEUR]'})
-    out_1_2 = pd.concat([out_9330_1, out_9323_1.set_index(out_9323_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9330_1, out_9323_1])
     # Group by Country, Years, building-type (sum)
     capex_MEUR_2 = group_by_dimensions(df=capex_MEUR_3, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # capex-by-heating-system [MEUR]
     out_9328_1 = capex_MEUR_2.rename(columns={'capex[MEUR]': 'capex-by-heating-system[MEUR]'})
-    out_1_2 = pd.concat([out_9328_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_9327_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9328_1, out_1_2])
+    out_1_2 = pd.concat([out_9327_1, out_1_2])
     # Export district-energy-demand [GWh] (before calibration)
     district_energy_demand_GWh = export_variable(input_table=district_energy_demand_GWh, selected_variable='district-energy-demand[GWh]')
     # district-energy-demand [GWh]
@@ -1291,7 +1291,7 @@ def buildings(lifestyle):
     mask = pipes_length_overtimestep_km_excluded['pipes-length-overtimestep[km]']<0
     pipes_length_overtimestep_km_excluded.loc[mask, 'pipes-length-overtimestep[km]'] =  0
     pipes_length_overtimestep_km_excluded.loc[~mask, 'pipes-length-overtimestep[km]'] =  pipes_length_overtimestep_km_excluded.loc[~mask, 'pipes-length-overtimestep[km]']
-    pipes_length_overtimestep_km = pd.concat([pipes_length_overtimestep_km, pipes_length_overtimestep_km_excluded.set_index(pipes_length_overtimestep_km_excluded.index.astype(str) + '_dup')])
+    pipes_length_overtimestep_km = pd.concat([pipes_length_overtimestep_km, pipes_length_overtimestep_km_excluded])
 
     # renewal-pipes-length[km]
     # => determine new need of pipes due to renovation of pipes
@@ -1311,7 +1311,7 @@ def buildings(lifestyle):
 
     # new-pipes-length [km]
     new_pipes_length_km = use_variable(input_table=new_pipes_length_km, selected_variable='new-pipes-length[km]')
-    out_8496_1 = pd.concat([new_pipes_length_km, out_8495_1.set_index(out_8495_1.index.astype(str) + '_dup')])
+    out_8496_1 = pd.concat([new_pipes_length_km, out_8495_1])
     # Module = Industry
     out_8496_1 = column_filter(df=out_8496_1, pattern='^.*$')
     # As it was in old module : bld_new_dhg_pipe[km]
@@ -1333,21 +1333,21 @@ def buildings(lifestyle):
     building_infra_cost_user_ = import_data(trigram='bld', variable_name='building-infra-cost-user', variable_type='RCP')
     # Get cost-users capex[MEUR] = capex[MEUR] * appliances-cost-user[-]
     capex_MEUR_2 = mcd(input_table_1=out_9286_1, input_table_2=building_infra_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
-    capex_MEUR_3 = pd.concat([capex_MEUR_2, capex_MEUR_3.set_index(capex_MEUR_3.index.astype(str) + '_dup')])
-    capex_MEUR = pd.concat([capex_MEUR_3, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    capex_MEUR_3 = pd.concat([capex_MEUR_2, capex_MEUR_3])
+    capex_MEUR = pd.concat([capex_MEUR_3, capex_MEUR])
 
     # CAPEX
 
     # Group by Country, Years (sum)
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')
-    MEUR = pd.concat([capex_MEUR, opex_MEUR_2.set_index(opex_MEUR_2.index.astype(str) + '_dup')])
+    MEUR = pd.concat([capex_MEUR, opex_MEUR_2])
     # Group by Country, Years (sum)
     capex_MEUR = group_by_dimensions(df=capex_MEUR_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # capex-by-dh-pipe[MEUR]
     out_9322_1 = capex_MEUR.rename(columns={'capex[MEUR]': 'capex-by-dh-pipe[MEUR]'})
-    out_1_2 = pd.concat([out_9322_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_9320_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_9338_1 = pd.concat([MEUR, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9322_1, out_1_2])
+    out_1_2 = pd.concat([out_9320_1, out_1_2])
+    out_9338_1 = pd.concat([MEUR, out_1_2])
 
     # Final energy consumption including district heating
     # => division hotwater, space heating
@@ -1378,7 +1378,7 @@ def buildings(lifestyle):
 
     # Group by  Country, Years, building-type (SUM)
     district_energy_demand_TWh_5 = group_by_dimensions(df=district_energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
-    out_9184_1 = pd.concat([district_energy_demand_TWh_5, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_9184_1 = pd.concat([district_energy_demand_TWh_5, out_1])
 
     # For : Power supply
     # => Energy demand for district-heating
@@ -1393,15 +1393,15 @@ def buildings(lifestyle):
 
     # cal_rate for district-energy-demand
     cal_rate_district_energy_demand_GWh = use_variable(input_table=out_9347_3, selected_variable='cal_rate_district-energy-demand[GWh]')
-    cal_rate_energy_demand = pd.concat([cal_rate_energy_demand_TWh, cal_rate_district_energy_demand_GWh.set_index(cal_rate_district_energy_demand_GWh.index.astype(str) + '_dup')])
-    cal_rate = pd.concat([cal_rate_energy_demand, cal_rate_emissions_kt.set_index(cal_rate_emissions_kt.index.astype(str) + '_dup')])
+    cal_rate_energy_demand = pd.concat([cal_rate_energy_demand_TWh, cal_rate_district_energy_demand_GWh])
+    cal_rate = pd.concat([cal_rate_energy_demand, cal_rate_emissions_kt])
     # Module = CALIBRATION
     cal_rate = column_filter(df=cal_rate, pattern='^.*$')
     # floor-per-cap [m2/cap]
     floor_per_cap_m2_per_cap = mcd(input_table_1=building_stock_m2, input_table_2=population_cap, operation_selection='x / y', output_name='floor-per-cap[m2/cap]')
-    out_9278_1 = pd.concat([building_renovation_rate_percent, floor_per_cap_m2_per_cap.set_index(floor_per_cap_m2_per_cap.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9258_1, out_9278_1.set_index(out_9278_1.index.astype(str) + '_dup')])
-    out_9250_1 = pd.concat([renovated_share_percent, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_9278_1 = pd.concat([building_renovation_rate_percent, floor_per_cap_m2_per_cap])
+    out_1 = pd.concat([out_9258_1, out_9278_1])
+    out_9250_1 = pd.concat([renovated_share_percent, out_1])
     # Hypothesis energy-demand[TWh] = population[inhabitants] * 0.00000005
     energy_demand_TWh_2 = population_cap.assign(**{'energy-demand[TWh]': population_cap['population[cap]']*0.00000005})
     # building-type = non-residential
@@ -1427,7 +1427,7 @@ def buildings(lifestyle):
 
     # energy-demand [TWh] (for servers)
     energy_demand_TWh_2 = use_variable(input_table=energy_demand_TWh_2, selected_variable='energy-demand[TWh]')
-    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2])
     # energy-demand [TWh]
     energy_demand_TWh = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # Advenced row filter
@@ -1475,30 +1475,30 @@ def buildings(lifestyle):
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # ambiant-share[%]
     ambiant_share_percent = mcd(input_table_1=energy_demand_TWh_2, input_table_2=total_energy_incl_dh_TWh, operation_selection='x / y', output_name='ambiant-share[%]')
-    share_percent = pd.concat([electricity_share_percent, ambiant_share_percent.set_index(ambiant_share_percent.index.astype(str) + '_dup')])
-    share_percent = pd.concat([district_heating_share_by_end_use_percent, share_percent.set_index(share_percent.index.astype(str) + '_dup')])
+    share_percent = pd.concat([electricity_share_percent, ambiant_share_percent])
+    share_percent = pd.concat([district_heating_share_by_end_use_percent, share_percent])
 
     # Final energy consumption
     # => per end-use, per vector, and per residential/services (full granularity)
 
     # Group by  Country, Years, building-type, area-type (SUM)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'building-type', 'end-use', 'energy-carrier'], aggregation_method='Sum')
-    out_9340_1 = pd.concat([share_percent, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    out_9340_1 = pd.concat([share_percent, energy_demand_TWh_2])
     # Group by  Country, Years, building-type (SUM)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'building-type'], aggregation_method='Sum')
     # energy-demand-by-type[TWh] decentralized energy [TWh]  + district heating TWh]
     energy_demand_by_type_TWh = mcd(input_table_1=energy_demand_TWh_2, input_table_2=district_energy_demand_TWh_4, operation_selection='x + y', output_name='energy-demand-by-type[TWh]')
-    energy_demand_TWh_2 = pd.concat([energy_demand_by_type_TWh, energy_demand_incl_district_heating_TWh.set_index(energy_demand_incl_district_heating_TWh.index.astype(str) + '_dup')])
-    out_9223_1 = pd.concat([energy_demand_TWh_2, out_9340_1.set_index(out_9340_1.index.astype(str) + '_dup')])
-    out_9251_1 = pd.concat([out_9223_1, renovation_depth_kWh_per_m2.set_index(renovation_depth_kWh_per_m2.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9251_1, out_9250_1.set_index(out_9250_1.index.astype(str) + '_dup')])
+    energy_demand_TWh_2 = pd.concat([energy_demand_by_type_TWh, energy_demand_incl_district_heating_TWh])
+    out_9223_1 = pd.concat([energy_demand_TWh_2, out_9340_1])
+    out_9251_1 = pd.concat([out_9223_1, renovation_depth_kWh_per_m2])
+    out_1 = pd.concat([out_9251_1, out_9250_1])
 
     # For : Power supply
     # => Energy demand by vector
 
     # Group by  Country, Years, energy-carrier (SUM)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
-    out_8498_1 = pd.concat([out_8279_1, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    out_8498_1 = pd.concat([out_8279_1, energy_demand_TWh_2])
     # Module = Power supply
     out_8498_1 = column_filter(df=out_8498_1, pattern='^.*$')
     # Module = Air Quality
@@ -1513,12 +1513,12 @@ def buildings(lifestyle):
     out_9188_1 = energy_demand_TWh.rename(columns={'energy-demand[TWh]': 'energy-demand-by-end-use[TWh]'})
     # Add by end-use to vector
     out_9189_1 = energy_demand_TWh_2.rename(columns={'energy-demand[TWh]': 'energy-demand-by-vector[TWh]'})
-    out_1_2 = pd.concat([out_9188_1, out_9189_1.set_index(out_9189_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_9184_1.set_index(out_9184_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9188_1, out_9189_1])
+    out_1_2 = pd.concat([out_1_2, out_9184_1])
     # Add  KPIs
-    out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1_2, out_1])
     # Add  Costs
-    out_1 = pd.concat([out_1, out_9338_1.set_index(out_9338_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1, out_9338_1])
     out_9191_1 = add_trigram(module_name=module_name, df=out_1)
     # Module = Pathway Explorer
     out_9191_1 = column_filter(df=out_9191_1, pattern='^.*$')

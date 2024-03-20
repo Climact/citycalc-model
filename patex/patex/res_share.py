@@ -10,7 +10,7 @@ def res_share(buildings, transport, agriculture, industry, power):
     transport['sector'] = "tra"
     # sector = bld
     buildings['sector'] = "bld"
-    port = pd.concat([buildings, transport.set_index(transport.index.astype(str) + '_dup')])
+    port = pd.concat([buildings, transport])
 
     # Sankey diagram preparation
     # OU EST-IL UTILISE ??
@@ -49,7 +49,7 @@ def res_share(buildings, transport, agriculture, industry, power):
     elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2 = group_by_dimensions(df=elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_3, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # res-type = nonRES
     elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2['res-type'] = "nonRES"
-    elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2 = pd.concat([elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2, elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_excluded.set_index(elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_excluded.index.astype(str) + '_dup')])
+    elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2 = pd.concat([elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2, elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_excluded])
     # pct-RES[%] = net-prod-xx[TWh] / net-prod-xx[TWh] total
     pct_RES_percent = mcd(input_table_1=elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh, input_table_2=elc_net_energy_production_by_carrier_primary_carrier_way_of_prod_TWh_2, operation_selection='y / x', output_name='pct-RES[%]')
     # sector = agr
@@ -58,16 +58,16 @@ def res_share(buildings, transport, agriculture, industry, power):
     energy_demand_TWh = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
     # sector = ind
     energy_demand_TWh['sector'] = "ind"
-    out_3929_1 = pd.concat([energy_demand_TWh, agriculture.set_index(agriculture.index.astype(str) + '_dup')])
-    out_3930_1 = pd.concat([port, out_3929_1.set_index(out_3929_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_3930_1, out_8998_1.set_index(out_8998_1.index.astype(str) + '_dup')])
+    out_3929_1 = pd.concat([energy_demand_TWh, agriculture])
+    out_3930_1 = pd.concat([port, out_3929_1])
+    out_1 = pd.concat([out_3930_1, out_8998_1])
     # Remove : - heat - ambiant ?! - marinefueoil (bio, syn, ff) - kersoene (bio, syn, ff)
     out_3931_1 = row_filter(df=out_1, filter_type='StringComp_RowFilter', that_column='energy-carrier', include=False, pattern='heat|.*kerosene.*|.*marinefueloil.*|ambiant', case_sensitive=True, is_reg_exp=True)
     # Keep : - marinefueoil (bio, syn, ff) - kersoene (bio, syn, ff)
     out_3946_1 = row_filter(df=out_1, filter_type='StringComp_RowFilter', that_column='energy-carrier', include=True, pattern='.*kerosene.*|.*marinefueloil.*', case_sensitive=True, is_reg_exp=True)
     # sector = tra-bunkers
     out_3946_1['sector'] = "tra-bunkers"
-    out_1 = pd.concat([out_3946_1, out_3931_1.set_index(out_3931_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_3946_1, out_3931_1])
     # Group by  Country, Years, energy-carrier, sector (sum)
     out_1 = group_by_dimensions(df=out_1, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'sector'], aggregation_method='Sum')
     # Remove energy-carrier = eletctricity
@@ -83,10 +83,10 @@ def res_share(buildings, transport, agriculture, industry, power):
     # Group by  Country, Years, sector, energy-carrier (sum)
     out_3936_1_2 = group_by_dimensions(df=out_3936_1, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'sector'], aggregation_method='Sum')
     out_8968_1 = out_3936_1_2.rename(columns={'energy-demand[TWh]': 'energy_sankey_values[TWh]', 'sector': 'energy_sankey_origin', 'energy-carrier': 'energy_sankey_destination'})
-    out_1 = pd.concat([out_8968_1, out_8982_1.set_index(out_8982_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_8968_1, out_8982_1])
     # Years
     out_8984_1 = out_1.assign(Years=out_1['Years'].astype(str))
-    out_3950_1 = pd.concat([out_3936_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_3950_1 = pd.concat([out_3936_1, energy_demand_TWh])
     # Group by  Country, Years, sector, res-type (sum)
     out_3950_1_2 = group_by_dimensions(df=out_3950_1, groupby_dimensions=['Country', 'Years', 'sector', 'res-type'], aggregation_method='Sum')
     # res_energy-demand-by-sector[TWh]
@@ -97,7 +97,7 @@ def res_share(buildings, transport, agriculture, industry, power):
     out_3950_1 = group_by_dimensions(df=out_3950_1, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # res_energy-demand[%] = energy-demand[TWh] by res-type / energy-demand[TWh] total
     res_energy_demand_percent = mcd(input_table_1=out_3950_1_2, input_table_2=out_3950_1, operation_selection='x / y', output_name='res_energy-demand[%]')
-    out_8988_1 = pd.concat([out_8987_1, res_energy_demand_percent.set_index(res_energy_demand_percent.index.astype(str) + '_dup')])
+    out_8988_1 = pd.concat([out_8987_1, res_energy_demand_percent])
 
     return out_8988_1, out_8984_1
 

@@ -40,7 +40,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_Mt_excluded['origin-module'] = "elc"
     # Add origin-module = ind
     emissions_Mt = emissions_Mt_2.assign(**{'origin-module': "ind"})
-    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_excluded.set_index(emissions_Mt_excluded.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_excluded])
     # Add origin-module = bld
     buildings['origin-module'] = "bld"
     # carbon-intensity[gCO2e/kWh]
@@ -60,7 +60,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     land_use['origin-module'] = "lus"
     # Add origin-module = tra
     transport['origin-module'] = "tra"
-    port = pd.concat([buildings, transport.set_index(transport.index.astype(str) + '_dup')])
+    port = pd.concat([buildings, transport])
     # energy-demand[TWh]
     energy_demand_TWh = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
 
@@ -82,10 +82,10 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_Mt_2 = use_variable(input_table=industry, selected_variable='emissions[Mt]')
     # Add origin-module = ind
     emissions_Mt_2['origin-module'] = "ind"
-    out_9198_1 = pd.concat([port, emissions_Mt_2.set_index(emissions_Mt_2.index.astype(str) + '_dup')])
+    out_9198_1 = pd.concat([port, emissions_Mt_2])
     # OTS/FTS emissions
     emissions = import_data(trigram='clt', variable_name='emissions')
-    emissions = pd.concat([emissions_Mt, emissions.set_index(emissions.index.astype(str) + '_dup')])
+    emissions = pd.concat([emissions_Mt, emissions])
 
     # From GHG emissions to CO2-equivalent emissions
 
@@ -98,9 +98,9 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     gwp_100 = math_formula(df=clt_gwp, convert_to_int=False, replaced_column='gwp-100[-]', splitted='$gwp-100[-]$')
     # Add origin-module = agr
     agriculture['origin-module'] = "agr"
-    port = pd.concat([agriculture, land_use.set_index(land_use.index.astype(str) + '_dup')])
-    out_9200_1 = pd.concat([port, emissions.set_index(emissions.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9198_1, out_9200_1.set_index(out_9200_1.index.astype(str) + '_dup')])
+    port = pd.concat([agriculture, land_use])
+    out_9200_1 = pd.concat([port, emissions])
+    out_1 = pd.concat([out_9198_1, out_9200_1])
     # emissions[MtCO2e] = emissions[Mt] x gwp[unit]
     emissions_MtCO2e_3 = mcd(input_table_1=out_1, input_table_2=gwp_100, operation_selection='x * y', output_name='emissions[MtCO2e]')
 
@@ -134,7 +134,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_5 = group_by_dimensions(df=emissions_MtCO2e_5, groupby_dimensions=['Country'], aggregation_method='Sum')
     # delta-capture[MtCO2e] = -emissions + emissions
     delta_capture_MtCO2e_2 = mcd(input_table_1=emissions_MtCO2e_5, input_table_2=emissions_MtCO2e_4, operation_selection='y - x', output_name='delta-capture[MtCO2e]')
-    delta_capture_MtCO2e = pd.concat([delta_capture_MtCO2e_2, delta_capture_MtCO2e.set_index(delta_capture_MtCO2e.index.astype(str) + '_dup')])
+    delta_capture_MtCO2e = pd.concat([delta_capture_MtCO2e_2, delta_capture_MtCO2e])
     # Group by country, year, emissions
     emissions_MtCO2e_2 = group_by_dimensions(df=emissions_MtCO2e_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # keep only 2015
@@ -166,7 +166,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_4, emissions_MtCO2e_excluded = filter_dimension(df=emissions_MtCO2e_3, dimension='Years', operation_selection='=', value_years='2015')
     # Keep only year 2050
     emissions_MtCO2e_excluded, _ = filter_dimension(df=emissions_MtCO2e_excluded, dimension='Years', operation_selection='=', value_years='2050')
-    emissions_MtCO2e_4 = pd.concat([emissions_MtCO2e_4, emissions_MtCO2e_excluded.set_index(emissions_MtCO2e_excluded.index.astype(str) + '_dup')])
+    emissions_MtCO2e_4 = pd.concat([emissions_MtCO2e_4, emissions_MtCO2e_excluded])
     # Group by Country, Years, origin-module and emissions-or-capture (sum)
     emissions_MtCO2e_4 = group_by_dimensions(df=emissions_MtCO2e_4, groupby_dimensions=['Country', 'Years', 'emissions-or-capture', 'origin-module'], aggregation_method='Sum')
     emissions_MtCO2e_5 = emissions_MtCO2e_4.loc[~emissions_MtCO2e_4['origin-module'].isin(['lus'])].copy()
@@ -268,11 +268,11 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_excluded_2 = missing_value(df=emissions_MtCO2e_excluded_2, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='total')
     # Rename variable to clm_CO2-prod-by-energy-carrier[MtCO2e]
     out_9426_1 = emissions_MtCO2e_excluded_2.rename(columns={'emissions[MtCO2e]': 'clm_CO2-prod-by-energy-carrier[MtCO2e]'})
-    out_1 = pd.concat([out_9409_1, out_9426_1.set_index(out_9426_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9409_1, out_9426_1])
     # Keep CCS and  embedded-feedstock
     emissions_MtCO2e_3 = emissions_MtCO2e_4.loc[emissions_MtCO2e_4['emissions-or-capture'].isin(['embedded-feedstock', 'CCS'])].copy()
     # Add emissions to capture
-    emissions_MtCO2e_3 = pd.concat([emissions_MtCO2e_excluded, emissions_MtCO2e_3.set_index(emissions_MtCO2e_3.index.astype(str) + '_dup')])
+    emissions_MtCO2e_3 = pd.concat([emissions_MtCO2e_excluded, emissions_MtCO2e_3])
     # include  buildings
     emissions_MtCO2e_4 = emissions_MtCO2e_3.loc[emissions_MtCO2e_3['origin-module'].isin(['bld'])].copy()
     emissions_MtCO2e_excluded_2 = emissions_MtCO2e_3.loc[~emissions_MtCO2e_3['origin-module'].isin(['bld'])].copy()
@@ -301,13 +301,13 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_excluded_excluded_excluded_excluded_excluded_2 = group_by_dimensions(df=emissions_MtCO2e_excluded_excluded_excluded_excluded_excluded, groupby_dimensions=['Country', 'Years', 'ets-or-not', 'way-of-production'], aggregation_method='Sum')
     # Rename variable to elc_emissions-by- ets-way-of-prod[MtCO2e]
     out_9390_1 = emissions_MtCO2e_excluded_excluded_excluded_excluded_excluded_2.rename(columns={'emissions[MtCO2e]': 'elc_emissions-by-ets-way-of-prod[MtCO2e]'})
-    out_1_3 = pd.concat([out_9390_1, out_9447_1.set_index(out_9447_1.index.astype(str) + '_dup')])
+    out_1_3 = pd.concat([out_9390_1, out_9447_1])
     # Group by Country, Years,  way-of-prod (sum)
     emissions_MtCO2e_excluded_excluded_excluded_excluded_excluded = group_by_dimensions(df=emissions_MtCO2e_excluded_excluded_excluded_excluded_excluded, groupby_dimensions=['Country', 'Years', 'way-of-production'], aggregation_method='Sum')
     # Rename variable to elc_emissions-by- way-of-prod[MtCO2e]
     out_9387_1 = emissions_MtCO2e_excluded_excluded_excluded_excluded_excluded.rename(columns={'emissions[MtCO2e]': 'elc_emissions-by-way-of-prod[MtCO2e]'})
-    out_1_2 = pd.concat([out_9387_1, out_9389_1.set_index(out_9389_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_1_3.set_index(out_1_3.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9387_1, out_9389_1])
+    out_1_2 = pd.concat([out_1_2, out_1_3])
 
     # For : Pathway Explorer
     # 
@@ -317,7 +317,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_excluded_excluded_excluded_excluded = group_by_dimensions(df=emissions_MtCO2e_excluded_excluded_excluded_excluded_2, groupby_dimensions=['Country', 'Years', 'gaes', 'land-use', 'carbon-stock'], aggregation_method='Sum')
     # Rename variable to agr_emissions-by- carbon-stock-gaes-land-use[MtCO2e]
     out_9386_1 = emissions_MtCO2e_excluded_excluded_excluded_excluded.rename(columns={'emissions[MtCO2e]': 'agr_emissions-by-carbon-stock-gaes-land-use[MtCO2e]'})
-    out_1_2 = pd.concat([out_9386_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9386_1, out_1_2])
 
     # For : Pathway Explorer
     # 
@@ -327,7 +327,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_excluded_excluded_excluded = group_by_dimensions(df=emissions_MtCO2e_excluded_excluded_excluded_2, groupby_dimensions=['Country', 'Years', 'gaes', 'emission-type'], aggregation_method='Sum')
     # Rename variable to agr_emissions-by- emissions-type-gaes[MtCO2e]
     out_9384_1 = emissions_MtCO2e_excluded_excluded_excluded.rename(columns={'emissions[MtCO2e]': 'agr_emissions-by-emissions-type-gaes[MtCO2e]'})
-    out_1_2 = pd.concat([out_9384_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9384_1, out_1_2])
     # Group by Country, Years,  material technology, feedstock, energy-carrier-category, ets-or-not (sum)
     emissions_MtCO2e_excluded_excluded = group_by_dimensions(df=emissions_MtCO2e_excluded_excluded_2, groupby_dimensions=['Country', 'Years', 'emissions-or-capture', 'material', 'technology', 'feedstock-type', 'energy-carrier-category', 'ets-or-not'], aggregation_method='Sum')
     # Group by Country, Years,  material emissions-or-capture, ets-or-not (sum)
@@ -340,14 +340,14 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_excluded_excluded = group_by_dimensions(df=emissions_MtCO2e_excluded_excluded, groupby_dimensions=['Country', 'Years', 'emissions-or-capture', 'material'], aggregation_method='Sum')
     # Rename variable to ind_emissions-by- em-or-capt-material[MtCO2e]
     out_9376_1 = emissions_MtCO2e_excluded_excluded.rename(columns={'emissions[MtCO2e]': 'ind_emissions-by-em-or-capt-material[MtCO2e]'})
-    out_1_3 = pd.concat([out_9376_1, out_9377_1.set_index(out_9377_1.index.astype(str) + '_dup')])
-    out_1_3 = pd.concat([out_1_3, out_9441_1.set_index(out_9441_1.index.astype(str) + '_dup')])
-    out_1_3 = pd.concat([out_1_3, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_3 = pd.concat([out_9376_1, out_9377_1])
+    out_1_3 = pd.concat([out_1_3, out_9441_1])
+    out_1_3 = pd.concat([out_1_3, out_1_2])
     # Include domestic
     emissions_MtCO2e_excluded_2 = emissions_MtCO2e_excluded.loc[emissions_MtCO2e_excluded['domestic-type'].isin(['domestic'])].copy()
     emissions_MtCO2e_excluded_excluded = emissions_MtCO2e_excluded.loc[~emissions_MtCO2e_excluded['domestic-type'].isin(['domestic'])].copy()
     emissions_MtCO2e_excluded_excluded = emissions_MtCO2e_excluded_excluded.loc[~emissions_MtCO2e_excluded_excluded['ets-or-not'].isin(['non-ETS'])].copy()
-    emissions_MtCO2e_excluded_3 = pd.concat([emissions_MtCO2e_excluded_2, emissions_MtCO2e_excluded_excluded.set_index(emissions_MtCO2e_excluded_excluded.index.astype(str) + '_dup')])
+    emissions_MtCO2e_excluded_3 = pd.concat([emissions_MtCO2e_excluded_2, emissions_MtCO2e_excluded_excluded])
 
     # For : Pathway Explorer
     # 
@@ -365,7 +365,7 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_excluded_2 = group_by_dimensions(df=emissions_MtCO2e_excluded, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'domestic-type'], aggregation_method='Sum')
     # Rename variable to tra_emissions-by- vehicule-type[MtCO2e]
     out_9366_1 = emissions_MtCO2e_excluded_2.rename(columns={'emissions[MtCO2e]': 'tra_emissions-by-vehicule-type[MtCO2e]'})
-    out_1_4 = pd.concat([out_9364_1, out_9366_1.set_index(out_9366_1.index.astype(str) + '_dup')])
+    out_1_4 = pd.concat([out_9364_1, out_9366_1])
 
     # For : Pathway Explorer
     # 
@@ -383,8 +383,8 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     emissions_MtCO2e_4 = group_by_dimensions(df=emissions_MtCO2e_4, groupby_dimensions=['Country', 'Years', 'end-use'], aggregation_method='Sum')
     # Rename variable to bld_emissions-by-end-use[MtCO2e]
     out_9353_1 = emissions_MtCO2e_4.rename(columns={'emissions[MtCO2e]': 'bld_emissions-by-end-use[MtCO2e]'})
-    out_1_2 = pd.concat([out_9353_1, out_9354_1.set_index(out_9354_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_9355_1.set_index(out_9355_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9353_1, out_9354_1])
+    out_1_2 = pd.concat([out_1_2, out_9355_1])
     emissions_MtCO2e_3 = emissions_MtCO2e_3.loc[~emissions_MtCO2e_3['way-of-production'].isin(['BioSyn'])].copy()
     emissions_MtCO2e_3 = emissions_MtCO2e_3.loc[~emissions_MtCO2e_3['vehicule-type'].isin(['aviation', 'marine'])].copy()
 
@@ -404,8 +404,8 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     out_9360_1 = emissions_MtCO2e_4.rename(columns={'emissions[MtCO2e]': 'clm_total-emissions[MtCO2e]'})
     # Rename variable to clm_emissions-by- em-or-capt-module-sector[MtCO2e]
     out_9359_1 = emissions_MtCO2e_3.rename(columns={'emissions[MtCO2e]': 'clm_emissions-by-em-or-capt-module-sector[MtCO2e]', 'origin-module': 'module'})
-    out_1_5 = pd.concat([out_9359_1, out_9360_1.set_index(out_9360_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1_5, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1_5 = pd.concat([out_9359_1, out_9360_1])
+    out_1 = pd.concat([out_1_5, out_1])
     # Top: origin-module=ind
     emissions_MtCO2e = emissions_MtCO2e.loc[emissions_MtCO2e['emissions-or-capture'].isin(['emissions'])].copy()
     # Top: origin-module=ind
@@ -452,9 +452,9 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     ind_specific_emission_tCO2eq_per_t = out_9472_1.drop(columns='ind_specific-emission[MtCO2eq/Mt]').assign(**{'ind_specific-emission[tCO2eq/t]': out_9472_1['ind_specific-emission[MtCO2eq/Mt]'] * 1.0})
     # ind_specific-emissions[MtCO2eq/Mt]
     ind_specific_emission_tCO2eq_per_t = export_variable(input_table=ind_specific_emission_tCO2eq_per_t, selected_variable='ind_specific-emission[tCO2eq/t]')
-    ind_tCO2eq_per = pd.concat([ind_specific_emission_tCO2eq_per_t, ind_emissions_per_energy_demand_tCO2eq_per_kWh.set_index(ind_emissions_per_energy_demand_tCO2eq_per_kWh.index.astype(str) + '_dup')])
-    out_9515_1 = pd.concat([ind_tCO2eq_per, clm_ratio_delta_emissions_over_delta_stored_percent.set_index(clm_ratio_delta_emissions_over_delta_stored_percent.index.astype(str) + '_dup')])
-    out_9485_1 = pd.concat([ind_specific_sequestration_MtCO2eq_per_Mt, out_9515_1.set_index(out_9515_1.index.astype(str) + '_dup')])
+    ind_tCO2eq_per = pd.concat([ind_specific_emission_tCO2eq_per_t, ind_emissions_per_energy_demand_tCO2eq_per_kWh])
+    out_9515_1 = pd.concat([ind_tCO2eq_per, clm_ratio_delta_emissions_over_delta_stored_percent])
+    out_9485_1 = pd.concat([ind_specific_sequestration_MtCO2eq_per_Mt, out_9515_1])
     # Aggregation table for carrier
     out_9368_1 = pd.DataFrame(columns=['energy-carrier', 'energy-carrier-agg'], data=[['liquid-syn-kerosene', 'liquid-syn-agg'], ['liquid-ff-kerosene', 'liquid-ff-agg'], ['liquid-bio-kerosene', 'liquid-bio-agg'], ['gaseous-syn', 'gaseous-syn'], ['liquid-syn-diesel', 'liquid-syn-agg'], ['liquid-syn-marinefueloil', 'liquid-syn-agg'], ['liquid-syn-gasoline', 'liquid-syn-agg'], ['gaseous-ff-natural', 'gaseous-ff-natural'], ['liquid-ff-diesel', 'liquid-ff-agg'], ['liquid-ff-marinefueloil', 'liquid-ff-agg'], ['liquid-ff-gasoline', 'liquid-ff-agg'], ['gaseous-bio', 'gaseous-bio'], ['liquid-bio-diesel', 'liquid-bio-agg'], ['liquid-bio-marinefueloil', 'liquid-bio-agg'], ['liquid-bio-gasoline', 'liquid-bio-agg'], ['hydrogen', 'hydrogen']])
     # Add energy-carrier-agg
@@ -467,12 +467,12 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     out_9369_1 = group_by_dimensions(df=out_9369_1, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'ets-or-not'], aggregation_method='Sum')
     # Rename variable to tra_emissions-by- ets-carrier[MtCO2e]
     out_9373_1 = out_9369_1.rename(columns={'emissions[MtCO2e]': 'tra_emissions-by-ets-carrier[MtCO2e]'})
-    out_1_5 = pd.concat([out_9367_1, out_9373_1.set_index(out_9373_1.index.astype(str) + '_dup')])
-    out_1_4 = pd.concat([out_1_4, out_1_5.set_index(out_1_5.index.astype(str) + '_dup')])
-    out_1_3 = pd.concat([out_1_4, out_1_3.set_index(out_1_3.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_1_3.set_index(out_1_3.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9485_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1_5 = pd.concat([out_9367_1, out_9373_1])
+    out_1_4 = pd.concat([out_1_4, out_1_5])
+    out_1_3 = pd.concat([out_1_4, out_1_3])
+    out_1_2 = pd.concat([out_1_2, out_1_3])
+    out_1 = pd.concat([out_1, out_1_2])
+    out_1 = pd.concat([out_9485_1, out_1])
 
     return out_1, out_3774_1
 

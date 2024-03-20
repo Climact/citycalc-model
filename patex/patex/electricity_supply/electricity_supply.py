@@ -356,7 +356,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_demand_TWh_2 = mcd(input_table_1=network_losses_TWh, input_table_2=network_losses_additional_TWh, operation_selection='x + y', output_name='energy-demand[TWh]')
     # sector = losses
     energy_demand_TWh_2['sector'] = "losses"
-    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
 
     # CO2 production (Carbon Capture)
 
@@ -384,7 +384,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_demand_TWh_2 = use_variable(input_table=industry, selected_variable='energy-demand[TWh]')
     # sector = ind
     energy_demand_TWh_2['sector'] = "ind"
-    out_5843_1 = pd.concat([energy_demand_TWh_2, agriculture.set_index(agriculture.index.astype(str) + '_dup')])
+    out_5843_1 = pd.concat([energy_demand_TWh_2, agriculture])
 
     # CO2 demand (Carbon Capture Use)
 
@@ -399,9 +399,9 @@ def electricity_supply(transport, buildings, industry, agriculture):
     buildings = buildings.loc[~buildings['energy-carrier'].isin(['ambiant'])].copy()
     # sector = tra
     transport['sector'] = "tra"
-    out_1 = pd.concat([transport, buildings.set_index(buildings.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_5843_1.set_index(out_5843_1.index.astype(str) + '_dup')])
-    out_6998_1 = pd.concat([out_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_1 = pd.concat([transport, buildings])
+    out_1 = pd.concat([out_1, out_5843_1])
+    out_6998_1 = pd.concat([out_1, energy_demand_TWh])
     # energy-demand [TWh]
     energy_demand_TWh = export_variable(input_table=out_6998_1, selected_variable='energy-demand[TWh]')
     out_7248_1, out_7248_2 = metanode_7248(port_01=energy_demand_TWh)
@@ -534,7 +534,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     emissions_Mt = use_variable(input_table=emissions_Mt, selected_variable='emissions[Mt]')
     # energy-demand [TWh]
     energy_demand_TWh = use_variable(input_table=out_7248_1, selected_variable='energy-demand[TWh]')
-    out_5960_1 = pd.concat([out_5959_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_5960_1 = pd.concat([out_5959_1, energy_demand_TWh])
     # If missing txt set to "" (way-of-prod for sector = "")
     out_5960_1 = missing_value(df=out_5960_1, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
 
@@ -556,7 +556,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # capex-opex [MEUR]
     out_6429_3 = column_filter(df=out_6429_3, pattern='^.*$')
     # Node 5876
-    out_3 = pd.concat([out_6428_3, out_6429_3.set_index(out_6429_3.index.astype(str) + '_dup')])
+    out_3 = pd.concat([out_6428_3, out_6429_3])
     # Set to 0
     out_3 = missing_value(df=out_3, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
 
@@ -583,7 +583,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     primary_energy_demand_TWh_2 = group_by_dimensions(df=primary_energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'way-of-production', 'primary-energy-carrier', 'sector'], aggregation_method='Sum')
     # primary-energy-demand to energy-demand  and  primary-energy-carrier to energy-carrier
     out_5983_1 = primary_energy_demand_TWh_2.rename(columns={'primary-energy-carrier': 'energy-carrier', 'primary-energy-demand[TWh]': 'energy-demand[TWh]'})
-    out_5982_1 = pd.concat([out_5983_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_5982_1 = pd.concat([out_5983_1, energy_demand_TWh])
 
     # Hydrogen :
     # - energy demand [TWh]
@@ -596,7 +596,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # capex-opex [MEUR]
     out_6430_3 = column_filter(df=out_6430_3, pattern='^.*$')
     # Node 5876
-    out_3 = pd.concat([out_3, out_6430_3.set_index(out_6430_3.index.astype(str) + '_dup')])
+    out_3 = pd.concat([out_3, out_6430_3])
     # Set to 0
     out_3 = missing_value(df=out_3, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
 
@@ -637,7 +637,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_production_TWh = use_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
     # Energy demand [TWh]
     energy_demand_TWh = use_variable(input_table=out_5982_1, selected_variable='energy-demand[TWh]')
-    out_6036_1 = pd.concat([out_6034_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_6036_1 = pd.concat([out_6034_1, energy_demand_TWh])
     out_7083_1, out_7083_2 = metanode_7083(port_01=out_6036_1)
     # energy-demand [TWh]
     energy_demand_TWh = export_variable(input_table=out_7083_2, selected_variable='energy-demand[TWh]')
@@ -664,11 +664,11 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # energy-imported [TWh]
     energy_imported_TWh_3 = use_variable(input_table=energy_imported_TWh_3, selected_variable='energy-imported[TWh]')
     # Node 5876
-    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_3.set_index(energy_imported_TWh_3.index.astype(str) + '_dup')])
+    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_3])
     # energy-imported [TWh]
     energy_imported_TWh_2 = use_variable(input_table=energy_imported_TWh_2, selected_variable='energy-imported[TWh]')
     # Node 5876
-    energy_imported_TWh = pd.concat([energy_imported_TWh_2, energy_imported_TWh.set_index(energy_imported_TWh.index.astype(str) + '_dup')])
+    energy_imported_TWh = pd.concat([energy_imported_TWh_2, energy_imported_TWh])
 
     # Energy Import
     # 
@@ -684,17 +684,17 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9636_1 = direct_air_capture_Mt.rename(columns={'direct-air-capture[Mt]': 'emissions[Mt]'})
     # Add emissions-or-capture (=DAC)
     out_9636_1['emissions-or-capture'] = "DAC"
-    out_1 = pd.concat([out_9635_1, out_9636_1.set_index(out_9636_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9635_1, out_9636_1])
     # energy-production [TWh]
     energy_production_TWh_3 = export_variable(input_table=out_6429_2, selected_variable='energy-production[TWh]')
     # energy-production [TWh]
     energy_production_TWh_3 = use_variable(input_table=energy_production_TWh_3, selected_variable='energy-production[TWh]')
     # Node 5876
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh_3.set_index(energy_production_TWh_3.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh_3])
     # energy-production [TWh]
     energy_production_TWh_2 = use_variable(input_table=energy_production_TWh_2, selected_variable='energy-production[TWh]')
     # Node 5876
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh])
 
     # Electricity :
     # - energy demand [TWh]
@@ -705,7 +705,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # emissions [Mt]
     emissions_Mt_2 = use_variable(input_table=out_9763_7, selected_variable='emissions[Mt]')
     # Node 5876
-    emissions_Mt = pd.concat([emissions_Mt_2, emissions_Mt.set_index(emissions_Mt.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt_2, emissions_Mt])
 
     # Emissions
     # 
@@ -721,7 +721,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     backup_capacity_GW = use_variable(input_table=out_9763_12, selected_variable='backup-capacity[GW]')
     # CC [Mt]
     CC_Mt_2 = use_variable(input_table=out_9763_8, selected_variable='CC[Mt]')
-    CC_Mt_2 = pd.concat([CC_Mt_2, CC_Mt_3.set_index(CC_Mt_3.index.astype(str) + '_dup')])
+    CC_Mt_2 = pd.concat([CC_Mt_2, CC_Mt_3])
 
     # Carbon Capture
     # 
@@ -731,7 +731,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     CC_Mt_3 = use_variable(input_table=CC_Mt_2, selected_variable='CC[Mt]')
     # primary-energy-demand [TWh]
     primary_energy_demand_TWh_2 = use_variable(input_table=out_9763_13, selected_variable='primary-energy-demand[TWh]')
-    primary_energy_demand_TWh = pd.concat([primary_energy_demand_TWh_2, primary_energy_demand_TWh.set_index(primary_energy_demand_TWh.index.astype(str) + '_dup')])
+    primary_energy_demand_TWh = pd.concat([primary_energy_demand_TWh_2, primary_energy_demand_TWh])
     # primary-energy-demand [TWh]
     primary_energy_demand_TWh = use_variable(input_table=primary_energy_demand_TWh, selected_variable='primary-energy-demand[TWh]')
     # primary-energy-demand [TWh]
@@ -741,7 +741,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # primary-energy-demand to energy-demand  and  primary-energy-carrier to energy-carrier
     out_6228_1 = primary_energy_demand_TWh_2.rename(columns={'primary-energy-carrier': 'energy-carrier', 'primary-energy-demand[TWh]': 'energy-demand[TWh]'})
     # Node 5876
-    out_6222_1 = pd.concat([out_6228_1, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    out_6222_1 = pd.concat([out_6228_1, energy_demand_TWh_2])
     out_7084_1, out_7084_2 = metanode_7084(port_01=out_6222_1)
     # energy-demand [TWh]
     energy_demand_TWh = export_variable(input_table=out_7084_2, selected_variable='energy-demand[TWh]')
@@ -782,7 +782,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_6432_1 = column_filter(df=out_6432_1, columns_to_drop=[])
     # primary-energy-demand [TWh]
     primary_energy_demand_TWh_2 = use_variable(input_table=out_6432_9, selected_variable='primary-energy-demand[TWh]')
-    primary_energy_demand_TWh = pd.concat([primary_energy_demand_TWh_2, primary_energy_demand_TWh.set_index(primary_energy_demand_TWh.index.astype(str) + '_dup')])
+    primary_energy_demand_TWh = pd.concat([primary_energy_demand_TWh_2, primary_energy_demand_TWh])
     # primary-energy-demand [TWh]  only for CC
     primary_energy_demand_TWh = use_variable(input_table=primary_energy_demand_TWh, selected_variable='primary-energy-demand[TWh]')
     # Group by  way-of-production (sum)
@@ -792,7 +792,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # CC [Mt]
     CC_Mt_2 = use_variable(input_table=out_6432_8, selected_variable='CC[Mt]')
     # Node 5876
-    CC_Mt_2 = pd.concat([CC_Mt_2, CC_Mt_3.set_index(CC_Mt_3.index.astype(str) + '_dup')])
+    CC_Mt_2 = pd.concat([CC_Mt_2, CC_Mt_3])
     # CC [Mt] from Power
     CC_Mt_2 = use_variable(input_table=CC_Mt_2, selected_variable='CC[Mt]')
 
@@ -804,23 +804,23 @@ def electricity_supply(transport, buildings, industry, agriculture):
     clt_gwp = import_data(trigram='clt', variable_name='clt_gwp', variable_type='CP')
     # Switch variable to double
     gwp_100 = math_formula(df=clt_gwp, convert_to_int=False, replaced_column='gwp-100[-]', splitted='$gwp-100[-]$')
-    CC_Mt = pd.concat([CC_Mt_2, CC_Mt.set_index(CC_Mt.index.astype(str) + '_dup')])
+    CC_Mt = pd.concat([CC_Mt_2, CC_Mt])
     # output = CCS
     out_9621_1 = metanode_9621(port_02=CCU_Mt, port_03=direct_air_capture_Mt, port_01=CC_Mt)
     # emissions [Mt]
     out_9634_1 = out_9621_1.rename(columns={'CCS[Mt]': 'emissions[Mt]'})
     # Add emissions-or-capture (=CCS)
     out_9634_1['emissions-or-capture'] = "CCS"
-    out_1 = pd.concat([out_9634_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9634_1, out_1])
     # emissions [Mt]
     out_9649_1 = CC_Mt.rename(columns={'CC[Mt]': 'emissions[Mt]'})
     # Add emissions-or-capture (=CC)
     out_9649_1['emissions-or-capture'] = "CC"
-    out_1 = pd.concat([out_9649_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9649_1, out_1])
     # emissions [Mt]
     emissions_Mt_2 = use_variable(input_table=out_6432_7, selected_variable='emissions[Mt]')
     # Node 5876
-    emissions_Mt = pd.concat([emissions_Mt_2, emissions_Mt.set_index(emissions_Mt.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt_2, emissions_Mt])
 
     # GAES Emissions
     # 
@@ -846,7 +846,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     ratio_emissions_percent = add_missing_years(df_data=ratio_emissions_percent)
     # emissions[Mt] (replace) = ratio-emissions[%] * emissions[Mt]
     emissions_Mt_2 = mcd(input_table_1=emissions_Mt_2, input_table_2=ratio_emissions_percent, operation_selection='x * y', output_name='emissions[Mt]')
-    emissions_Mt_2 = pd.concat([emissions_Mt, emissions_Mt_2.set_index(emissions_Mt_2.index.astype(str) + '_dup')])
+    emissions_Mt_2 = pd.concat([emissions_Mt, emissions_Mt_2])
 
     # Set ETS / non-ETS status
 
@@ -882,7 +882,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     emissions_Mt = emissions_Mt.loc[~emissions_Mt['emissions-or-capture'].isin(['CC', 'DAC'])].copy()
     # Set NEGATIVE VALUES
     emissions_Mt['emissions[Mt]'] = -1.0*emissions_Mt['emissions[Mt]']
-    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_excluded.set_index(emissions_Mt_excluded.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_excluded])
     # emissions[Mt] (replace) = emissions[Mt] * power-ets-share[-]  LEFT Join If missing ; set to 1
     emissions_Mt_2 = mcd(input_table_1=emissions_Mt_2, input_table_2=power_ets_share_, operation_selection='x * y', output_name='emissions[Mt]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
 
@@ -914,7 +914,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     emissions_Mt_3 = use_variable(input_table=emissions_Mt_2, selected_variable='emissions[Mt]')
     # Add emissions-or-capture
     emissions_Mt_3['emissions-or-capture'] = "emissions"
-    emissions_Mt = pd.concat([emissions_Mt_3, emissions_Mt.set_index(emissions_Mt.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt_3, emissions_Mt])
     # Keep way-of-prod = CHP
     emissions_Mt_3 = emissions_Mt_2.loc[emissions_Mt_2['way-of-production'].isin(['CHP'])].copy()
     emissions_Mt_excluded = emissions_Mt_2.loc[~emissions_Mt_2['way-of-production'].isin(['CHP'])].copy()
@@ -924,8 +924,8 @@ def electricity_supply(transport, buildings, industry, agriculture):
     emissions_Mt_3['sector'] = "electricity"
     # x 0.75 (we consider that 75% of CHP emissions are linked to electricity production)
     emissions_Mt_3['emissions[Mt]'] = emissions_Mt_3['emissions[Mt]']*0.75
-    emissions_Mt_2 = pd.concat([emissions_Mt_3, emissions_Mt_2.set_index(emissions_Mt_2.index.astype(str) + '_dup')])
-    emissions_Mt_2 = pd.concat([emissions_Mt_2, emissions_Mt_excluded.set_index(emissions_Mt_excluded.index.astype(str) + '_dup')])
+    emissions_Mt_2 = pd.concat([emissions_Mt_3, emissions_Mt_2])
+    emissions_Mt_2 = pd.concat([emissions_Mt_2, emissions_Mt_excluded])
     # Group by Country, Years, gaes, way-of-prod (sum)
     emissions_Mt_2 = group_by_dimensions(df=emissions_Mt_2, groupby_dimensions=['Country', 'Years', 'gaes', 'sector'], aggregation_method='Sum')
     # emissions[MtCO2eq] = emissions[Mt] *  gwp[-]
@@ -965,7 +965,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_demand_TWh = use_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # Group by  country, years, sector, way-of-prod
     energy_demand_TWh = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'way-of-production', 'energy-carrier', 'sector'], aggregation_method='Sum')
-    out_6439_1 = pd.concat([out_6438_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_6439_1 = pd.concat([out_6438_1, energy_demand_TWh])
 
     # Material Footprint (fossil fuel) per capita
 
@@ -1018,13 +1018,13 @@ def electricity_supply(transport, buildings, industry, agriculture):
     total_fec_alternative_fuels_share_percent = mcd(input_table_1=energy_demand_TWh_5, input_table_2=energy_demand_TWh_3, operation_selection='x / y', output_name='total-fec-alternative-fuels-share[%]')
     # biomass-share [%]
     total_fec_biomass_share_percent = mcd(input_table_1=energy_demand_TWh_7, input_table_2=energy_demand_TWh_3, operation_selection='x / y', output_name='total-fec-biomass-share[%]')
-    total_fec_share_percent = pd.concat([total_fec_biomass_share_percent, total_fec_alternative_fuels_share_percent.set_index(total_fec_alternative_fuels_share_percent.index.astype(str) + '_dup')])
+    total_fec_share_percent = pd.concat([total_fec_biomass_share_percent, total_fec_alternative_fuels_share_percent])
     # ff-share [%]
     total_fec_ff_share_percent = mcd(input_table_1=energy_demand_TWh_6, input_table_2=energy_demand_TWh_3, operation_selection='x / y', output_name='total-fec-ff-share[%]')
     # electricity-share [%]
     total_fec_electricity_share_percent = mcd(input_table_1=energy_demand_TWh_4, input_table_2=energy_demand_TWh_3, operation_selection='x / y', output_name='total-fec-electricity-share[%]')
-    total_fec_share_percent_2 = pd.concat([total_fec_electricity_share_percent, total_fec_ff_share_percent.set_index(total_fec_ff_share_percent.index.astype(str) + '_dup')])
-    total_fec_share_percent = pd.concat([total_fec_share_percent_2, total_fec_share_percent.set_index(total_fec_share_percent.index.astype(str) + '_dup')])
+    total_fec_share_percent_2 = pd.concat([total_fec_electricity_share_percent, total_fec_ff_share_percent])
+    total_fec_share_percent = pd.concat([total_fec_share_percent_2, total_fec_share_percent])
 
     # For : Bioenergy module
     # - Bio-energy demand (from sector linked to power production)
@@ -1093,7 +1093,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_6651_1_excluded['primary-type'] = "primary"
     # primary-type = non-primary
     out_6651_1 = out_6651_1_2.assign(**{'primary-type': "non-primary"})
-    out_6651_1 = pd.concat([out_6651_1, out_6651_1_excluded.set_index(out_6651_1_excluded.index.astype(str) + '_dup')])
+    out_6651_1 = pd.concat([out_6651_1, out_6651_1_excluded])
 
     # Split : ETS / non-ETS
 
@@ -1120,8 +1120,8 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9495_1_excluded = out_9495_1_excluded_2.assign(**{'sector': "heat-only"})
     # force sector to be equaled to heat-CHP
     out_9495_1_excluded_excluded['sector'] = "heat-CHP"
-    out_9495_1_excluded = pd.concat([out_9495_1_excluded, out_9495_1_excluded_excluded.set_index(out_9495_1_excluded_excluded.index.astype(str) + '_dup')])
-    out_9495_1 = pd.concat([out_9495_1, out_9495_1_excluded.set_index(out_9495_1_excluded.index.astype(str) + '_dup')])
+    out_9495_1_excluded = pd.concat([out_9495_1_excluded, out_9495_1_excluded_excluded])
+    out_9495_1 = pd.concat([out_9495_1, out_9495_1_excluded])
     # Exclude energy-carrier = liquid-syn-.*
     out_9495_1_excluded = out_9495_1.loc[out_9495_1['energy-carrier'].isin(['liquid-syn', 'liquid-syn-diesel', 'liquid-syn-gasoline', 'liquid-syn-kerosene', 'liquid-syn-marinefueloil'])].copy()
     out_9495_1 = out_9495_1.loc[~out_9495_1['energy-carrier'].isin(['liquid-syn', 'liquid-syn-diesel', 'liquid-syn-gasoline', 'liquid-syn-kerosene', 'liquid-syn-marinefueloil'])].copy()
@@ -1132,20 +1132,20 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9495_1 = out_9495_1.loc[~out_9495_1['energy-carrier'].isin(['liquid-bio', 'liquid-bio-diesel', 'liquid-bio-gasoline', 'liquid-bio-kerosene', 'liquid-bio-marinefueloil'])].copy()
     # force energy-carrier to be equaled to liquid-bio
     out_9495_1_excluded_2['energy-carrier'] = "liquid-bio"
-    out_9495_1_excluded = pd.concat([out_9495_1_excluded_2, out_9495_1_excluded.set_index(out_9495_1_excluded.index.astype(str) + '_dup')])
+    out_9495_1_excluded = pd.concat([out_9495_1_excluded_2, out_9495_1_excluded])
     # Exclude energy-carrier = gaseous-ff-.*
     out_9495_1_excluded_2 = out_9495_1.loc[out_9495_1['energy-carrier'].isin(['gaseous-ff', 'gaseous-ff-natural'])].copy()
     out_9495_1 = out_9495_1.loc[~out_9495_1['energy-carrier'].isin(['gaseous-ff', 'gaseous-ff-natural'])].copy()
     # force energy-carrier to be equaled to gaseous-ff
     out_9495_1_excluded_2['energy-carrier'] = "gaseous-ff"
-    out_9495_1_excluded = pd.concat([out_9495_1_excluded_2, out_9495_1_excluded.set_index(out_9495_1_excluded.index.astype(str) + '_dup')])
+    out_9495_1_excluded = pd.concat([out_9495_1_excluded_2, out_9495_1_excluded])
     # Exclude energy-carrier = liquid-ff and liquid-ff-oil
     out_9495_1_excluded_2 = out_9495_1.loc[out_9495_1['energy-carrier'].isin(['liquid-ff-oil', 'liquid-ff'])].copy()
     out_9495_1 = out_9495_1.loc[~out_9495_1['energy-carrier'].isin(['liquid-ff-oil', 'liquid-ff'])].copy()
     # force energy-carrier to be equaled to liquid-ff-oil
     out_9495_1_excluded_2['energy-carrier'] = "liquid-ff-oil"
-    out_9495_1_excluded = pd.concat([out_9495_1_excluded_2, out_9495_1_excluded.set_index(out_9495_1_excluded.index.astype(str) + '_dup')])
-    out_9495_1 = pd.concat([out_9495_1, out_9495_1_excluded.set_index(out_9495_1_excluded.index.astype(str) + '_dup')])
+    out_9495_1_excluded = pd.concat([out_9495_1_excluded_2, out_9495_1_excluded])
+    out_9495_1 = pd.concat([out_9495_1, out_9495_1_excluded])
     out_9495_1_2 = out_9495_1.loc[~out_9495_1['sector'].isin(['refineries'])].copy()
     # Include energy-carrier = fossil fuels  (only fossil fuels are demanded to refineries)
     out_9495_1_2 = out_9495_1_2.loc[out_9495_1_2['energy-carrier'].isin(['solid-ff-coal', 'liquid-ff-diesel', 'liquid-ff-gasoline', 'liquid-ff-kerosene', 'liquid-ff-marinefueloil', 'liquid-ff-oil', 'gaseous-ff'])].copy()
@@ -1186,7 +1186,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9495_1_excluded_excluded = group_by_dimensions(df=out_9495_1_excluded_excluded, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'direct-use'], aggregation_method='Sum')
     # energy-demand-by-direct-use-and-energy-carrier[TWh] graphe 93 (5g Top)
     out_9528_1 = out_9495_1_excluded_excluded.rename(columns={'energy-demand[TWh]': 'energy-demand-by-direct-use-and-energy-carrier[TWh]'})
-    out_1 = pd.concat([out_9528_1, out_9666_1.set_index(out_9666_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9528_1, out_9666_1])
     # Keep energy-carrier = hydrogen (hydrogen demand)
     out_9495_1_excluded_excluded = out_9495_1_excluded_excluded.loc[out_9495_1_excluded_excluded['energy-carrier'].isin(['hydrogen'])].copy()
 
@@ -1211,28 +1211,28 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_demand_TWh_excluded_excluded = energy_demand_TWh_excluded.loc[~energy_demand_TWh_excluded['direct-use'].isin(['for-power-prod'])].copy()
     # Switch sector from hydrogen to hydrogen-for-power
     energy_demand_TWh_excluded = energy_demand_TWh_excluded_2.assign(**{'sector': "hydrogen-for-power-prod"})
-    energy_demand_TWh_excluded = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh_excluded_excluded.set_index(energy_demand_TWh_excluded_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_excluded = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh_excluded_excluded])
     # Switch sector from hydrogen to hydrogen-for-sectors
     energy_demand_TWh_6 = energy_demand_TWh_7.assign(**{'sector': "hydrogen-for-sector"})
-    energy_demand_TWh_6 = pd.concat([energy_demand_TWh_6, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_6 = pd.concat([energy_demand_TWh_6, energy_demand_TWh_excluded])
     # Remove direct-use dimension
     energy_demand_TWh_6 = column_filter(df=energy_demand_TWh_6, columns_to_drop=['direct-use'])
     # elec-demand-by-energy-carrier- and-sector[TWh] graphe 87 (5d Top)
     out_9529_1 = energy_demand_TWh_6.rename(columns={'energy-demand[TWh]': 'elec-demand-by-energy-carrier-and-sector[TWh]'})
-    out_1 = pd.concat([out_9529_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9529_1, out_1])
     # Keep direct-use = for power-prod  (Primary energy demand for energy production)
     out_9495_1 = out_9495_1_2.loc[out_9495_1_2['direct-use'].isin(['for-power-prod'])].copy()
     # Group by  country, years, sector
     out_9495_1 = group_by_dimensions(df=out_9495_1, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # primary-energy-demand-for-power-by-sector[TWh] graphe 86 (5c Top)
     out_9531_1 = out_9495_1.rename(columns={'energy-demand[TWh]': 'primary-energy-demand-for-power-by-sector[TWh]'})
-    out_1 = pd.concat([out_9531_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9530_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9558_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9527_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9526_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9525_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9524_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9531_1, out_1])
+    out_1 = pd.concat([out_9530_1, out_1])
+    out_1 = pd.concat([out_9558_1, out_1])
+    out_1 = pd.concat([out_9527_1, out_1])
+    out_1 = pd.concat([out_9526_1, out_1])
+    out_1 = pd.concat([out_9525_1, out_1])
+    out_1 = pd.concat([out_9524_1, out_1])
     # Keep sector = agr, bld, ind, tran
     energy_demand_TWh_6 = energy_demand_TWh_3.loc[energy_demand_TWh_3['sector'].isin(['agr', 'bld', 'ind', 'tra'])].copy()
 
@@ -1261,7 +1261,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # electrification[%] = energy-demand[TWh] (elec only) / energy-demand[TWh] (total)
     electrification_percent_2 = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=energy_demand_TWh_7, operation_selection='x / y', output_name='electrification[%]')
     # KPI
-    electrification_percent = pd.concat([electrification_percent_2, electrification_percent.set_index(electrification_percent.index.astype(str) + '_dup')])
+    electrification_percent = pd.concat([electrification_percent_2, electrification_percent])
     # electrification [%]
     electrification_percent = export_variable(input_table=electrification_percent, selected_variable='electrification[%]')
 
@@ -1329,7 +1329,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     cal_rate_energy_demand_TWh_2 = export_variable(input_table=out_7084_1, selected_variable='cal_rate_energy-demand[TWh]')
     # cal-rate [%]
     cal_rate_energy_demand_TWh_2 = use_variable(input_table=cal_rate_energy_demand_TWh_2, selected_variable='cal_rate_energy-demand[TWh]')
-    out_7429_1 = pd.concat([cal_rate_energy_demand_TWh_2, out_6432_1.set_index(out_6432_1.index.astype(str) + '_dup')])
+    out_7429_1 = pd.concat([cal_rate_energy_demand_TWh_2, out_6432_1])
 
     # For : Scope 2/3
     # - Energy imported => we split the import by sector according to their energy demand
@@ -1364,10 +1364,10 @@ def electricity_supply(transport, buildings, industry, agriculture):
     sector_share_percent_excluded = sector_share_percent_excluded_2.assign(**{'energy-carrier': "liquid-ff"})
     # force energy-carrier = "gaseous-ff"
     sector_share_percent = sector_share_percent_2.assign(**{'energy-carrier': "gaseous-ff"})
-    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded.set_index(sector_share_percent_excluded.index.astype(str) + '_dup')])
-    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded_excluded.set_index(sector_share_percent_excluded_excluded.index.astype(str) + '_dup')])
-    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded_excluded_excluded.set_index(sector_share_percent_excluded_excluded_excluded.index.astype(str) + '_dup')])
-    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded_excluded_excluded_excluded.set_index(sector_share_percent_excluded_excluded_excluded_excluded.index.astype(str) + '_dup')])
+    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded])
+    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded_excluded])
+    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded_excluded_excluded])
+    sector_share_percent = pd.concat([sector_share_percent, sector_share_percent_excluded_excluded_excluded_excluded])
     # Sum on all dimensions to avoid duplicates
     sector_share_percent = group_by_dimensions(df=sector_share_percent, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'sector'], aggregation_method='Sum')
 
@@ -1387,17 +1387,17 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9543_1_excluded = out_9543_1.loc[~out_9543_1['primary-energy-carrier'].isin(['gaseous-bio', 'gaseous-ff-natural', 'liquid-bio', 'liquid-ff', 'solid-biomass', 'solid-waste-nonres', 'solid-waste-res', 'solid-ff-coal'])].copy()
     # Add primary-carrier as carrier
     out_9543_1_excluded['primary-energy-carrier'] = "carrier"
-    out_9543_1 = pd.concat([out_9543_1_2, out_9543_1_excluded.set_index(out_9543_1_excluded.index.astype(str) + '_dup')])
+    out_9543_1 = pd.concat([out_9543_1_2, out_9543_1_excluded])
     # energy-imported[TWh]
     energy_imported_TWh_3 = export_variable(input_table=out_9763_3, selected_variable='energy-imported[TWh]')
     # energy-imported [TWh]
     energy_imported_TWh_3 = use_variable(input_table=energy_imported_TWh_3, selected_variable='energy-imported[TWh]')
     # Node 5876
-    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_3.set_index(energy_imported_TWh_3.index.astype(str) + '_dup')])
+    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_3])
     # energy-imported [TWh]
     energy_imported_TWh_2 = use_variable(input_table=energy_imported_TWh_2, selected_variable='energy-imported[TWh]')
     # Node 5876
-    energy_imported_TWh = pd.concat([energy_imported_TWh_2, energy_imported_TWh.set_index(energy_imported_TWh.index.astype(str) + '_dup')])
+    energy_imported_TWh = pd.concat([energy_imported_TWh_2, energy_imported_TWh])
     # If missing txt set to "" (energy-carrier for refineries and energy-carrier-categories for other tahn syn and refineries)
     energy_imported_TWh = missing_value(df=energy_imported_TWh, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     # energy-imported [TWh]
@@ -1427,7 +1427,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9353_1 = group_by_dimensions(df=out_9353_1, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # Rename variable to elec-energy-exported[TWh]
     out_9355_1 = out_9353_1.rename(columns={'energy-exported[TWh]': 'elec-energy-exported[TWh]'})
-    out_1_3 = pd.concat([out_9350_1, out_9355_1.set_index(out_9355_1.index.astype(str) + '_dup')])
+    out_1_3 = pd.concat([out_9350_1, out_9355_1])
     # energy-import[TWh] = val if > 0 else : 0
     mask = energy_imported_TWh['energy-imported[TWh]'] < 0
     energy_imported_TWh.loc[mask, 'energy-imported[TWh]'] =  0
@@ -1445,9 +1445,9 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_imported_TWh_excluded_2 = energy_imported_TWh_excluded_2.loc[~energy_imported_TWh_excluded_2['energy-carrier'].isin(['gaseous-syn', 'liquid-syn'])].copy()
     energy_imported_TWh_excluded_2 = string_manipulation(df=energy_imported_TWh_excluded_2, expression='join($energy-carrier-category$, "-ff")', var_name='energy-carrier')
     energy_imported_TWh_2 = string_manipulation(df=energy_imported_TWh_3, expression='join("liquid-syn")', var_name='energy-carrier')
-    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_excluded_2, energy_imported_TWh_2.set_index(energy_imported_TWh_2.index.astype(str) + '_dup')])
-    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_excluded_excluded.set_index(energy_imported_TWh_excluded_excluded.index.astype(str) + '_dup')])
-    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_excluded.set_index(energy_imported_TWh_excluded.index.astype(str) + '_dup')])
+    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_excluded_2, energy_imported_TWh_2])
+    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_excluded_excluded])
+    energy_imported_TWh_2 = pd.concat([energy_imported_TWh_2, energy_imported_TWh_excluded])
     # Sum on all dimensions to avoid duplicates
     energy_imported_TWh_2 = group_by_dimensions(df=energy_imported_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'energy-carrier-category'], aggregation_method='Sum')
     # Remove energy-carrier-category
@@ -1474,8 +1474,8 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_imported_TWh = energy_imported_TWh.loc[energy_imported_TWh['sector'].isin(['refineries'])].copy()
     # Rename variable to fossil-energy-imported[TWh]
     out_9342_1 = energy_imported_TWh.rename(columns={'energy-imported[TWh]': 'fossil-energy-imported[TWh]'})
-    out_1_2 = pd.concat([out_9342_1, out_9348_1.set_index(out_9348_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_1_3.set_index(out_1_3.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9342_1, out_9348_1])
+    out_1_2 = pd.concat([out_1_2, out_1_3])
 
     # For : Pathway Explorer
     # - New / total / existing capacities
@@ -1488,7 +1488,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_9262_1 = total_capacities_MW.rename(columns={'total-capacities[MW]': 'total-capacities-by-ets[MW]'})
     # Group by Country, Years, way-of-prod (sum)
     total_capacities_MW = group_by_dimensions(df=total_capacities_MW, groupby_dimensions=['Country', 'Years', 'way-of-production'], aggregation_method='Sum')
-    out_9263_1 = pd.concat([out_9262_1, total_capacities_MW.set_index(total_capacities_MW.index.astype(str) + '_dup')])
+    out_9263_1 = pd.concat([out_9262_1, total_capacities_MW])
 
     # Installed renewable energy capacity per capita
 
@@ -1505,7 +1505,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # RES-cap-total-per-cap[W/cap]
     RES_cap_total_per_cap_W_per_cap = export_variable(input_table=RES_cap_total_per_cap_W_per_cap, selected_variable='RES-cap-total-per-cap[W/cap]')
     # KPI
-    per_cap_per_cap = pd.concat([RES_cap_total_per_cap_W_per_cap, ff_demand_per_cap_MWh_per_cap.set_index(ff_demand_per_cap_MWh_per_cap.index.astype(str) + '_dup')])
+    per_cap_per_cap = pd.concat([RES_cap_total_per_cap_W_per_cap, ff_demand_per_cap_MWh_per_cap])
     # new-cum-capacities [GW]
     cum_new_capacities_GW = use_variable(input_table=out_9763_10, selected_variable='cum-new-capacities[GW]')
     # Unit conversion GW to MW
@@ -1556,13 +1556,13 @@ def electricity_supply(transport, buildings, industry, agriculture):
     existing_capacities_GW = use_variable(input_table=out_9763_14, selected_variable='existing-capacities[GW]')
     # Unit conversion GW to MW
     existing_capacities_MW = existing_capacities_GW.drop(columns='existing-capacities[GW]').assign(**{'existing-capacities[MW]': existing_capacities_GW['existing-capacities[GW]'] * 1000.0})
-    out_9264_1 = pd.concat([out_9263_1, existing_capacities_MW.set_index(existing_capacities_MW.index.astype(str) + '_dup')])
-    out_9265_1 = pd.concat([out_9264_1, cum_new_capacities_MW.set_index(cum_new_capacities_MW.index.astype(str) + '_dup')])
-    out_9669_1 = pd.concat([out_9265_1, new_capacities_GW.set_index(new_capacities_GW.index.astype(str) + '_dup')])
-    out_9225_1 = pd.concat([capacity_factor_percent, out_9669_1.set_index(out_9669_1.index.astype(str) + '_dup')])
-    out_9266_1 = pd.concat([out_9225_1, backup_capacity_GW.set_index(backup_capacity_GW.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9266_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_9264_1 = pd.concat([out_9263_1, existing_capacities_MW])
+    out_9265_1 = pd.concat([out_9264_1, cum_new_capacities_MW])
+    out_9669_1 = pd.concat([out_9265_1, new_capacities_GW])
+    out_9225_1 = pd.concat([capacity_factor_percent, out_9669_1])
+    out_9266_1 = pd.concat([out_9225_1, backup_capacity_GW])
+    out_1 = pd.concat([out_9266_1, out_1])
+    out_1 = pd.concat([out_1_2, out_1])
     # Calibration (primary energy demand & emissions)
     out_9763_1 = column_filter(df=out_9763_1, columns_to_drop=[])
     # Calibration (primary energy demand & emissions)
@@ -1572,13 +1572,13 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # capex-opex [MEUR]
     out_9763_5 = column_filter(df=out_9763_5, pattern='^.*$')
     # Node 5876
-    out = pd.concat([out_3, out_9763_5.set_index(out_9763_5.index.astype(str) + '_dup')])
+    out = pd.concat([out_3, out_9763_5])
     # Set to 0
     out = missing_value(df=out, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
     # capex-opex [MEUR]
     out = column_filter(df=out, pattern='^.*$')
     # Node 5876
-    out_2 = pd.concat([out, out_6432_5.set_index(out_6432_5.index.astype(str) + '_dup')])
+    out_2 = pd.concat([out, out_6432_5])
 
     # Concatenate of a same variable
     # coming from differents sources
@@ -1623,14 +1623,14 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_7 = column_rename_regex(df=out_7, search_string='(.*)(\\[.*)', replace_string='$1-by-way-of-prod$2')
     # Group by  Country, Years, sector (sum)
     out_6 = group_by_dimensions(df=out_6, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
-    out_6 = pd.concat([out_6, out_7.set_index(out_7.index.astype(str) + '_dup')])
+    out_6 = pd.concat([out_6, out_7])
     # Keep sector = heat
     out_5 = out_5.loc[out_5['sector'].isin(['heat'])].copy()
     # capex-opex[MEUR]
     out_2 = column_filter(df=out_2, pattern='^.*$')
     # Group by  Country, Years, cost-user (sum)
     out_2 = group_by_dimensions(df=out_2, groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')
-    out_2 = pd.concat([out_2, out_6.set_index(out_6.index.astype(str) + '_dup')])
+    out_2 = pd.concat([out_2, out_6])
     # energy-production[TWh]
     energy_production_TWh_3 = export_variable(input_table=out_9763_4, selected_variable='energy-production[TWh]')
 
@@ -1643,11 +1643,11 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # energy-production [TWh]
     energy_production_TWh_2 = use_variable(input_table=energy_production_TWh_2, selected_variable='energy-production[TWh]')
     # Node 5876
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh_3.set_index(energy_production_TWh_3.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh_3])
     # energy-production [TWh]
     energy_production_TWh_2 = use_variable(input_table=energy_production_TWh_2, selected_variable='energy-production[TWh]')
     # Node 5876
-    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh])
 
     # Share of renewable energy in final energy consumption
     # 
@@ -1678,11 +1678,11 @@ def electricity_supply(transport, buildings, industry, agriculture):
     share_of_coal_in_production_percent = export_variable(input_table=share_of_coal_in_production_percent, selected_variable='share-of-coal-in-production[%]')
     out_9702_1 = metanode_9702(port_01=energy_demand_TWh, port_02=energy_production_TWh_2)
     # KPI
-    out_9862_1 = pd.concat([per_cap_per_cap, out_9702_1.set_index(out_9702_1.index.astype(str) + '_dup')])
+    out_9862_1 = pd.concat([per_cap_per_cap, out_9702_1])
     # KPI
-    out_9729_1 = pd.concat([out_9862_1, electrification_percent.set_index(electrification_percent.index.astype(str) + '_dup')])
+    out_9729_1 = pd.concat([out_9862_1, electrification_percent])
     # KPI
-    out_9730_1 = pd.concat([out_9729_1, share_of_coal_in_production_percent.set_index(share_of_coal_in_production_percent.index.astype(str) + '_dup')])
+    out_9730_1 = pd.concat([out_9729_1, share_of_coal_in_production_percent])
     # Keep energy-carrier = electricity
     energy_production_TWh_3 = energy_production_TWh.loc[energy_production_TWh['energy-carrier'].isin(['electricity'])].copy()
     energy_production_TWh_excluded_2 = energy_production_TWh.loc[~energy_production_TWh['energy-carrier'].isin(['electricity'])].copy()
@@ -1691,8 +1691,8 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_production_TWh_excluded = energy_production_TWh_3.loc[~energy_production_TWh_3['way-of-production'].isin(['CHP'])].copy()
     # sector -> electricity
     energy_production_TWh_3 = energy_production_TWh_4.assign(**{'sector': "electricity"})
-    energy_production_TWh_3 = pd.concat([energy_production_TWh_3, energy_production_TWh_excluded.set_index(energy_production_TWh_excluded.index.astype(str) + '_dup')])
-    energy_production_TWh_3 = pd.concat([energy_production_TWh_3, energy_production_TWh_excluded_2.set_index(energy_production_TWh_excluded_2.index.astype(str) + '_dup')])
+    energy_production_TWh_3 = pd.concat([energy_production_TWh_3, energy_production_TWh_excluded])
+    energy_production_TWh_3 = pd.concat([energy_production_TWh_3, energy_production_TWh_excluded_2])
     # Group by Country, Years, sector (sum)
     energy_production_TWh_4 = group_by_dimensions(df=energy_production_TWh_3, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # carbon-intensity[MtCO2/TWh] = emissions[MtCO2eq] / energy-production[TWh]
@@ -1702,9 +1702,9 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # carbon-intensity [gCO2/kWh]
     carbon_intensity_gCO2eq_per_kWh = export_variable(input_table=carbon_intensity_gCO2eq_per_kWh, selected_variable='carbon-intensity[gCO2eq/kWh]')
     # KPI
-    out_9758_1 = pd.concat([out_9730_1, carbon_intensity_gCO2eq_per_kWh.set_index(carbon_intensity_gCO2eq_per_kWh.index.astype(str) + '_dup')])
+    out_9758_1 = pd.concat([out_9730_1, carbon_intensity_gCO2eq_per_kWh])
     # KPI
-    out_9721_1 = pd.concat([out_9758_1, total_fec_share_percent.set_index(total_fec_share_percent.index.astype(str) + '_dup')])
+    out_9721_1 = pd.concat([out_9758_1, total_fec_share_percent])
 
     # Create energy-carrier/sector table mapping
 
@@ -1720,7 +1720,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # Group by country, years, energy-carrier (sum)
     carbon_intensity_gCO2eq_per_kWh = group_by_dimensions(df=carbon_intensity_gCO2eq_per_kWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # For climate
-    out_9773_1 = pd.concat([carbon_intensity_gCO2eq_per_kWh, emissions_Mt.set_index(emissions_Mt.index.astype(str) + '_dup')])
+    out_9773_1 = pd.concat([carbon_intensity_gCO2eq_per_kWh, emissions_Mt])
     # Module = Climate
     out_9773_1 = column_filter(df=out_9773_1, pattern='^.*$')
 
@@ -1740,7 +1740,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_production_TWh_5 = energy_production_TWh.loc[~energy_production_TWh['energy-carrier'].isin(['liquid-syn', 'liquid-syn-diesel', 'liquid-syn-gasoline', 'liquid-syn-kerosene', 'liquid-syn-marinefueloil'])].copy()
     # force energy-carrier to be equaled to liquid-syn
     energy_production_TWh_excluded['energy-carrier'] = "liquid-syn"
-    energy_production_TWh_6 = pd.concat([energy_production_TWh_5, energy_production_TWh_excluded.set_index(energy_production_TWh_excluded.index.astype(str) + '_dup')])
+    energy_production_TWh_6 = pd.concat([energy_production_TWh_5, energy_production_TWh_excluded])
     # Keep energy-carrier = gaseous-syn, liquid-syn, H2, heat (excluding electricity)
     energy_production_TWh_5 = energy_production_TWh_6.loc[energy_production_TWh_6['energy-carrier'].isin(['heat', 'gaseous-syn', 'hydrogen', 'liquid-syn'])].copy()
     energy_production_TWh_excluded = energy_production_TWh_6.loc[~energy_production_TWh_6['energy-carrier'].isin(['heat', 'gaseous-syn', 'hydrogen', 'liquid-syn'])].copy()
@@ -1751,8 +1751,8 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # net-energy-production-by- carrier-primary- carrier-way-of-prod[TWh]
     out_9548_1 = energy_production_TWh_excluded.rename(columns={'energy-production[TWh]': 'net-energy-production-by-carrier-primary-carrier-way-of-prod[TWh]'})
     # graphes 89 et 90 5e (Top and bottom)  + graphe 88 = aggrégation des catégories ici  + graphe 14 (idem)
-    out_1_2 = pd.concat([out_9548_1, out_9543_1.set_index(out_9543_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_9546_1.set_index(out_9546_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9548_1, out_9543_1])
+    out_1_2 = pd.concat([out_1_2, out_9546_1])
     # Keep energy-carrier = heat (we want more granulo forthis sector)
     energy_production_TWh_6 = energy_production_TWh_5.loc[energy_production_TWh_5['energy-carrier'].isin(['heat'])].copy()
     # Group by  country, years, energyc-arrier way-of-prod, primary-energy-carrier
@@ -1763,10 +1763,10 @@ def electricity_supply(transport, buildings, industry, agriculture):
     energy_production_TWh_5 = group_by_dimensions(df=energy_production_TWh_5, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # energy-production-by- sector [TWh]  graph 92 (5f Bottom)
     out_9550_1 = energy_production_TWh_5.rename(columns={'energy-production[TWh]': 'energy-production-by-sector[TWh]'})
-    out_1_2 = pd.concat([out_9550_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_9553_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_2 = pd.concat([out_1, out_2.set_index(out_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9550_1, out_1_2])
+    out_1_2 = pd.concat([out_9553_1, out_1_2])
+    out_1 = pd.concat([out_1_2, out_1])
+    out_2 = pd.concat([out_1, out_2])
     # Keep only energy-carrier electricity
     energy_production_TWh_2 = energy_production_TWh_2.loc[energy_production_TWh_2['energy-carrier'].isin(['electricity'])].copy()
     out_6469_1, out_6469_2, out_6469_3 = metanode_6469(port_04=primary_costs_MEUR_2, port_01=energy_demand_TWh_6, port_02=energy_production_TWh_2, port_03=out)
@@ -1775,7 +1775,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # fuel-price [MEUR/TWh]
     fuel_price_MEUR_per_TWh_2 = use_variable(input_table=fuel_price_MEUR_per_TWh_2, selected_variable='fuel-price[MEUR/TWh]')
     # Node 5876
-    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh.set_index(fuel_price_MEUR_per_TWh.index.astype(str) + '_dup')])
+    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh])
 
     # Fuel Price
     # 
@@ -1796,7 +1796,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # final-energy-costs [MEUR]
     final_energy_costs_MEUR_2 = use_variable(input_table=final_energy_costs_MEUR, selected_variable='final-energy-costs[MEUR]')
     # Node 5876
-    final_energy_costs_MEUR_2 = pd.concat([final_energy_costs_MEUR_2, final_energy_costs_MEUR_3.set_index(final_energy_costs_MEUR_3.index.astype(str) + '_dup')])
+    final_energy_costs_MEUR_2 = pd.concat([final_energy_costs_MEUR_2, final_energy_costs_MEUR_3])
 
     # Final Energy Costs
     # 
@@ -1808,7 +1808,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     final_energy_costs_MEUR = group_by_dimensions(df=final_energy_costs_MEUR, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # final-energy-costs to primary-costs
     out_6506_1 = final_energy_costs_MEUR.rename(columns={'final-energy-costs[MEUR]': 'primary-costs[MEUR]'})
-    out_6505_1 = pd.concat([primary_costs_MEUR, out_6506_1.set_index(out_6506_1.index.astype(str) + '_dup')])
+    out_6505_1 = pd.concat([primary_costs_MEUR, out_6506_1])
     # primary-costs [MEUR]
     primary_costs_MEUR = use_variable(input_table=out_6505_1, selected_variable='primary-costs[MEUR]')
     # Keep only sector hydrogen
@@ -1823,7 +1823,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # fuel-price [MEUR/TWh]
     fuel_price_MEUR_per_TWh_2 = use_variable(input_table=fuel_price_MEUR_per_TWh_2, selected_variable='fuel-price[MEUR/TWh]')
     # Node 5876
-    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh.set_index(fuel_price_MEUR_per_TWh.index.astype(str) + '_dup')])
+    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh])
 
     # Fuel Price
     # 
@@ -1836,7 +1836,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # final-energy-costs [MEUR]
     final_energy_costs_MEUR_3 = use_variable(input_table=final_energy_costs_MEUR, selected_variable='final-energy-costs[MEUR]')
     # Node 5876
-    final_energy_costs_MEUR_2 = pd.concat([final_energy_costs_MEUR_3, final_energy_costs_MEUR_2.set_index(final_energy_costs_MEUR_2.index.astype(str) + '_dup')])
+    final_energy_costs_MEUR_2 = pd.concat([final_energy_costs_MEUR_3, final_energy_costs_MEUR_2])
 
     # Final Energy Costs
     # 
@@ -1848,7 +1848,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     final_energy_costs_MEUR = group_by_dimensions(df=final_energy_costs_MEUR, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # final-energy-costs to primary-costs
     out_6507_1 = final_energy_costs_MEUR.rename(columns={'final-energy-costs[MEUR]': 'primary-costs[MEUR]'})
-    out_6508_1 = pd.concat([out_6507_1, primary_costs_MEUR.set_index(primary_costs_MEUR.index.astype(str) + '_dup')])
+    out_6508_1 = pd.concat([out_6507_1, primary_costs_MEUR])
     # primary-costs [MEUR]
     primary_costs_MEUR = use_variable(input_table=out_6508_1, selected_variable='primary-costs[MEUR]')
     # Keep only energy-carrier syn fuels
@@ -1859,7 +1859,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # fuel-price [MEUR/TWh]
     fuel_price_MEUR_per_TWh_2 = use_variable(input_table=fuel_price_MEUR_per_TWh_2, selected_variable='fuel-price[MEUR/TWh]')
     # Node 5876
-    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh.set_index(fuel_price_MEUR_per_TWh.index.astype(str) + '_dup')])
+    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh])
 
     # Fuel Price
     # 
@@ -1872,7 +1872,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # final-energy-costs [MEUR]
     final_energy_costs_MEUR_3 = use_variable(input_table=final_energy_costs_MEUR, selected_variable='final-energy-costs[MEUR]')
     # Node 5876
-    final_energy_costs_MEUR_2 = pd.concat([final_energy_costs_MEUR_3, final_energy_costs_MEUR_2.set_index(final_energy_costs_MEUR_2.index.astype(str) + '_dup')])
+    final_energy_costs_MEUR_2 = pd.concat([final_energy_costs_MEUR_3, final_energy_costs_MEUR_2])
 
     # Final Energy Costs
     # 
@@ -1887,7 +1887,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     final_energy_costs_MEUR = group_by_dimensions(df=final_energy_costs_MEUR, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # final-energy-costs to primary-costs
     out_6509_1 = final_energy_costs_MEUR.rename(columns={'final-energy-costs[MEUR]': 'primary-costs[MEUR]'})
-    out_6510_1 = pd.concat([out_6509_1, primary_costs_MEUR.set_index(primary_costs_MEUR.index.astype(str) + '_dup')])
+    out_6510_1 = pd.concat([out_6509_1, primary_costs_MEUR])
     # primary-costs [MEUR]
     primary_costs_MEUR = use_variable(input_table=out_6510_1, selected_variable='primary-costs[MEUR]')
     # energy-production [TWh]
@@ -1900,7 +1900,7 @@ def electricity_supply(transport, buildings, industry, agriculture):
     # fuel-price [MEUR/TWh]
     fuel_price_MEUR_per_TWh_2 = use_variable(input_table=fuel_price_MEUR_per_TWh_2, selected_variable='fuel-price[MEUR/TWh]')
     # Node 5876
-    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh.set_index(fuel_price_MEUR_per_TWh.index.astype(str) + '_dup')])
+    fuel_price_MEUR_per_TWh = pd.concat([fuel_price_MEUR_per_TWh_2, fuel_price_MEUR_per_TWh])
     # fuel-price [MEUR/TWh]
     fuel_price_MEUR_per_TWh = export_variable(input_table=fuel_price_MEUR_per_TWh, selected_variable='fuel-price[MEUR/TWh]')
 
@@ -1911,13 +1911,13 @@ def electricity_supply(transport, buildings, industry, agriculture):
     fuel_price_MEUR_per_TWh = use_variable(input_table=fuel_price_MEUR_per_TWh, selected_variable='fuel-price[MEUR/TWh]')
     # Keep elec, efuels, hydrogen and heat
     fuel_price_MEUR_per_TWh = fuel_price_MEUR_per_TWh.loc[fuel_price_MEUR_per_TWh['energy-carrier'].isin(['heat', 'synfuels', 'hydrogen', 'electricity'])].copy()
-    per = pd.concat([electricity_COE_EUR_per_MWh, fuel_price_MEUR_per_TWh.set_index(fuel_price_MEUR_per_TWh.index.astype(str) + '_dup')])
+    per = pd.concat([electricity_COE_EUR_per_MWh, fuel_price_MEUR_per_TWh])
     # final-energy-costs [MEUR]
     final_energy_costs_MEUR = export_variable(input_table=out_6514_1, selected_variable='final-energy-costs[MEUR]')
     # final-energy-costs [MEUR]
     final_energy_costs_MEUR = use_variable(input_table=final_energy_costs_MEUR, selected_variable='final-energy-costs[MEUR]')
     # Node 5876
-    final_energy_costs_MEUR = pd.concat([final_energy_costs_MEUR, final_energy_costs_MEUR_2.set_index(final_energy_costs_MEUR_2.index.astype(str) + '_dup')])
+    final_energy_costs_MEUR = pd.concat([final_energy_costs_MEUR, final_energy_costs_MEUR_2])
     # final-energy-costs [MEUR]
     final_energy_costs_MEUR = export_variable(input_table=final_energy_costs_MEUR, selected_variable='final-energy-costs[MEUR]')
     # If missing txt set to "" (efuels => way-of-prod and energy-carrier-cat if non efuels)
@@ -1948,20 +1948,20 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_7313_1 = out_7313_1.loc[~out_7313_1['energy-carrier'].isin(['liquid-bio', 'liquid-bio-diesel', 'liquid-bio-gasoline', 'liquid-bio-kerosene', 'liquid-bio-marinefueloil'])].copy()
     # force energy-carrier to be equaled to liquid-bio
     out_7313_1_excluded_2['energy-carrier'] = "liquid-bio"
-    out_7313_1_excluded = pd.concat([out_7313_1_excluded_2, out_7313_1_excluded.set_index(out_7313_1_excluded.index.astype(str) + '_dup')])
+    out_7313_1_excluded = pd.concat([out_7313_1_excluded_2, out_7313_1_excluded])
     # Exclude energy-carrier = gaseous-ff-.*
     out_7313_1_excluded_2 = out_7313_1.loc[out_7313_1['energy-carrier'].isin(['gaseous-ff', 'gaseous-ff-natural'])].copy()
     out_7313_1 = out_7313_1.loc[~out_7313_1['energy-carrier'].isin(['gaseous-ff', 'gaseous-ff-natural'])].copy()
     # force energy-carrier to be equaled to gaseous-ff
     out_7313_1_excluded_2['energy-carrier'] = "gaseous-ff"
-    out_7313_1_excluded = pd.concat([out_7313_1_excluded_2, out_7313_1_excluded.set_index(out_7313_1_excluded.index.astype(str) + '_dup')])
+    out_7313_1_excluded = pd.concat([out_7313_1_excluded_2, out_7313_1_excluded])
     # Exclude energy-carrier = all liquid-ff excluding diesel and gasoline
     out_7313_1_excluded_2 = out_7313_1.loc[out_7313_1['energy-carrier'].isin(['liquid-ff-crudeoil', 'liquid-ff-marinefueloil', 'liquid-ff-oil', 'liquid-ff', 'liquid-ff-kerosene'])].copy()
     out_7313_1 = out_7313_1.loc[~out_7313_1['energy-carrier'].isin(['liquid-ff-crudeoil', 'liquid-ff-marinefueloil', 'liquid-ff-oil', 'liquid-ff', 'liquid-ff-kerosene'])].copy()
     # force energy-carrier to be equaled to liquid-ff-oil
     out_7313_1_excluded_2['energy-carrier'] = "liquid-ff-oil"
-    out_7313_1_excluded = pd.concat([out_7313_1_excluded_2, out_7313_1_excluded.set_index(out_7313_1_excluded.index.astype(str) + '_dup')])
-    out_7313_1 = pd.concat([out_7313_1, out_7313_1_excluded.set_index(out_7313_1_excluded.index.astype(str) + '_dup')])
+    out_7313_1_excluded = pd.concat([out_7313_1_excluded_2, out_7313_1_excluded])
+    out_7313_1 = pd.concat([out_7313_1, out_7313_1_excluded])
     # Group by energy-carrier, sector (sum) graphs 2g, 3j, 4t 5q, 6g
     out_7313_1 = group_by_dimensions(df=out_7313_1, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'sector'], aggregation_method='Sum')
     # fuel-costs-by- energy-carrier-sector[MEUR]
@@ -1974,21 +1974,21 @@ def electricity_supply(transport, buildings, industry, agriculture):
     out_7313_1 = group_by_dimensions(df=out_7313_1, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # fuel-costs-by- sector[MEUR]
     out_9582_1 = out_7313_1.rename(columns={'final-energy-costs[MEUR]': 'fuel-costs-by-sector[MEUR]'})
-    out_1 = pd.concat([out_9582_1, out_9583_1.set_index(out_9583_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9581_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
-    out_9427_1 = pd.concat([out_1, per.set_index(per.index.astype(str) + '_dup')])
-    out = pd.concat([out_2, out_9427_1.set_index(out_9427_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9582_1, out_9583_1])
+    out_1 = pd.concat([out_9581_1, out_1])
+    out_9427_1 = pd.concat([out_1, per])
+    out = pd.concat([out_2, out_9427_1])
     # Add KPI's
-    out = pd.concat([out_9721_1, out.set_index(out.index.astype(str) + '_dup')])
+    out = pd.concat([out_9721_1, out])
     out_9382_1 = add_trigram(module_name=module_name, df=out)
     # Module = Pathway Explorer + Costs  + KPIs
     out_9382_1 = column_filter(df=out_9382_1, pattern='^.*$')
     # Calibration (enery-demand)
     cal_rate_energy_demand_TWh_2 = export_variable(input_table=out_7248_2, selected_variable='cal_rate_energy-demand[TWh]')
-    out_9590_1 = pd.concat([out_6428_6, cal_rate_energy_demand_TWh_2.set_index(cal_rate_energy_demand_TWh_2.index.astype(str) + '_dup')])
-    out_9223_1 = pd.concat([out_9590_1, cal_rate_energy_demand_TWh.set_index(cal_rate_energy_demand_TWh.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9223_1, out_9763_1.set_index(out_9763_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_7429_1.set_index(out_7429_1.index.astype(str) + '_dup')])
+    out_9590_1 = pd.concat([out_6428_6, cal_rate_energy_demand_TWh_2])
+    out_9223_1 = pd.concat([out_9590_1, cal_rate_energy_demand_TWh])
+    out_1 = pd.concat([out_9223_1, out_9763_1])
+    out_1 = pd.concat([out_1, out_7429_1])
     # Module = CALIBRATION
     out_1 = column_filter(df=out_1, pattern='^.*$')
 

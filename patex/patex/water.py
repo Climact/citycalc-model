@@ -73,7 +73,7 @@ def water(lifestyle, industry, agriculture, power):
     water_demand_m3_3 = group_by_dimensions(df=water_demand_m3, groupby_dimensions=['Country', 'Years', 'cooling-technology', 'water-use', 'way-of-production'], aggregation_method='Sum')
     # Group by  Country, Years, water-use (sum)
     water_demand_m3 = group_by_dimensions(df=water_demand_m3, groupby_dimensions=['Country', 'Years', 'water-use'], aggregation_method='Sum')
-    water_demand_m3_2 = pd.concat([water_demand_m3, water_demand_m3_2.set_index(water_demand_m3_2.index.astype(str) + '_dup')])
+    water_demand_m3_2 = pd.concat([water_demand_m3, water_demand_m3_2])
     # ratio-water-per-tech[%] = water-demand[m3] full details * water-demand[m3] by Country, Years
     ratio_water_per_tech_percent = mcd(input_table_1=water_demand_m3, input_table_2=water_demand_m3_3, operation_selection='y / x', output_name='ratio-water-per-tech[%]')
     # Division by 0 create NaN => replace them by real 0 to avoid error
@@ -101,21 +101,21 @@ def water(lifestyle, industry, agriculture, power):
     water_demand_m3 = mcd(input_table_1=livestock_water_requirement_m3_per_unit, input_table_2=livestock_population_lsu, operation_selection='x * y', output_name='water-demand[m3]')
     # Group by  Country, Years, water-use (sum)
     water_demand_m3 = group_by_dimensions(df=water_demand_m3, groupby_dimensions=['Country', 'Years', 'water-use'], aggregation_method='Sum')
-    water_demand_m3 = pd.concat([water_demand_m3, water_demand_m3_2.set_index(water_demand_m3_2.index.astype(str) + '_dup')])
+    water_demand_m3 = pd.concat([water_demand_m3, water_demand_m3_2])
     # Same as last available year
     irrigation_water_requirement_m3_per_unit = add_missing_years(df_data=irrigation_water_requirement_m3_per_unit)
     # water-demand[m3] = domestic-crop-production [kcal] * irrigation-water-requirement [m3/unit]
     water_demand_m3_2 = mcd(input_table_1=irrigation_water_requirement_m3_per_unit, input_table_2=domestic_crop_production_kcal, operation_selection='x * y', output_name='water-demand[m3]')
     # Group by  Country, Years, water-use (sum)
     water_demand_m3_2 = group_by_dimensions(df=water_demand_m3_2, groupby_dimensions=['Country', 'Years', 'water-use'], aggregation_method='Sum')
-    water_demand_m3 = pd.concat([water_demand_m3_2, water_demand_m3.set_index(water_demand_m3.index.astype(str) + '_dup')])
+    water_demand_m3 = pd.concat([water_demand_m3_2, water_demand_m3])
     # Same as last available year
     water_requirement_m3_per_unit = add_missing_years(df_data=water_requirement_m3_per_unit)
     # water-demand[m3] = populatio[cap] * water-requirement [m3/unit]
     water_demand_m3_2 = mcd(input_table_1=water_requirement_m3_per_unit, input_table_2=population_cap, operation_selection='x * y', output_name='water-demand[m3]')
     # Group by  Country, Years, water-use (sum)
     water_demand_m3_2 = group_by_dimensions(df=water_demand_m3_2, groupby_dimensions=['Country', 'Years', 'water-use'], aggregation_method='Sum')
-    water_demand_m3 = pd.concat([water_demand_m3_2, water_demand_m3.set_index(water_demand_m3.index.astype(str) + '_dup')])
+    water_demand_m3 = pd.concat([water_demand_m3_2, water_demand_m3])
 
     # Correction of water requirement : 
     # - for livestock : around 98% of the livestock water footprint is linked to feed production. We want to avoid of double counting with irrigation use.
@@ -203,7 +203,7 @@ def water(lifestyle, industry, agriculture, power):
     water_consumption_m3_2 = mcd(input_table_1=water_demand_m3, input_table_2=cooling_consumption_factor_percent, operation_selection='x * y', output_name='water-consumption[m3]', fill_value_bool='Inner Join', fill_value=1.0)
     # Group by  Country, Years, water-use (sum)
     water_consumption_m3_2 = group_by_dimensions(df=water_consumption_m3_2, groupby_dimensions=['Country', 'Years', 'water-use'], aggregation_method='Sum')
-    water_consumption_m3 = pd.concat([water_consumption_m3, water_consumption_m3_2.set_index(water_consumption_m3_2.index.astype(str) + '_dup')])
+    water_consumption_m3 = pd.concat([water_consumption_m3, water_consumption_m3_2])
     # water-consumption [m3]
     water_consumption_m3 = export_variable(input_table=water_consumption_m3, selected_variable='water-consumption[m3]')
 
@@ -245,7 +245,7 @@ def water(lifestyle, industry, agriculture, power):
     water_consumption_m3_3 = mcd(input_table_1=water_consumption_m3_3, input_table_2=winter_share_percent, operation_selection='x * (1-y)', output_name='water-consumption[m3]', fill_value_bool='Inner Join')
     # semester = summer
     water_consumption_m3_3['semester'] = "summer"
-    water_consumption_m3_2 = pd.concat([water_consumption_m3_2, water_consumption_m3_3.set_index(water_consumption_m3_3.index.astype(str) + '_dup')])
+    water_consumption_m3_2 = pd.concat([water_consumption_m3_2, water_consumption_m3_3])
     # Group by Country, Years, semester, sub-region (sum)
     water_consumption_m3_2 = group_by_dimensions(df=water_consumption_m3_2, groupby_dimensions=['Country', 'Years', 'sub-region', 'semester'], aggregation_method='Sum')
     # water-consumption [m3] Split by sub-region and semester
@@ -279,9 +279,9 @@ def water(lifestyle, industry, agriculture, power):
     water_exploitation_index_percent_3['water-exploitation-index[%]'] = 0.4
     # sub-region = severely-water-scarce-region
     water_exploitation_index_percent_3['sub-region'] = "severely-water-scarce-region"
-    water_exploitation_index_percent_3 = pd.concat([water_exploitation_index_percent_4, water_exploitation_index_percent_3.set_index(water_exploitation_index_percent_3.index.astype(str) + '_dup')])
-    water_exploitation_index_percent_2 = pd.concat([water_exploitation_index_percent_2, water_exploitation_index_percent_3.set_index(water_exploitation_index_percent_3.index.astype(str) + '_dup')])
-    water_exploitation_index_percent = pd.concat([water_exploitation_index_percent, water_exploitation_index_percent_2.set_index(water_exploitation_index_percent_2.index.astype(str) + '_dup')])
+    water_exploitation_index_percent_3 = pd.concat([water_exploitation_index_percent_4, water_exploitation_index_percent_3])
+    water_exploitation_index_percent_2 = pd.concat([water_exploitation_index_percent_2, water_exploitation_index_percent_3])
+    water_exploitation_index_percent = pd.concat([water_exploitation_index_percent, water_exploitation_index_percent_2])
 
     # For : Pathway Explorer
     # 
@@ -289,7 +289,7 @@ def water(lifestyle, industry, agriculture, power):
 
     # water-exploitation-index [%]
     water_exploitation_index_percent = use_variable(input_table=water_exploitation_index_percent, selected_variable='water-exploitation-index[%]')
-    water = pd.concat([water_consumption_m3, water_exploitation_index_percent.set_index(water_exploitation_index_percent.index.astype(str) + '_dup')])
+    water = pd.concat([water_consumption_m3, water_exploitation_index_percent])
     out_9493_1 = add_trigram(module_name=module_name, df=water)
 
     return out_9493_1, cal_rate_water_withdrawal_m3
