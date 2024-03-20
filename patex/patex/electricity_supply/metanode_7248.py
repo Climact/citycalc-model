@@ -26,7 +26,7 @@ def metanode_7248(port_01):
     _, out_7100_2, out_7100_3 = calibration(input_table=energy_demand_TWh_2, cal_table=energy_demand_TWh_3, data_to_be_cal='energy-demand[TWh]', data_cal='energy-demand[TWh]')
     # energy-demand[TWh] (replace) = energy-demand[TWh] * cal_rate  Set cal_rate to 1 when missing
     energy_demand_TWh = mcd(input_table_1=energy_demand_TWh, input_table_2=out_7100_2, operation_selection='x * y', output_name='energy-demand[TWh]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
-    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded])
 
     return energy_demand_TWh, out_7100_3
 

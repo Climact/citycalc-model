@@ -73,7 +73,7 @@ def metanode_9621(port_01, port_02, port_03):
     CC_proportion_excluded = missing_value(df=CC_proportion_excluded, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
     # Set 1 (no CC) (refineries)
     CC_proportion = missing_value(df=CC_proportion_2, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='1.0')
-    CC_proportion = pd.concat([CC_proportion, CC_proportion_excluded.set_index(CC_proportion_excluded.index.astype(str) + '_dup')])
+    CC_proportion = pd.concat([CC_proportion, CC_proportion_excluded])
     # CCS[Mt] = CC[Mt] - remainning-CCU[Mt]
     CCS_Mt = mcd(input_table_1=CC_Mt_2, input_table_2=remaining_CCU_Mt, operation_selection='x - y', output_name='CCS[Mt]')
     # CCS[Mt] (replace) (detailled by sector) = CCS[Mt] * CC-proportion[-]

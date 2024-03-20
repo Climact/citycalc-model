@@ -156,7 +156,7 @@ def metanode_6432(port_01):
     technology_share_refineries_percent = import_data(trigram='elc', variable_name='technology-share-refineries')
     # net-energy-production[TWh] = fossil-net-energy-production[TWh] * technology-share[%]
     net_energy_production_TWh = mcd(input_table_1=fossil_net_energy_production_TWh, input_table_2=technology_share_refineries_percent, operation_selection='x * y', output_name='net-energy-production[TWh]')
-    net_energy_production_TWh_2 = pd.concat([net_energy_production_TWh_2, net_energy_production_TWh.set_index(net_energy_production_TWh.index.astype(str) + '_dup')])
+    net_energy_production_TWh_2 = pd.concat([net_energy_production_TWh_2, net_energy_production_TWh])
 
     # Merge All type of fossil fuels
     # => Liquid / Gaseous / Solid
@@ -199,7 +199,7 @@ def metanode_6432(port_01):
     capex_MEUR = mcd(input_table_1=energy_production_cost_user_, input_table_2=out_9527_1, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by  Country, Years (sum)
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'cost-user', 'Years'], aggregation_method='Sum')
-    MEUR = pd.concat([opex_MEUR, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([opex_MEUR, capex_MEUR])
 
     # Capex / Opex
 
@@ -357,7 +357,7 @@ def metanode_6432(port_01):
     _, out_7101_2, out_7101_3 = calibration(input_table=emissions_Mt_2, cal_table=ref_emissions_Mt, data_to_be_cal='emissions[Mt]', data_cal='ref-emissions[Mt]')
     # cal rate for emissions[Mt]
     cal_rate_emissions_Mt = use_variable(input_table=out_7101_3, selected_variable='cal_rate_emissions[Mt]')
-    cal_rate = pd.concat([cal_rate_primary_energy_demand_TWh, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
+    cal_rate = pd.concat([cal_rate_primary_energy_demand_TWh, cal_rate_emissions_Mt])
     # emissions[Mt] (replace) = emissions[Mt] * cal_rate  cal_rate set to 1 if missing
     emissions_Mt = mcd(input_table_1=emissions_Mt, input_table_2=out_7101_2, operation_selection='x * y', output_name='emissions[Mt]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
     # Set to 0 (no emissions)

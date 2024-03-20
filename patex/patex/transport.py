@@ -343,7 +343,7 @@ def transport(lifestyle):
     renewal_rate_percent_2 = import_data(trigram='tra', variable_name='renewal-rate', variable_type='OTS (only)')
     # Same as last available year
     renewal_rate_percent_2 = add_missing_years(df_data=renewal_rate_percent_2)
-    renewal_rate_percent = pd.concat([renewal_rate_percent, renewal_rate_percent_2.set_index(renewal_rate_percent_2.index.astype(str) + '_dup')])
+    renewal_rate_percent = pd.concat([renewal_rate_percent, renewal_rate_percent_2])
 
     # Renewal-fleet
 
@@ -455,12 +455,12 @@ def transport(lifestyle):
 
     # Group by  transport-user, vehicule-type (sum)
     transport_demand_pkm = group_by_dimensions(df=transport_demand_pkm, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type'], aggregation_method='Sum')
-    transport_demand_pkm_3 = pd.concat([transport_demand_pkm, transport_demand_pkm_2.set_index(transport_demand_pkm_2.index.astype(str) + '_dup')])
+    transport_demand_pkm_3 = pd.concat([transport_demand_pkm, transport_demand_pkm_2])
     # transport-demand[pkm] = modal-share[%]  * distance-traveled[pkm]
     transport_demand_pkm = mcd(input_table_1=modal_share_percent, input_table_2=distance_traveled_pkm, operation_selection='x * y', output_name='transport-demand[pkm]')
     # Group by  transport-user, vehicule-type (sum)
     transport_demand_pkm_4 = group_by_dimensions(df=transport_demand_pkm, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type'], aggregation_method='Sum')
-    transport_demand_pkm_2 = pd.concat([transport_demand_pkm_4, transport_demand_pkm_2.set_index(transport_demand_pkm_2.index.astype(str) + '_dup')])
+    transport_demand_pkm_2 = pd.concat([transport_demand_pkm_4, transport_demand_pkm_2])
 
     # Calibration
 
@@ -494,7 +494,7 @@ def transport(lifestyle):
     _, out_9522_2, _ = calibration(input_table=transport_demand_pkm_excluded_2, cal_table=transport_demand_pkm_excluded_3, data_to_be_cal='transport-demand[pkm]', data_cal='transport-demand[pkm]')
     # transport-demand[pkm] (replace) = transport-demand[pkm]  * cal_rate (post-calibration)
     transport_demand_pkm_3 = mcd(input_table_1=transport_demand_pkm_excluded, input_table_2=out_9522_2, operation_selection='x * y', output_name='transport-demand[pkm]')
-    transport_demand_pkm_2 = pd.concat([transport_demand_pkm_2, transport_demand_pkm_3.set_index(transport_demand_pkm_3.index.astype(str) + '_dup')])
+    transport_demand_pkm_2 = pd.concat([transport_demand_pkm_2, transport_demand_pkm_3])
 
     # Final transport-demand
 
@@ -578,7 +578,7 @@ def transport(lifestyle):
 
     # veh-fleet-total[number] = veh-transport-demand[vkm] / utilization-rate[vkm/veh]
     veh_fleet_total_number = mcd(input_table_1=veh_transport_demand_vkm_2, input_table_2=utilization_rate, operation_selection='x / y', output_name='veh-fleet-total[number]')
-    veh_fleet_total_number = pd.concat([veh_fleet_total_number_2, veh_fleet_total_number.set_index(veh_fleet_total_number.index.astype(str) + '_dup')])
+    veh_fleet_total_number = pd.concat([veh_fleet_total_number_2, veh_fleet_total_number])
 
     # Transport demand in urban area and fossil fuel consumption in urban area
 
@@ -617,7 +617,7 @@ def transport(lifestyle):
     # urban-transport-share[%pkm]
     urban_transport_share_percent_pkm = export_variable(input_table=urban_transport_share_percent_pkm, selected_variable='urban-transport-share[%pkm]')
     # KPI
-    transport_pkm = pd.concat([transport_demand_urban_pkm_2, urban_transport_share_percent_pkm.set_index(urban_transport_share_percent_pkm.index.astype(str) + '_dup')])
+    transport_pkm = pd.concat([transport_demand_urban_pkm_2, urban_transport_share_percent_pkm])
 
     # Technology-share
 
@@ -787,7 +787,7 @@ def transport(lifestyle):
     # Filter on veh-type: Top: LDV and bus
     technology_share_percent_2 = technology_share_percent_3.loc[technology_share_percent_3['vehicule-type'].isin(['LDV', 'bus'])].copy()
     # Join freight and transport
-    technology_share_percent_2 = pd.concat([technology_share_percent_2, technology_share_percent_excluded.set_index(technology_share_percent_excluded.index.astype(str) + '_dup')])
+    technology_share_percent_2 = pd.concat([technology_share_percent_2, technology_share_percent_excluded])
 
     # Share of ZEV in new sales (Passenger: LDV and BUS, Freight: HDV)
 
@@ -834,7 +834,7 @@ def transport(lifestyle):
     transport_demand_bn_tkm = mcd(input_table_1=modal_share_percent, input_table_2=distance_traveled_bn_tkm, operation_selection='x * y', output_name='transport-demand[bn_tkm]')
     # Group by  transport-user, vehicule-type (sum)
     transport_demand_bn_tkm = group_by_dimensions(df=transport_demand_bn_tkm, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type'], aggregation_method='Sum')
-    demand_bn_tkm = pd.concat([transport_demand_bn_tkm, international_freight_demand_bn_tkm.set_index(international_freight_demand_bn_tkm.index.astype(str) + '_dup')])
+    demand_bn_tkm = pd.concat([transport_demand_bn_tkm, international_freight_demand_bn_tkm])
 
     # Calibration
 
@@ -861,7 +861,7 @@ def transport(lifestyle):
     out_9233_1 = helper_9233(input_table=out_7100_3)
     # Cal rate for  transport-demand[tkm]
     cal_rate_transport_demand_bn_tkm = use_variable(input_table=out_9233_1, selected_variable='cal_rate_transport-demand[bn_tkm]')
-    cal_rate_transport_demand = pd.concat([cal_rate_transport_demand_pkm, cal_rate_transport_demand_bn_tkm.set_index(cal_rate_transport_demand_bn_tkm.index.astype(str) + '_dup')])
+    cal_rate_transport_demand = pd.concat([cal_rate_transport_demand_pkm, cal_rate_transport_demand_bn_tkm])
 
     def helper_5779(input_table) -> pd.DataFrame:
         # Copy input to output
@@ -890,7 +890,7 @@ def transport(lifestyle):
     transport_demand_tkm_3 = use_variable(input_table=transport_demand_tkm, selected_variable='transport-demand[tkm]')
     # Group by  transport-user, vehicule-type
     transport_demand_tkm_3 = group_by_dimensions(df=transport_demand_tkm_3, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type'], aggregation_method='Sum')
-    transport_demand = pd.concat([transport_demand_tkm_3, transport_demand_pkm_4.set_index(transport_demand_pkm_4.index.astype(str) + '_dup')])
+    transport_demand = pd.concat([transport_demand_tkm_3, transport_demand_pkm_4])
 
     # Apply load-factor levers (avoid)
     # => Determine...
@@ -908,7 +908,7 @@ def transport(lifestyle):
     transport_demand_tkm_3 = column_rename_regex(df=transport_demand_tkm_3, search_string='(.*\\[.*)', replace_string='total-$1')
     # modal-share[%] = transport-demand[tkm] / total-transport-demand[tkm]
     modal_share_percent = mcd(input_table_1=transport_demand_tkm_3, input_table_2=transport_demand_tkm_2, operation_selection='y / x', output_name='modal-share[%]')
-    modal_share_percent = pd.concat([modal_share_percent_2, modal_share_percent.set_index(modal_share_percent.index.astype(str) + '_dup')])
+    modal_share_percent = pd.concat([modal_share_percent_2, modal_share_percent])
     # modal-share[%]
     modal_share_percent = export_variable(input_table=modal_share_percent, selected_variable='modal-share[%]')
     # Group by  dimensions
@@ -921,13 +921,13 @@ def transport(lifestyle):
     veh_fleet_total_number_3 = mcd(input_table_1=veh_transport_demand_vkm_2, input_table_2=avg_number_vehicles_tkm_veh_per_tkm, operation_selection='x * y', output_name='veh-fleet-total[number]')
     # veh-fleet-total[number] = (replace) total[number] x national-share  Missing value national-share set to 1
     veh_fleet_total_number_3 = mcd(input_table_1=veh_fleet_total_number_3, input_table_2=national_share_percent, operation_selection='x * y', output_name='veh-fleet-total[number]', fill_value_bool='Left [x] Outer Join', fill_value=1.0)
-    veh_fleet_total_number_2 = pd.concat([veh_fleet_total_number_2, veh_fleet_total_number_3.set_index(veh_fleet_total_number_3.index.astype(str) + '_dup')])
+    veh_fleet_total_number_2 = pd.concat([veh_fleet_total_number_2, veh_fleet_total_number_3])
 
     # Historical vehicle fleet
 
     # CAL vehicle-fleet-historical [number]
     vehicle_fleet_historical_number = import_data(trigram='tra', variable_name='vehicle-fleet-historical', variable_type='Calibration')
-    veh_fleet_total_number = pd.concat([veh_fleet_total_number, veh_fleet_total_number_2.set_index(veh_fleet_total_number_2.index.astype(str) + '_dup')])
+    veh_fleet_total_number = pd.concat([veh_fleet_total_number, veh_fleet_total_number_2])
 
     # Futur vehicle fleet
 
@@ -1002,14 +1002,14 @@ def transport(lifestyle):
     # Keep new
     veh_efficiency_pkm_MJ_per_pkm_2 = veh_efficiency_pkm_MJ_per_pkm.loc[veh_efficiency_pkm_MJ_per_pkm['fleet-age'].isin(['new'])].copy()
     veh_efficiency_pkm_MJ_per_pkm_excluded = veh_efficiency_pkm_MJ_per_pkm.loc[~veh_efficiency_pkm_MJ_per_pkm['fleet-age'].isin(['new'])].copy()
-    veh_efficiency_MJ_per_excluded = pd.concat([veh_efficiency_tkm_MJ_per_tkm_excluded, veh_efficiency_pkm_MJ_per_pkm_excluded.set_index(veh_efficiency_pkm_MJ_per_pkm_excluded.index.astype(str) + '_dup')])
-    veh_efficiency_MJ_per = pd.concat([veh_efficiency_tkm_MJ_per_tkm_2, veh_efficiency_pkm_MJ_per_pkm_2.set_index(veh_efficiency_pkm_MJ_per_pkm_2.index.astype(str) + '_dup')])
+    veh_efficiency_MJ_per_excluded = pd.concat([veh_efficiency_tkm_MJ_per_tkm_excluded, veh_efficiency_pkm_MJ_per_pkm_excluded])
+    veh_efficiency_MJ_per = pd.concat([veh_efficiency_tkm_MJ_per_tkm_2, veh_efficiency_pkm_MJ_per_pkm_2])
     # OTS / FTS veh-efficiency-km [MJ/km]
     veh_efficiency_km_MJ_per_km = import_data(trigram='tra', variable_name='veh-efficiency-km')
     # Keep new
     veh_efficiency_km_MJ_per_km_2 = veh_efficiency_km_MJ_per_km.loc[veh_efficiency_km_MJ_per_km['fleet-age'].isin(['new'])].copy()
     veh_efficiency_km_MJ_per_km_excluded = veh_efficiency_km_MJ_per_km.loc[~veh_efficiency_km_MJ_per_km['fleet-age'].isin(['new'])].copy()
-    veh_efficiency_MJ_per_excluded = pd.concat([veh_efficiency_MJ_per_excluded, veh_efficiency_km_MJ_per_km_excluded.set_index(veh_efficiency_km_MJ_per_km_excluded.index.astype(str) + '_dup')])
+    veh_efficiency_MJ_per_excluded = pd.concat([veh_efficiency_MJ_per_excluded, veh_efficiency_km_MJ_per_km_excluded])
 
     # Vehicule-efficiency : actual fleet vehicule
 
@@ -1017,7 +1017,7 @@ def transport(lifestyle):
     veh_efficiency_MJ_per_excluded = column_filter(df=veh_efficiency_MJ_per_excluded, columns_to_drop=['fleet-age'])
     # Add fleet suffix to veh-eff
     veh_efficiency_MJ_per_excluded = column_rename_regex(df=veh_efficiency_MJ_per_excluded, search_string='(veh-eff.*)', replace_string='fleet-$1')
-    veh_efficiency_MJ_per = pd.concat([veh_efficiency_MJ_per, veh_efficiency_km_MJ_per_km_2.set_index(veh_efficiency_km_MJ_per_km_2.index.astype(str) + '_dup')])
+    veh_efficiency_MJ_per = pd.concat([veh_efficiency_MJ_per, veh_efficiency_km_MJ_per_km_2])
 
     # Vehicule-efficiency : new vehicule
 
@@ -1206,7 +1206,7 @@ def transport(lifestyle):
     # Group by  transport-user, vehicule-type, motor-type, energy-carrier (sum)
     final_veh_fleet_remaining_number = group_by_dimensions(df=final_veh_fleet_remaining_number, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type', 'motor-type', 'energy-carrier'], aggregation_method='Sum')
     # Conactenate to have all available mix
-    final_veh_fleet_number = pd.concat([final_new_veh_fleet_number, final_veh_fleet_remaining_number.set_index(final_veh_fleet_remaining_number.index.astype(str) + '_dup')])
+    final_veh_fleet_number = pd.concat([final_new_veh_fleet_number, final_veh_fleet_remaining_number])
 
     # Values for Years > baseyear
 
@@ -1372,12 +1372,12 @@ def transport(lifestyle):
     out_9478_1 = final_veh_fleet_remaining_number.rename(columns={'final-veh-fleet-remaining[number]': 'final-veh-fleet-ind[number]'})
     # Group by  vehicule-type, motor-type (sum)
     out_9478_1 = group_by_dimensions(df=out_9478_1, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'motor-type'], aggregation_method='Sum')
-    out_1 = pd.concat([out_5410_1_2, out_9478_1.set_index(out_9478_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_5410_1_2, out_9478_1])
     # Group by  vehicule-type, motor-type (sum)
     out_1 = group_by_dimensions(df=out_1, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'motor-type'], aggregation_method='Sum')
     # transport-demand for pathway explorer
-    out_9206_1 = pd.concat([out_1, transport_demand.set_index(transport_demand.index.astype(str) + '_dup')])
-    out_9471_1 = pd.concat([out_9471_1, out_9471_1_excluded.set_index(out_9471_1_excluded.index.astype(str) + '_dup')])
+    out_9206_1 = pd.concat([out_1, transport_demand])
+    out_9471_1 = pd.concat([out_9471_1, out_9471_1_excluded])
     # Group by  transport-user, vehicule-type, motor-type, energy-carrier (sum)
     out_9471_1 = group_by_dimensions(df=out_9471_1, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type', 'motor-type', 'energy-carrier'], aggregation_method='Sum')
     # Remerge
@@ -1398,7 +1398,7 @@ def transport(lifestyle):
     # Keep years > baseyears
     out_5320_1 = helper_5320(input_table=technology_share_percent)
     # Conactenate to have all available mix
-    out_1_2 = pd.concat([out_5320_1, out_5321_1.set_index(out_5321_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_5320_1, out_5321_1])
 
     # Technology-share[%]
 
@@ -1413,7 +1413,7 @@ def transport(lifestyle):
     technology_share_percent_2 = use_variable(input_table=technology_share_percent_2, selected_variable='technology-share[%]')
     # Group by  transport-user, vehicule-type, motor-type, energy-carrier (sum)
     technology_share_percent_3 = group_by_dimensions(df=technology_share_percent_2, groupby_dimensions=['Country', 'Years', 'transport-user', 'vehicule-type', 'motor-type', 'energy-carrier'], aggregation_method='Sum')
-    share_percent = pd.concat([modal_share_percent, technology_share_percent_3.set_index(technology_share_percent_3.index.astype(str) + '_dup')])
+    share_percent = pd.concat([modal_share_percent, technology_share_percent_3])
 
 
     # Keep all (for all results)
@@ -1472,7 +1472,7 @@ def transport(lifestyle):
     transport_demand_per_cap_pkm_per_cap = export_variable(input_table=transport_demand_per_cap_pkm_per_cap, selected_variable='transport-demand-per-cap[pkm/cap]')
     # Convert Unit from pkm to km => x1
     final_transport_demand_km = final_transport_demand_pkm_2.drop(columns='final-transport-demand[pkm]').assign(**{'final-transport-demand[km]': final_transport_demand_pkm_2['final-transport-demand[pkm]'] * 1.0})
-    final_transport_demand_km = pd.concat([final_transport_demand_km_2, final_transport_demand_km.set_index(final_transport_demand_km.index.astype(str) + '_dup')])
+    final_transport_demand_km = pd.concat([final_transport_demand_km_2, final_transport_demand_km])
     out_5134_1 = joiner(df_left=final_transport_demand_km, df_right=out_5133_1, joiner='inner', left_input=['vehicule-type'], right_input=['vehicule-type'])
 
     def helper_5178(input_table) -> pd.DataFrame:
@@ -1583,7 +1583,7 @@ def transport(lifestyle):
     # Top: LDV & bus & 2W
     emissions_veh_g_per_km = emissions_veh_g_per_km_2.loc[emissions_veh_g_per_km_2['vehicule-type'].isin(['LDV', 'bus', '2W'])].copy()
     # Freight and Passenger
-    emissions_veh_g_per_km = pd.concat([emissions_veh_g_per_km, emissions_veh_g_per_km_excluded.set_index(emissions_veh_g_per_km_excluded.index.astype(str) + '_dup')])
+    emissions_veh_g_per_km = pd.concat([emissions_veh_g_per_km, emissions_veh_g_per_km_excluded])
     # Top: gas=CO2
     emissions_veh_g_per_km = emissions_veh_g_per_km.loc[emissions_veh_g_per_km['gaes'].isin(['CO2'])].copy()
     # emissions-veh[g/km]
@@ -1595,7 +1595,7 @@ def transport(lifestyle):
 
     # material-lenght-demand[km]
     material_length_demand_km = use_variable(input_table=material_length_demand_km, selected_variable='material-length-demand[km]')
-    out_7164_1 = pd.concat([out_1, material_length_demand_km.set_index(material_length_demand_km.index.astype(str) + '_dup')])
+    out_7164_1 = pd.concat([out_1, material_length_demand_km])
     # All for : Industry
     out_7164_1 = column_filter(df=out_7164_1, pattern='^.*$')
 
@@ -1650,7 +1650,7 @@ def transport(lifestyle):
     vehicle_cost_user_ = import_data(trigram='tra', variable_name='vehicle-cost-user', variable_type='RCP')
     # capex[MEUR] = capex[MEUR] * vehicle-cost-user[-]
     capex_MEUR = mcd(input_table_1=out_9401_1, input_table_2=vehicle_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
-    capex_MEUR_2 = pd.concat([capex_MEUR, capex_MEUR_2.set_index(capex_MEUR_2.index.astype(str) + '_dup')])
+    capex_MEUR_2 = pd.concat([capex_MEUR, capex_MEUR_2])
 
     # Cost by user
 
@@ -1667,7 +1667,7 @@ def transport(lifestyle):
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'Years', 'vehicule-type'], aggregation_method='Sum')
     # capex-by-vehicle [MEUR]
     out_9409_1 = capex_MEUR.rename(columns={'capex[MEUR]': 'capex-by-vehicle[MEUR]'})
-    out_1 = pd.concat([out_9409_1, out_9410_1.set_index(out_9410_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9409_1, out_9410_1])
 
     # Values for Years > baseyear
 
@@ -1699,7 +1699,7 @@ def transport(lifestyle):
         return output_table
     # Keep years > baseyears
     out_5575_1 = helper_5575(input_table=out_5562_1)
-    out_1_2 = pd.concat([out_5575_1, out_5583_1.set_index(out_5583_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_5575_1, out_5583_1])
 
     # Vehicule-fleet 
     # [number]
@@ -1772,7 +1772,7 @@ def transport(lifestyle):
     final_new_veh_fleet_number = out_5568_1.assign(**{'final-new-veh-fleet[number]': 0.0})
     # total-veh-fleet[number] = final-new-veh-fleet[number] + final-veh-fleet-remaining[number]
     total_veh_fleet_number = mcd(input_table_1=final_new_veh_fleet_number, input_table_2=out_5583_1, operation_selection='x + y', output_name='total-veh-fleet[number]')
-    out_5576_1 = pd.concat([out_5560_1, total_veh_fleet_number.set_index(total_veh_fleet_number.index.astype(str) + '_dup')])
+    out_5576_1 = pd.concat([out_5560_1, total_veh_fleet_number])
     # total-veh-fleet [number]
     total_veh_fleet_number = export_variable(input_table=out_5576_1, selected_variable='total-veh-fleet[number]')
 
@@ -1788,7 +1788,7 @@ def transport(lifestyle):
     total_veh_fleet_number_excluded = total_veh_fleet_number_3.loc[total_veh_fleet_number_3['motor-type'].isin(['PHEV', 'PHEVCE'])].copy()
     total_veh_fleet_number_3 = total_veh_fleet_number_3.loc[~total_veh_fleet_number_3['motor-type'].isin(['PHEV', 'PHEVCE'])].copy()
     total_veh_fleet_number_excluded = total_veh_fleet_number_excluded.loc[~total_veh_fleet_number_excluded['energy-carrier'].isin(['electricity'])].copy()
-    total_veh_fleet_number_3 = pd.concat([total_veh_fleet_number_3, total_veh_fleet_number_excluded.set_index(total_veh_fleet_number_excluded.index.astype(str) + '_dup')])
+    total_veh_fleet_number_3 = pd.concat([total_veh_fleet_number_3, total_veh_fleet_number_excluded])
     # Group by  year
     total_veh_fleet_number_3 = group_by_dimensions(df=total_veh_fleet_number_3, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # total-veh-fleet[number] to  total-veh-fleet-passenger-LDV[number]
@@ -1804,16 +1804,16 @@ def transport(lifestyle):
     total_veh_fleet_number_excluded = total_veh_fleet_number_3.loc[total_veh_fleet_number_3['motor-type'].isin(['PHEV', 'PHEVCE'])].copy()
     total_veh_fleet_number_3 = total_veh_fleet_number_3.loc[~total_veh_fleet_number_3['motor-type'].isin(['PHEV', 'PHEVCE'])].copy()
     total_veh_fleet_number_excluded = total_veh_fleet_number_excluded.loc[~total_veh_fleet_number_excluded['energy-carrier'].isin(['electricity'])].copy()
-    total_veh_fleet_number_3 = pd.concat([total_veh_fleet_number_3, total_veh_fleet_number_excluded.set_index(total_veh_fleet_number_excluded.index.astype(str) + '_dup')])
+    total_veh_fleet_number_3 = pd.concat([total_veh_fleet_number_3, total_veh_fleet_number_excluded])
     # Concat outputs for Pathway  explorer
-    out_9207_1 = pd.concat([out_9206_1, total_veh_fleet_number_3.set_index(total_veh_fleet_number_3.index.astype(str) + '_dup')])
+    out_9207_1 = pd.concat([out_9206_1, total_veh_fleet_number_3])
     # Keep  bus (opex given in number of vehicle)
     total_veh_fleet_number_2 = total_veh_fleet_number_2.loc[total_veh_fleet_number_2['vehicule-type'].isin(['bus'])].copy()
     # Compute opex for final-fleet-demand[number] (Total vehicle (number) => OPEX)
     out_9422_1 = compute_costs(df_activity=total_veh_fleet_number_2, df_unit_costs=costs_by_vehicle_MEUR_per_number, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='total-veh-fleet[number]', cost_type='OPEX')
     # opex[MEUR] = opex[MEUR] * vehicle-cost-user[-]
     opex_MEUR = mcd(input_table_1=out_9422_1, input_table_2=vehicle_cost_user_, operation_selection='x * y', output_name='opex[MEUR]')
-    out_5577_1 = pd.concat([out_5574_1, final_new_veh_fleet_number.set_index(final_new_veh_fleet_number.index.astype(str) + '_dup')])
+    out_5577_1 = pd.concat([out_5574_1, final_new_veh_fleet_number])
     # final-new-veh-fleet [number]
     final_new_veh_fleet_number = export_variable(input_table=out_5577_1, selected_variable='final-new-veh-fleet[number]')
     out_5330_1 = joiner(df_left=total_veh_fleet_number, df_right=final_new_veh_fleet_number, joiner='inner', left_input=['Country', 'Years', 'transport-user', 'vehicule-type', 'motor-type', 'energy-carrier'], right_input=['Country', 'Years', 'transport-user', 'vehicule-type', 'motor-type', 'energy-carrier'])
@@ -2058,7 +2058,7 @@ def transport(lifestyle):
         return output_table
     # Copy PHEV(CE)*diesel in new columns PHEV(CE)*elec
     out_5273_1 = helper_5273(input_table=final_transport_demand_vkm)
-    out_1_2 = pd.concat([out_5272_1, out_5273_1.set_index(out_5273_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_5272_1, out_5273_1])
     # final-transport-demand [vkm]
     final_transport_demand_vkm_2 = export_variable(input_table=out_1_2, selected_variable='final-transport-demand[vkm]')
     # final-transport-demand[vkm] 
@@ -2072,9 +2072,9 @@ def transport(lifestyle):
     # final-transport-demand-total[vkm]
     final_transport_demand_total_vkm = export_variable(input_table=final_transport_demand_vkm_3, selected_variable='final-transport-demand-total[vkm]')
     # KPI
-    transport_demand = pd.concat([transport_demand_per_cap_pkm_per_cap, final_transport_demand_total_vkm.set_index(final_transport_demand_total_vkm.index.astype(str) + '_dup')])
+    transport_demand = pd.concat([transport_demand_per_cap_pkm_per_cap, final_transport_demand_total_vkm])
     # KPI
-    transport_demand = pd.concat([transport_demand_per_cap_tkm_per_cap, transport_demand.set_index(transport_demand.index.astype(str) + '_dup')])
+    transport_demand = pd.concat([transport_demand_per_cap_tkm_per_cap, transport_demand])
     # Top: HDV
     final_transport_demand_vkm_4 = final_transport_demand_vkm.loc[final_transport_demand_vkm['vehicule-type'].isin(['HDV'])].copy()
 
@@ -2107,8 +2107,8 @@ def transport(lifestyle):
     elec_share_percent_vkm_2 = export_variable(input_table=elec_share_percent_vkm_2, selected_variable='elec-share[%vkm]')
     # energy-demand[MJ] = final-transport-demand[vkm] * vehicle-efficiency[MJ/km]
     energy_demand_MJ_2 = mcd(input_table_1=final_transport_demand_vkm_2, input_table_2=veh_efficiency_km_MJ_per_km, operation_selection='x * y', output_name='energy-demand[MJ]')
-    energy_demand_MJ_2 = pd.concat([energy_demand_MJ_2, energy_demand_MJ_3.set_index(energy_demand_MJ_3.index.astype(str) + '_dup')])
-    energy_demand_MJ = pd.concat([energy_demand_MJ_2, energy_demand_MJ.set_index(energy_demand_MJ.index.astype(str) + '_dup')])
+    energy_demand_MJ_2 = pd.concat([energy_demand_MJ_2, energy_demand_MJ_3])
+    energy_demand_MJ = pd.concat([energy_demand_MJ_2, energy_demand_MJ])
     # Convert Unit from MJ to TWh
     energy_demand_TWh = energy_demand_MJ.drop(columns='energy-demand[MJ]').assign(**{'energy-demand[TWh]': energy_demand_MJ['energy-demand[MJ]'] * 2.77777777777778e-10})
     # Group by  transport-user, vehicule-type, motor-type, energy-carrier (sum)
@@ -2133,20 +2133,20 @@ def transport(lifestyle):
     out_9418_1 = compute_costs(df_activity=final_transport_demand_vkm_2, df_unit_costs=costs_by_vehicle_MEUR_per_number, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, cost_type='OPEX')
     # opex[MEUR] = opex[MEUR] * vehicle-cost-user[-]
     opex_MEUR_2 = mcd(input_table_1=out_9418_1, input_table_2=vehicle_cost_user_, operation_selection='x * y', output_name='opex[MEUR]')
-    opex_MEUR_3 = pd.concat([opex_MEUR, opex_MEUR_2.set_index(opex_MEUR_2.index.astype(str) + '_dup')])
+    opex_MEUR_3 = pd.concat([opex_MEUR, opex_MEUR_2])
     # Group by  Country, Years, cost-user (sum)
     opex_MEUR_3 = group_by_dimensions(df=opex_MEUR_3, groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')
-    MEUR = pd.concat([capex_MEUR_2, opex_MEUR_3.set_index(opex_MEUR_3.index.astype(str) + '_dup')])
-    opex_MEUR = pd.concat([opex_MEUR_2, opex_MEUR.set_index(opex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([capex_MEUR_2, opex_MEUR_3])
+    opex_MEUR = pd.concat([opex_MEUR_2, opex_MEUR])
     # Group by  Country, Years, vehicle-type, energy-carrier, motor-type (sum)
     opex_MEUR = group_by_dimensions(df=opex_MEUR, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'energy-carrier', 'motor-type'], aggregation_method='Sum')
     # opex-by-vehicle-motor [MEUR]
     out_9425_1 = opex_MEUR.rename(columns={'opex[MEUR]': 'opex-by-vehicle-motor[MEUR]'})
-    out_1_2 = pd.concat([out_9425_1, out_9433_1.set_index(out_9433_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9425_1, out_9433_1])
+    out_1 = pd.concat([out_1, out_1_2])
     # Set 0
     out_1 = missing_value(df=out_1, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue=None)
-    out_9565_1 = pd.concat([out_1, MEUR.set_index(MEUR.index.astype(str) + '_dup')])
+    out_9565_1 = pd.concat([out_1, MEUR])
 
     # Hard codé ici ==> à terme, introduire dans une google sheet !
 
@@ -2235,7 +2235,7 @@ def transport(lifestyle):
     energy_demand_TWh_2 = mcd(input_table_1=out_9203_1_excluded, input_table_2=aviation_domestic_share_percent, operation_selection='x * y', output_name='energy-demand[TWh]')
     # domestic-type = domestic
     energy_demand_TWh_2['domestic-type'] = "domestic"
-    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
     # Exclude marine (= 100% bunkers)
     out_9203_1_excluded = out_9203_1.loc[out_9203_1['vehicule-type'].isin(['marine'])].copy()
     out_9203_1 = out_9203_1.loc[~out_9203_1['vehicule-type'].isin(['marine'])].copy()
@@ -2243,8 +2243,8 @@ def transport(lifestyle):
     out_9203_1_excluded['domestic-type'] = "bunkers-marine"
     # domestic-type = domestic
     out_9203_1['domestic-type'] = "domestic"
-    out_9203_1 = pd.concat([out_9203_1, out_9203_1_excluded.set_index(out_9203_1_excluded.index.astype(str) + '_dup')])
-    out_9452_1 = pd.concat([out_9203_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_9203_1 = pd.concat([out_9203_1, out_9203_1_excluded])
+    out_9452_1 = pd.concat([out_9203_1, energy_demand_TWh])
 
     # Energy-demand
     # after calibration
@@ -2309,7 +2309,7 @@ def transport(lifestyle):
 
     # Group by country, year, veh-user, motor-type, energy-carrier,  domestic-type
     energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'energy-carrier', 'transport-user', 'motor-type', 'domestic-type'], aggregation_method='Sum')
-    demand = pd.concat([energy_demand_TWh_3, final_transport_demand_vkm.set_index(final_transport_demand_vkm.index.astype(str) + '_dup')])
+    demand = pd.concat([energy_demand_TWh_3, final_transport_demand_vkm])
     # All for : Air Quality
     demand = column_filter(df=demand, pattern='^.*$')
     # GroupBy transport-user
@@ -2329,11 +2329,11 @@ def transport(lifestyle):
     # share-energy-demand-urban[%TWh]
     share_energy_demand_urban_percent_TWh = export_variable(input_table=share_energy_demand_urban_percent_TWh, selected_variable='share-energy-demand-urban[%TWh]')
     # KPI
-    energy_demand_urban_TWh = pd.concat([energy_demand_urban_TWh, share_energy_demand_urban_percent_TWh.set_index(share_energy_demand_urban_percent_TWh.index.astype(str) + '_dup')])
+    energy_demand_urban_TWh = pd.concat([energy_demand_urban_TWh, share_energy_demand_urban_percent_TWh])
     # KPI
-    out_9618_1 = pd.concat([transport_pkm, energy_demand_urban_TWh.set_index(energy_demand_urban_TWh.index.astype(str) + '_dup')])
+    out_9618_1 = pd.concat([transport_pkm, energy_demand_urban_TWh])
     # KPI
-    out_9619_1 = pd.concat([emissions_veh_g_per_km, out_9618_1.set_index(out_9618_1.index.astype(str) + '_dup')])
+    out_9619_1 = pd.concat([emissions_veh_g_per_km, out_9618_1])
 
     # For : Power Supply 
     # 
@@ -2362,11 +2362,11 @@ def transport(lifestyle):
     # energy-carrier Top : all except electricity Bottom : electricity, hydrogen (we want to keep fuels  consumption as if non bunkers except for electricity & H2 to be ETS compliant
     energy_demand_TWh_excluded_excluded = energy_demand_TWh_excluded.loc[energy_demand_TWh_excluded['energy-carrier'].isin(['electricity', 'hydrogen'])].copy()
     energy_demand_TWh_excluded_2 = energy_demand_TWh_excluded.loc[~energy_demand_TWh_excluded['energy-carrier'].isin(['electricity', 'hydrogen'])].copy()
-    energy_demand_TWh_4 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_excluded_2.set_index(energy_demand_TWh_excluded_2.index.astype(str) + '_dup')])
+    energy_demand_TWh_4 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_excluded_2])
     # Set to 0
     energy_demand_TWh_excluded_excluded['energy-demand[TWh]'] = 0.0
     # energy-demand
-    energy_demand_TWh_4 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_excluded_excluded.set_index(energy_demand_TWh_excluded_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_4 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_excluded_excluded])
     # Group by energy-carrier, ets-or-not (sum)
     energy_demand_TWh_5 = group_by_dimensions(df=energy_demand_TWh_4, groupby_dimensions=['Country', 'Years', 'energy-carrier', 'ets-or-not'], aggregation_method='Sum')
     # Rename variable to energy-demand-by- carrier-ets[TWh]
@@ -2376,23 +2376,23 @@ def transport(lifestyle):
     # Rename variable to energy-demand-by-ets[TWh]
     out_9227_1 = energy_demand_TWh_4.rename(columns={'energy-demand[TWh]': 'energy-demand-domestic-by-ets[TWh]'})
     # energy-demand for Pathway Explorer
-    out_1 = pd.concat([out_9226_1, out_9227_1.set_index(out_9227_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9226_1, out_9227_1])
     # Group by  domestic-type (sum)
     energy_demand_TWh_excluded = group_by_dimensions(df=energy_demand_TWh_excluded, groupby_dimensions=['Country', 'Years', 'domestic-type'], aggregation_method='Sum')
     # Rename variable to energy-demand-bunkers- by-type[TWh]
     out_9519_1 = energy_demand_TWh_excluded.rename(columns={'energy-demand[TWh]': 'energy-demand-bunkers-by-type[TWh]'})
     # energy-demand for Pathway Explorer
-    out_1_2 = pd.concat([out_9518_1, out_9519_1.set_index(out_9519_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9518_1, out_9519_1])
     # energy-demand for Pathway Explorer
-    out_1_2 = pd.concat([out_9517_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9517_1, out_1_2])
     # energy-demand for Pathway Explorer
-    out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1_2, out_1])
     # Concat outputs for Pathway  explorer
-    out_9569_1 = pd.concat([out_1, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    out_9569_1 = pd.concat([out_1, energy_demand_TWh_2])
     # Concat outputs for Pathway  explorer
-    out_1 = pd.concat([out_9569_1, out_9207_1.set_index(out_9207_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9569_1, out_9207_1])
     # Join outputs for Pathway Explorer to all results
-    out_9213_1 = pd.concat([out_1, share_percent.set_index(share_percent.index.astype(str) + '_dup')])
+    out_9213_1 = pd.concat([out_1, share_percent])
     # ALL RESULTS
     out_9213_1 = column_filter(df=out_9213_1, pattern='^.*$')
     # Years
@@ -2429,39 +2429,39 @@ def transport(lifestyle):
     # energy-demand[TWh] to energy-demand-biofuel[TWh]
     energy_demand_TWh_excluded_excluded = column_rename_regex(df=energy_demand_TWh_excluded_excluded, search_string='energy-demand', replace_string='energy-demand-biofuel')
     # KPI
-    energy_demand_TWh_excluded_excluded = pd.concat([energy_demand_TWh_excluded_excluded, energy_demand_TWh_excluded_excluded_excluded.set_index(energy_demand_TWh_excluded_excluded_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_excluded_excluded = pd.concat([energy_demand_TWh_excluded_excluded, energy_demand_TWh_excluded_excluded_excluded])
     # Group by year
     energy_demand_TWh_excluded = group_by_dimensions(df=energy_demand_TWh_excluded_2, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # energy-demand[TWh] to energy-demand-efuel-H2[TWh]
     energy_demand_TWh_excluded = column_rename_regex(df=energy_demand_TWh_excluded, search_string='energy-demand', replace_string='energy-demand-efuel-hydrogene')
     # KPI
-    energy_demand_TWh_excluded = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh_excluded_excluded.set_index(energy_demand_TWh_excluded_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_excluded = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh_excluded_excluded])
     # Group by year
     energy_demand_TWh = group_by_dimensions(df=energy_demand_TWh_3, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # energy-demand[TWh] to energy-demand-ff[TWh]
     energy_demand_TWh = column_rename_regex(df=energy_demand_TWh, search_string='energy-demand', replace_string='energy-demand-ff')
     # KPI
-    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded])
     # KPI
-    out_9349_1 = pd.concat([out_9619_1, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    out_9349_1 = pd.concat([out_9619_1, energy_demand_TWh])
     # KPI
-    out_9348_1 = pd.concat([out_9349_1, elec_share_percent_vkm.set_index(elec_share_percent_vkm.index.astype(str) + '_dup')])
+    out_9348_1 = pd.concat([out_9349_1, elec_share_percent_vkm])
     # KPI
-    out_9347_1 = pd.concat([out_9348_1, modal_share_HDV_percent_tkm.set_index(modal_share_HDV_percent_tkm.index.astype(str) + '_dup')])
+    out_9347_1 = pd.concat([out_9348_1, modal_share_HDV_percent_tkm])
     # KPI
-    out_9346_1 = pd.concat([out_9347_1, elec_share_percent_vkm_2.set_index(elec_share_percent_vkm_2.index.astype(str) + '_dup')])
+    out_9346_1 = pd.concat([out_9347_1, elec_share_percent_vkm_2])
     # KPI
-    out_9343_1 = pd.concat([out_9346_1, total_veh_fleet_passenger_LDV_number.set_index(total_veh_fleet_passenger_LDV_number.index.astype(str) + '_dup')])
+    out_9343_1 = pd.concat([out_9346_1, total_veh_fleet_passenger_LDV_number])
     # KPI
-    out_9344_1 = pd.concat([out_9343_1, transport_demand.set_index(transport_demand.index.astype(str) + '_dup')])
+    out_9344_1 = pd.concat([out_9343_1, transport_demand])
     # KPI
-    out_9345_1 = pd.concat([out_9344_1, modal_share_passenger_LDV_percent_pkm.set_index(modal_share_passenger_LDV_percent_pkm.index.astype(str) + '_dup')])
+    out_9345_1 = pd.concat([out_9344_1, modal_share_passenger_LDV_percent_pkm])
     # KPI
-    out_9301_1 = pd.concat([out_9345_1, technology_share_new_percent.set_index(technology_share_new_percent.index.astype(str) + '_dup')])
+    out_9301_1 = pd.concat([out_9345_1, technology_share_new_percent])
     # Concatenate KPIs for PE
-    out_1 = pd.concat([out_1, out_9301_1.set_index(out_9301_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1, out_9301_1])
     # Concatenate Costs for PE
-    out_1 = pd.concat([out_1, out_9565_1.set_index(out_9565_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1, out_9565_1])
     out_9212_1 = add_trigram(module_name=module_name, df=out_1)
     # All for : Pathway Explorer
     out_9212_1 = column_filter(df=out_9212_1, pattern='^.*$')
@@ -2470,8 +2470,8 @@ def transport(lifestyle):
 
     # Cal rate for  energy-demand[TWh]
     cal_rate_energy_demand_TWh = use_variable(input_table=out_7107_3, selected_variable='cal_rate_energy-demand[TWh]')
-    cal_rate_demand = pd.concat([cal_rate_transport_demand, cal_rate_energy_demand_TWh.set_index(cal_rate_energy_demand_TWh.index.astype(str) + '_dup')])
-    cal_rate = pd.concat([cal_rate_demand, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
+    cal_rate_demand = pd.concat([cal_rate_transport_demand, cal_rate_energy_demand_TWh])
+    cal_rate = pd.concat([cal_rate_demand, cal_rate_emissions_Mt])
     # All for : CAL RATE
     cal_rate = column_filter(df=cal_rate, pattern='^.*$')
 

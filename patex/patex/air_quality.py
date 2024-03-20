@@ -107,7 +107,7 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
     energy_demand_TWh_4 = use_variable(input_table=transport, selected_variable='energy-demand[TWh]')
     # Group by energy-carrier, vehicule-type (sum)
     energy_demand_TWh_4 = group_by_dimensions(df=energy_demand_TWh_4, groupby_dimensions=['Country', 'Years', 'vehicule-type', 'energy-carrier'], aggregation_method='Sum')
-    energy_demand_TWh_3 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_3.set_index(energy_demand_TWh_3.index.astype(str) + '_dup')])
+    energy_demand_TWh_3 = pd.concat([energy_demand_TWh_4, energy_demand_TWh_3])
 
     def helper_9651(input_table) -> pd.DataFrame:
         # Copy input to output
@@ -167,7 +167,7 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
     # Keep  energy-carrier = solid-biomass / solid-ff-coal
     out_7514_1_2 = out_7514_1.loc[out_7514_1['energy-carrier'].isin(['solid-ff-coal', 'solid-biomass'])].copy()
     out_7514_1_excluded_2 = out_7514_1.loc[~out_7514_1['energy-carrier'].isin(['solid-ff-coal', 'solid-biomass'])].copy()
-    out_7514_1_excluded = pd.concat([out_7514_1_excluded_2, out_7514_1_excluded.set_index(out_7514_1_excluded.index.astype(str) + '_dup')])
+    out_7514_1_excluded = pd.concat([out_7514_1_excluded_2, out_7514_1_excluded])
     # RCP bld-energy-carrier-emission-factor-by-use [t/TWh]
     bld_energy_carrier_emission_factor_by_use_t_per_TWh = import_data(trigram='air', variable_name='bld-energy-carrier-emission-factor-by-use', variable_type='RCP')
     # emissions[t] = energy-demand[TWh] * bld-energy-carrier-emission-factor-by-use [t/TWh]
@@ -194,7 +194,7 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
     emissions_t_3 = mcd(input_table_1=final_transport_demand_vkm_excluded, input_table_2=vkm_emission_factor_by_vehicle_t_per_vkm, operation_selection='x * y', output_name='emissions[t]')
     # Group by Country, Years, pollutants (sum)
     emissions_t_3 = group_by_dimensions(df=emissions_t_3, groupby_dimensions=['Country', 'Years', 'pollutant'], aggregation_method='Sum')
-    emissions_t_2 = pd.concat([emissions_t_2, emissions_t_3.set_index(emissions_t_3.index.astype(str) + '_dup')])
+    emissions_t_2 = pd.concat([emissions_t_2, emissions_t_3])
     # RCP lsu-emission-factor [t/animals]
     lsu_emission_factor_t_per_animals = import_data(trigram='air', variable_name='lsu-emission-factor', variable_type='RCP')
     # emissions[t] = livestock-population[num] * lsu-emission-factor[t/animals]
@@ -233,8 +233,8 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
     emissions_t_8 = mcd(input_table_1=material_production_Mt, input_table_2=ind_emission_factor_by_material_route_t_per_Mt, operation_selection='x * y', output_name='emissions[t]')
     # Group by Country, Years, pollutants (sum)
     emissions_t_8 = group_by_dimensions(df=emissions_t_8, groupby_dimensions=['Country', 'Years', 'pollutant'], aggregation_method='Sum')
-    emissions_t_7 = pd.concat([emissions_t_7, emissions_t_8.set_index(emissions_t_8.index.astype(str) + '_dup')])
-    emissions_t_6 = pd.concat([emissions_t_6, emissions_t_7.set_index(emissions_t_7.index.astype(str) + '_dup')])
+    emissions_t_7 = pd.concat([emissions_t_7, emissions_t_8])
+    emissions_t_6 = pd.concat([emissions_t_6, emissions_t_7])
     # sector = ind
     emissions_t_6['sector'] = "ind"
     # RCP elc-energy-carrier-emission-factor [t/TWh]
@@ -245,33 +245,33 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
     emissions_t_7 = group_by_dimensions(df=emissions_t_7, groupby_dimensions=['Country', 'Years', 'pollutant'], aggregation_method='Sum')
     # sector = elc
     emissions_t_7['sector'] = "elc"
-    emissions_t_6 = pd.concat([emissions_t_6, emissions_t_7.set_index(emissions_t_7.index.astype(str) + '_dup')])
+    emissions_t_6 = pd.concat([emissions_t_6, emissions_t_7])
     # emissions[t] = land-management[ha] * land-emission-factor [t/ha]
     emissions_t_7 = mcd(input_table_1=land_management_ha, input_table_2=land_emission_factor_t_per_ha, operation_selection='x * y', output_name='emissions[t]')
     # Group by Country, Years, pollutants (sum)
     emissions_t_7 = group_by_dimensions(df=emissions_t_7, groupby_dimensions=['Country', 'Years', 'pollutant'], aggregation_method='Sum')
-    emissions_t_5 = pd.concat([emissions_t_5, emissions_t_7.set_index(emissions_t_7.index.astype(str) + '_dup')])
-    emissions_t_4 = pd.concat([emissions_t_4, emissions_t_5.set_index(emissions_t_5.index.astype(str) + '_dup')])
-    emissions_t_3 = pd.concat([emissions_t_3, emissions_t_4.set_index(emissions_t_4.index.astype(str) + '_dup')])
+    emissions_t_5 = pd.concat([emissions_t_5, emissions_t_7])
+    emissions_t_4 = pd.concat([emissions_t_4, emissions_t_5])
+    emissions_t_3 = pd.concat([emissions_t_3, emissions_t_4])
     # sector = agr
     emissions_t_3['sector'] = "agr"
-    emissions_t_3 = pd.concat([emissions_t_3, emissions_t_6.set_index(emissions_t_6.index.astype(str) + '_dup')])
+    emissions_t_3 = pd.concat([emissions_t_3, emissions_t_6])
     # emissions[t] = energy-demand[TWh] * tra-energy-carrier-emission-factor [t/TWh]
     emissions_t_4 = mcd(input_table_1=out_9651_1, input_table_2=tra_energy_carrier_emission_factor_t_per_TWh, operation_selection='x * y', output_name='emissions[t]')
     # Group by Country, Years, pollutants (sum)
     emissions_t_4 = group_by_dimensions(df=emissions_t_4, groupby_dimensions=['Country', 'Years', 'pollutant'], aggregation_method='Sum')
-    emissions_t_2 = pd.concat([emissions_t_4, emissions_t_2.set_index(emissions_t_2.index.astype(str) + '_dup')])
+    emissions_t_2 = pd.concat([emissions_t_4, emissions_t_2])
     # sector = tra
     emissions_t_2['sector'] = "tra"
-    emissions_t_2 = pd.concat([emissions_t_2, emissions_t_3.set_index(emissions_t_3.index.astype(str) + '_dup')])
+    emissions_t_2 = pd.concat([emissions_t_2, emissions_t_3])
     # emissions[t] = energy-demand[TWh] * bld-energy-carrier-emission-factor [t/TWh]
     emissions_t_3 = mcd(input_table_1=out_7514_1_excluded, input_table_2=bld_energy_carrier_emission_factor_t_per_TWh, operation_selection='x * y', output_name='emissions[t]')
     # Group by Country, Years, pollutants (sum)
     emissions_t_3 = group_by_dimensions(df=emissions_t_3, groupby_dimensions=['Country', 'Years', 'pollutant'], aggregation_method='Sum')
-    emissions_t = pd.concat([emissions_t, emissions_t_3.set_index(emissions_t_3.index.astype(str) + '_dup')])
+    emissions_t = pd.concat([emissions_t, emissions_t_3])
     # sector = bld
     emissions_t['sector'] = "bld"
-    emissions_t = pd.concat([emissions_t, emissions_t_2.set_index(emissions_t_2.index.astype(str) + '_dup')])
+    emissions_t = pd.concat([emissions_t, emissions_t_2])
 
     # Calibrate emissions
 
@@ -346,7 +346,7 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
 
     # exposure [ugPM2eq/m3]
     exposure_ugPM2eq_per_m3 = use_variable(input_table=exposure_ugPM2eq_per_m3, selected_variable='exposure[ugPM2eq/m3]')
-    out_9649_1 = pd.concat([exposure_ugPM2eq_per_m3, emissions_t.set_index(emissions_t.index.astype(str) + '_dup')])
+    out_9649_1 = pd.concat([exposure_ugPM2eq_per_m3, emissions_t])
 
     # Health impact and health costs
 
@@ -366,7 +366,7 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
     mortality_num_2 = mcd(input_table_1=baseline_mortality_death_per_pop, input_table_2=population_num, operation_selection='x * y', output_name='mortality[num]')
     # Keep Years > baseyear
     mortality_num_2, _ = filter_dimension(df=mortality_num_2, dimension='Years', operation_selection='>', value_years=Globals.get().base_year)
-    mortality_num = pd.concat([mortality_num, mortality_num_2.set_index(mortality_num_2.index.astype(str) + '_dup')])
+    mortality_num = pd.concat([mortality_num, mortality_num_2])
     # By Country, Years (sum)
     mortality_num = group_by_dimensions(df=mortality_num, groupby_dimensions=['Years', 'Country'], aggregation_method='Sum')
     # relative-risk[-] = 1.062 ^ (exposure[ugPM2eq/m3]/10)
@@ -388,7 +388,7 @@ def air_quality(buildings, transport, agriculture, land_use, industry, power):
 
     # costs [MEUR]
     costs_MEUR = use_variable(input_table=costs_MEUR, selected_variable='costs[MEUR]')
-    out_9492_1 = pd.concat([out_9649_1, costs_MEUR.set_index(costs_MEUR.index.astype(str) + '_dup')])
+    out_9492_1 = pd.concat([out_9649_1, costs_MEUR])
     out_9493_1 = add_trigram(module_name=module_name, df=out_9492_1)
 
     return out_9493_1, out_9650_1

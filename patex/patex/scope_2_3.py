@@ -84,12 +84,12 @@ def scope_2_3(power, industry, agriculture, bioenergy_balance):
     out_9524_1 = emissions_scope2_MtCO2e_excluded.copy()
     out_9524_1['sector-scope2'] = 'elc'
     # Contact sectors  with elc
-    out_9525_1 = pd.concat([emissions_scope2_MtCO2e_2, out_9524_1.set_index(out_9524_1.index.astype(str) + '_dup')])
+    out_9525_1 = pd.concat([emissions_scope2_MtCO2e_2, out_9524_1])
     # emissions-indirect[MtCO2e] (energy-losses) = indirect-emission-factor[MtCO2e/TWh] x imported-energy[TWh]
     emissions_indirect_MtCO2e_2 = mcd(input_table_1=out_9600_1_excluded_2, input_table_2=out_9628_1, operation_selection='x * y', output_name='emissions-indirect[MtCO2e]')
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_2 = group_by_dimensions(df=emissions_indirect_MtCO2e_2, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2.set_index(emissions_indirect_MtCO2e_2.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2])
     # Group by country, years,  energy-carrier (sum)
     energy_imported_TWh = group_by_dimensions(df=energy_imported_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # emissions-indirect[MtCO2e] (energy-fugitive) = indirect-emission-factor[MtCO2e/TWh] x imported-energy[TWh]
@@ -100,8 +100,8 @@ def scope_2_3(power, industry, agriculture, bioenergy_balance):
     emissions_indirect_MtCO2e_3 = mcd(input_table_1=out_9600_1_excluded_excluded_2, input_table_2=energy_imported_TWh, operation_selection='x * y', output_name='emissions-indirect[MtCO2e]')
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_3 = group_by_dimensions(df=emissions_indirect_MtCO2e_3, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_2.set_index(emissions_indirect_MtCO2e_2.index.astype(str) + '_dup')])
-    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2.set_index(emissions_indirect_MtCO2e_2.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_2])
+    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2])
     # set  "sector-import" to elc
     emissions_indirect_MtCO2e['sector-import'] = "elc"
 
@@ -110,7 +110,7 @@ def scope_2_3(power, industry, agriculture, bioenergy_balance):
 
     # Group by country, years (sum)
     emissions_indirect_MtCO2e_2 = group_by_dimensions(df=emissions_indirect_MtCO2e, groupby_dimensions=['Years', 'Country', 'sector-import'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2.set_index(emissions_indirect_MtCO2e_2.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2])
 
     # From Industry import to CO2-equivalent emissions
 
@@ -134,7 +134,7 @@ def scope_2_3(power, industry, agriculture, bioenergy_balance):
     emissions_indirect_MtCO2e_3 = emissions_indirect_MtCO2e_3.drop(columns='emissions-indirect[MtCO2e]').assign(**{'emissions-indirect[MtCO2e]': emissions_indirect_MtCO2e_3['emissions-indirect[MtCO2e]'] * 1e-06})
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_3 = group_by_dimensions(df=emissions_indirect_MtCO2e_3, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_2, emissions_indirect_MtCO2e_3.set_index(emissions_indirect_MtCO2e_3.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_2, emissions_indirect_MtCO2e_3])
 
     # From Agriculture import to CO2-equivalent emissions
 
@@ -164,13 +164,13 @@ def scope_2_3(power, industry, agriculture, bioenergy_balance):
     emissions_indirect_MtCO2e_5 = emissions_indirect_tCO2e.drop(columns='emissions-indirect[tCO2e]').assign(**{'emissions-indirect[MtCO2e]': emissions_indirect_tCO2e['emissions-indirect[tCO2e]'] * 1e-06})
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_5 = group_by_dimensions(df=emissions_indirect_MtCO2e_5, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e_4 = pd.concat([emissions_indirect_MtCO2e_4, emissions_indirect_MtCO2e_5.set_index(emissions_indirect_MtCO2e_5.index.astype(str) + '_dup')])
-    emissions_indirect_MtCO2e_3 = pd.concat([emissions_indirect_MtCO2e_4, emissions_indirect_MtCO2e_3.set_index(emissions_indirect_MtCO2e_3.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e_4 = pd.concat([emissions_indirect_MtCO2e_4, emissions_indirect_MtCO2e_5])
+    emissions_indirect_MtCO2e_3 = pd.concat([emissions_indirect_MtCO2e_4, emissions_indirect_MtCO2e_3])
     # set  "sector-import" to agr
     emissions_indirect_MtCO2e_3['sector-import'] = "agr"
     # Group by country, years (sum)
     emissions_indirect_MtCO2e_4 = group_by_dimensions(df=emissions_indirect_MtCO2e_3, groupby_dimensions=['Years', 'Country', 'sector-import'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e_3 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_4.set_index(emissions_indirect_MtCO2e_4.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e_3 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_4])
     # from IND subproduct-import[unit]
     subproduct_import_unit = use_variable(input_table=industry, selected_variable='subproduct-import[unit]')
     # Group by country, years,  category (sum)
@@ -181,15 +181,15 @@ def scope_2_3(power, industry, agriculture, bioenergy_balance):
     emissions_indirect_MtCO2e_4 = emissions_indirect_MtCO2e_4.drop(columns='emissions-indirect[MtCO2e]').assign(**{'emissions-indirect[MtCO2e]': emissions_indirect_MtCO2e_4['emissions-indirect[MtCO2e]'] * 1e-06})
     # Group by country, years,  category (sum)
     emissions_indirect_MtCO2e_4 = group_by_dimensions(df=emissions_indirect_MtCO2e_4, groupby_dimensions=['Years', 'Country', 'category'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_2, emissions_indirect_MtCO2e_4.set_index(emissions_indirect_MtCO2e_4.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_2, emissions_indirect_MtCO2e_4])
     # set  "sector-import" to ind
     emissions_indirect_MtCO2e_2['sector-import'] = "ind"
     # Group by country, years (sum)
     emissions_indirect_MtCO2e_4 = group_by_dimensions(df=emissions_indirect_MtCO2e_2, groupby_dimensions=['Years', 'Country', 'sector-import'], aggregation_method='Sum')
-    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_2, emissions_indirect_MtCO2e_4.set_index(emissions_indirect_MtCO2e_4.index.astype(str) + '_dup')])
-    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_2.set_index(emissions_indirect_MtCO2e_2.index.astype(str) + '_dup')])
-    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2.set_index(emissions_indirect_MtCO2e_2.index.astype(str) + '_dup')])
-    out_9626_1 = pd.concat([out_9525_1, emissions_indirect_MtCO2e.set_index(emissions_indirect_MtCO2e.index.astype(str) + '_dup')])
+    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_2, emissions_indirect_MtCO2e_4])
+    emissions_indirect_MtCO2e_2 = pd.concat([emissions_indirect_MtCO2e_3, emissions_indirect_MtCO2e_2])
+    emissions_indirect_MtCO2e = pd.concat([emissions_indirect_MtCO2e, emissions_indirect_MtCO2e_2])
+    out_9626_1 = pd.concat([out_9525_1, emissions_indirect_MtCO2e])
     out_8244_1 = add_trigram(module_name=module_name, df=out_9626_1)
     # Module = Pathways Explorer
     out_8244_1 = column_filter(df=out_8244_1, pattern='^.*$')

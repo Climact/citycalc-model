@@ -130,7 +130,7 @@ def metanode_9702(port_01, port_02):
     energy_demand_TWh_2 = use_variable(input_table=out_9692_1, selected_variable='energy-demand[TWh]')
     # Group by  Country, Years, res-category, sector (sum)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'sector', 'res-category'], aggregation_method='Sum')
-    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2])
     # Bottom sector = electricity
     energy_demand_TWh_excluded = energy_demand_TWh.loc[energy_demand_TWh['sector'].isin(['electricity'])].copy()
     energy_demand_TWh_2 = energy_demand_TWh.loc[~energy_demand_TWh['sector'].isin(['electricity'])].copy()
@@ -138,7 +138,7 @@ def metanode_9702(port_01, port_02):
     energy_demand_TWh_excluded = group_by_dimensions(df=energy_demand_TWh_excluded, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # energy-demand[TWh] (replace) = energy-demand[TWh] * pct[-]  We have to recompute values for electricity sector sector because % depends on which quantity of res has been attributed to hydrogen and efuels
     energy_demand_TWh = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=pct, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
     # Keep sector = hydrogen
     energy_demand_TWh_2 = energy_demand_TWh.loc[energy_demand_TWh['sector'].isin(['hydrogen'])].copy()
 
@@ -161,7 +161,7 @@ def metanode_9702(port_01, port_02):
     energy_demand_TWh_excluded = group_by_dimensions(df=energy_demand_TWh_excluded, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # energy-demand[TWh] (replace) = energy-demand[TWh] * pct[-]
     energy_demand_TWh = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=pct, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
     # Keep sector = efuels
     energy_demand_TWh_2 = energy_demand_TWh.loc[energy_demand_TWh['sector'].isin(['efuels'])].copy()
 
@@ -184,7 +184,7 @@ def metanode_9702(port_01, port_02):
     energy_demand_TWh_excluded = group_by_dimensions(df=energy_demand_TWh_excluded, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # energy-demand[TWh] (replace) = energy-demand[TWh] * pct[-]
     energy_demand_TWh = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=pct, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
     # Bottom res-category = heat
     energy_demand_TWh_excluded = energy_demand_TWh_2.loc[energy_demand_TWh_2['res-category'].isin(['heat'])].copy()
     energy_demand_TWh = energy_demand_TWh_2.loc[~energy_demand_TWh_2['res-category'].isin(['heat'])].copy()
@@ -207,7 +207,7 @@ def metanode_9702(port_01, port_02):
     pct = group_by_dimensions(df=pct, groupby_dimensions=['Country', 'Years', 'res-category'], aggregation_method='Sum')
     # energy-demand[TWh] (replace) = energy-demand[TWh] * pct[-]
     energy_demand_TWh_2 = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=pct, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh_3 = pd.concat([energy_demand_TWh, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    energy_demand_TWh_3 = pd.concat([energy_demand_TWh, energy_demand_TWh_2])
     # Bottom res-category = res (RES without biomass)
     energy_demand_TWh_2 = energy_demand_TWh_3.loc[energy_demand_TWh_3['res-category'].isin(['res'])].copy()
 
@@ -238,7 +238,7 @@ def metanode_9702(port_01, port_02):
     pct_res_without_biomass_by_sector = mcd(input_table_1=energy_demand_TWh_4, input_table_2=energy_demand_TWh_5, operation_selection='x / y', output_name='pct-res-without-biomass-by-sector[-]')
     # Set to 0
     pct_res_without_biomass_by_sector = missing_value(df=pct_res_without_biomass_by_sector, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
-    pct_res_biomass_by_sector = pd.concat([pct_res_without_biomass_by_sector, pct_res_with_biomass_by_sector.set_index(pct_res_with_biomass_by_sector.index.astype(str) + '_dup')])
+    pct_res_biomass_by_sector = pd.concat([pct_res_without_biomass_by_sector, pct_res_with_biomass_by_sector])
     # Group by Country, Years (sum)
     energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh_3, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # pct-res-with-biomass-total[-] = energy-demand[TWh] (RES) / energy-demand[TWh] (Total)
@@ -249,8 +249,8 @@ def metanode_9702(port_01, port_02):
     pct_res_without_biomass_total = mcd(input_table_1=energy_demand_TWh, input_table_2=energy_demand_TWh_3, operation_selection='x / y', output_name='pct-res-without-biomass-total[-]')
     # Set to 0
     pct_res_without_biomass_total = missing_value(df=pct_res_without_biomass_total, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
-    pct_res_biomass_total = pd.concat([pct_res_without_biomass_total, pct_res_with_biomass_total.set_index(pct_res_with_biomass_total.index.astype(str) + '_dup')])
-    pct_res_biomass = pd.concat([pct_res_biomass_by_sector, pct_res_biomass_total.set_index(pct_res_biomass_total.index.astype(str) + '_dup')])
+    pct_res_biomass_total = pd.concat([pct_res_without_biomass_total, pct_res_with_biomass_total])
+    pct_res_biomass = pd.concat([pct_res_biomass_by_sector, pct_res_biomass_total])
 
     return pct_res_biomass
 

@@ -240,7 +240,7 @@ def land_use(agriculture):
     land_management_ha_2 = land_management_ha_2.loc[~land_management_ha_2['land-use'].isin(['frozen-forest'])].copy()
     # Same as last available year
     land_management_ha_2 = add_missing_years(df_data=land_management_ha_2)
-    land_management_ha = pd.concat([land_management_ha, land_management_ha_2.set_index(land_management_ha_2.index.astype(str) + '_dup')])
+    land_management_ha = pd.concat([land_management_ha, land_management_ha_2])
     # land-management [ha]
     land_management_ha_2 = export_variable(input_table=land_management_ha, selected_variable='land-management[ha]')
 
@@ -294,7 +294,7 @@ def land_use(agriculture):
     # land-management[ha] (replace) = land-management[ha] + land-management[ha]  LEFT JOIN If reforestation is missing => Set 0
     land_management_ha = mcd(input_table_1=land_management_ha, input_table_2=land_management_ha_3, operation_selection='x + y', output_name='land-management[ha]', fill_value_bool='Left [x] Outer Join')
     # Add other buffer land (other than forest)
-    land_management_ha = pd.concat([land_management_ha, land_management_ha_2.set_index(land_management_ha_2.index.astype(str) + '_dup')])
+    land_management_ha = pd.concat([land_management_ha, land_management_ha_2])
     # Group by  Country, Years, land-use (sum)
     land_management_ha = group_by_dimensions(df=land_management_ha, groupby_dimensions=['Country', 'Years', 'land-use'], aggregation_method='Sum')
     # land-management [ha]
@@ -318,8 +318,8 @@ def land_use(agriculture):
     land_management_ha_2 = mcd(input_table_1=fruit_pct_percent, input_table_2=land_management_ha_2, operation_selection='(1-x) * y', output_name='land-management[ha]')
     # land-use = non-woody-cropland
     land_management_ha_2['land-use'] = "non-woody-cropland"
-    land_management_ha_2 = pd.concat([land_management_ha_3, land_management_ha_2.set_index(land_management_ha_2.index.astype(str) + '_dup')])
-    land_management_ha_2 = pd.concat([land_management_ha_2, land_management_ha_excluded.set_index(land_management_ha_excluded.index.astype(str) + '_dup')])
+    land_management_ha_2 = pd.concat([land_management_ha_3, land_management_ha_2])
+    land_management_ha_2 = pd.concat([land_management_ha_2, land_management_ha_excluded])
     # CP (agr_)land-lifespan [years]
     agr_land_lifespan_years = import_data(trigram='agr', variable_name='agr_land-lifespan', variable_type='CP')
     # Remove source, data_type, module
@@ -525,7 +525,7 @@ def land_use(agriculture):
     # remaining-land[ha] as land-area[ha]
     out_9551_1 = remaining_land_ha.rename(columns={'remaining-land[ha]': 'land-area[ha]'})
     # Get all land by type (remaining or new)
-    out_1 = pd.concat([out_9551_1, out_9552_1.set_index(out_9552_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9551_1, out_9552_1])
     # land-area [ha]
     land_area_ha = export_variable(input_table=out_1, selected_variable='land-area[ha]')
 
@@ -724,7 +724,7 @@ def land_use(agriculture):
     carbon_change_tC_2 = group_by_dimensions(df=carbon_change_tC_2, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age'], aggregation_method='Sum')
     # c-change-origin = organic-soils
     carbon_change_tC_2['c-change-origin'] = "organic-soils"
-    carbon_change_tC = pd.concat([carbon_change_tC_2, carbon_change_tC.set_index(carbon_change_tC.index.astype(str) + '_dup')])
+    carbon_change_tC = pd.concat([carbon_change_tC_2, carbon_change_tC])
     # Group by  Country, Years, land-use, land-age, climate-type (sum)
     land_area_ha_3 = group_by_dimensions(df=land_area_ha_3, groupby_dimensions=['Country', 'Years', 'land-use', 'climate-type', 'land-age'], aggregation_method='Sum')
     # organic-land-area[ha] = land-area[ha] * drained-area-share[%]
@@ -737,7 +737,7 @@ def land_use(agriculture):
     carbon_change_tC_2 = group_by_dimensions(df=carbon_change_tC_2, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age'], aggregation_method='Sum')
     # c-change-origin = organic-soils
     carbon_change_tC_2['c-change-origin'] = "organic-soils"
-    carbon_change_tC = pd.concat([carbon_change_tC_2, carbon_change_tC.set_index(carbon_change_tC.index.astype(str) + '_dup')])
+    carbon_change_tC = pd.concat([carbon_change_tC_2, carbon_change_tC])
 
     # Global parameters
 
@@ -821,7 +821,7 @@ def land_use(agriculture):
     land_area_ha_excluded_2 = group_by_dimensions(df=land_area_ha_excluded_2, groupby_dimensions=['Country', 'Years', 'land-use', 'climate-type', 'ecological-zone', 'sub-climate-type', 'land-age', 'land-purpose'], aggregation_method='Sum')
     # land-cover = undefined (we don't need information for climate other than temperate)
     land_area_ha_excluded_2['land-cover'] = "undefined"
-    land_area_ha = pd.concat([land_area_ha_2, land_area_ha_excluded_2.set_index(land_area_ha_excluded_2.index.astype(str) + '_dup')])
+    land_area_ha = pd.concat([land_area_ha_2, land_area_ha_excluded_2])
     # land-area [ha]
     land_area_ha = use_variable(input_table=land_area_ha, selected_variable='land-area[ha]')
     # land-area [ha]
@@ -899,16 +899,16 @@ def land_use(agriculture):
     wood_production_m3_excluded_excluded['origin'] = "natural-hardwood"
     # origin = plantation-hardwood
     wood_production_m3_excluded = wood_production_m3_excluded_2.assign(**{'origin': "plantation-hardwood"})
-    wood_production_m3_excluded = pd.concat([wood_production_m3_excluded, wood_production_m3_excluded_excluded.set_index(wood_production_m3_excluded_excluded.index.astype(str) + '_dup')])
+    wood_production_m3_excluded = pd.concat([wood_production_m3_excluded, wood_production_m3_excluded_excluded])
     # Top : land-purpose = plantation
     wood_production_m3_2 = wood_production_m3.loc[wood_production_m3['land-purpose'].isin(['plantation'])].copy()
     wood_production_m3_excluded_2 = wood_production_m3.loc[~wood_production_m3['land-purpose'].isin(['plantation'])].copy()
     # origin = natural-resinous
     wood_production_m3_excluded_2['origin'] = "natural-resinous"
-    wood_production_m3_excluded = pd.concat([wood_production_m3_excluded_2, wood_production_m3_excluded.set_index(wood_production_m3_excluded.index.astype(str) + '_dup')])
+    wood_production_m3_excluded = pd.concat([wood_production_m3_excluded_2, wood_production_m3_excluded])
     # origin = plantation-resinous
     wood_production_m3 = wood_production_m3_2.assign(**{'origin': "plantation-resinous"})
-    wood_production_m3 = pd.concat([wood_production_m3, wood_production_m3_excluded.set_index(wood_production_m3_excluded.index.astype(str) + '_dup')])
+    wood_production_m3 = pd.concat([wood_production_m3, wood_production_m3_excluded])
     # above-ground-biomass[tdm] = land-area[ha] * ground-net-biomass-growth [tdm/ha]
     above_ground_biomass_tdm = mcd(input_table_1=land_area_ha, input_table_2=ground_net_biomass_growth_tdm_per_ha, operation_selection='x * y', output_name='above-ground-biomass[tdm]')
     # CP (agr_)carbon-fraction [tC/tdm]
@@ -1140,7 +1140,7 @@ def land_use(agriculture):
 
     # potential-production-for-industry [t]
     potential_production_for_industry_t = use_variable(input_table=potential_production_for_industry_t, selected_variable='potential-production-for-industry[t]')
-    production = pd.concat([wood_production_m3, potential_production_for_industry_t.set_index(potential_production_for_industry_t.index.astype(str) + '_dup')])
+    production = pd.concat([wood_production_m3, potential_production_for_industry_t])
     # potential-biomass-production[t] (replace) = potential-biomass-production[t] * energy-crops-share[%]
     potential_biomass_production_t = mcd(input_table_1=potential_biomass_production_t, input_table_2=energy_crops_share_percent, operation_selection='x * y', output_name='potential-biomass-production[t]')
     # RCP energy-crops-conversion-factor [TWh/t]
@@ -1151,7 +1151,7 @@ def land_use(agriculture):
     energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = energy-crops
     energy_production_TWh_2['origin'] = "energy-crops"
-    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh])
     # energy-production [TWh]
     energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
@@ -1161,7 +1161,7 @@ def land_use(agriculture):
 
     # energy-production [TWh]
     energy_production_TWh = use_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
-    production = pd.concat([energy_production_TWh, production.set_index(production.index.astype(str) + '_dup')])
+    production = pd.concat([energy_production_TWh, production])
     # Module = Bioenergy
     production = column_filter(df=production, pattern='^.*$')
 
@@ -1198,7 +1198,7 @@ def land_use(agriculture):
     annual_lost_land_ha_2 = group_by_dimensions(df=annual_lost_land_ha_2, groupby_dimensions=['Country', 'Years', 'land-use', 'climate-type', 'sub-climate-type'], aggregation_method='Sum')
     # above-ground-biomass[tdm] = annual-lost-land[ha] * ground-net-biomass-growth [tdm/ha]
     above_ground_biomass_tdm = mcd(input_table_1=annual_lost_land_ha_2, input_table_2=ground_biomass_tdm_per_ha, operation_selection='x * y', output_name='above-ground-biomass[tdm]')
-    above_ground_biomass_tdm = pd.concat([above_ground_biomass_tdm_2, above_ground_biomass_tdm.set_index(above_ground_biomass_tdm.index.astype(str) + '_dup')])
+    above_ground_biomass_tdm = pd.concat([above_ground_biomass_tdm_2, above_ground_biomass_tdm])
     # carbon-change[tC] = above-ground-biomass[tdm] * carbon-fraction[tC/tdm] (= 0.47tC/tdm for herbaceous-grassland)
     carbon_change_tC_5 = above_ground_biomass_tdm.assign(**{'carbon-change[tC]': above_ground_biomass_tdm['above-ground-biomass[tdm]']*0.47})
     # carbon-change[tC]
@@ -1232,7 +1232,7 @@ def land_use(agriculture):
     carbon_change_tC_8 = mcd(input_table_1=annual_lost_land_ha_3, input_table_2=biomass_carbon_loss_tC_per_ha_per_yr_2, operation_selection='x * y', output_name='carbon-change[tC]')
     # land-age = new (<= 20 years)
     carbon_change_tC_8['land-age'] = "new"
-    carbon_change_tC_7 = pd.concat([carbon_change_tC_7, carbon_change_tC_8.set_index(carbon_change_tC_8.index.astype(str) + '_dup')])
+    carbon_change_tC_7 = pd.concat([carbon_change_tC_7, carbon_change_tC_8])
     # Group by  Country, Years, land-use, land-age (sum)
     carbon_change_tC_7 = group_by_dimensions(df=carbon_change_tC_7, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age'], aggregation_method='Sum')
     # c-change-origin = biomass-gains
@@ -1243,18 +1243,18 @@ def land_use(agriculture):
     carbon_change_tC_8 = mcd(input_table_1=annual_lost_land_ha_2, input_table_2=biomass_carbon_loss_tC_per_ha_per_yr, operation_selection='x * y', output_name='carbon-change[tC]')
     # land-age = new (<= 20 years)
     carbon_change_tC_8['land-age'] = "new"
-    carbon_change_tC_6 = pd.concat([carbon_change_tC_6, carbon_change_tC_8.set_index(carbon_change_tC_8.index.astype(str) + '_dup')])
+    carbon_change_tC_6 = pd.concat([carbon_change_tC_6, carbon_change_tC_8])
     # Group by  Country, Years, land-use, land-age (sum)
     carbon_change_tC_6 = group_by_dimensions(df=carbon_change_tC_6, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age'], aggregation_method='Sum')
     # c-change-origin = biomass-gains
     carbon_change_tC_6['c-change-origin'] = "biomass-gains"
     # Group by  Country, Years, land-use, land-age (sum)  DO WE WANT TO KEEP THE ORIGIN ?
     carbon_change_tC_6 = group_by_dimensions(df=carbon_change_tC_6, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age', 'c-change-origin'], aggregation_method='Sum')
-    carbon_change_tC_6 = pd.concat([carbon_change_tC_6, carbon_change_tC_7.set_index(carbon_change_tC_7.index.astype(str) + '_dup')])
-    carbon_change_tC_5 = pd.concat([carbon_change_tC_5, carbon_change_tC_6.set_index(carbon_change_tC_6.index.astype(str) + '_dup')])
-    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_5.set_index(carbon_change_tC_5.index.astype(str) + '_dup')])
-    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_4.set_index(carbon_change_tC_4.index.astype(str) + '_dup')])
-    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_3.set_index(carbon_change_tC_3.index.astype(str) + '_dup')])
+    carbon_change_tC_6 = pd.concat([carbon_change_tC_6, carbon_change_tC_7])
+    carbon_change_tC_5 = pd.concat([carbon_change_tC_5, carbon_change_tC_6])
+    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_5])
+    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_4])
+    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_3])
     # annual-lost-land [ha]
     annual_lost_land_ha = use_variable(input_table=annual_lost_land_ha, selected_variable='annual-lost-land[ha]')
     # Keep forests annual-lost-land[ha]
@@ -1277,8 +1277,8 @@ def land_use(agriculture):
     carbon_change_tC_3 = group_by_dimensions(df=carbon_change_tC_3, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age'], aggregation_method='Sum')
     # c-change-origin = DOM
     carbon_change_tC_3['c-change-origin'] = "DOM"
-    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_3.set_index(carbon_change_tC_3.index.astype(str) + '_dup')])
-    carbon_change_tC = pd.concat([carbon_change_tC_2, carbon_change_tC.set_index(carbon_change_tC.index.astype(str) + '_dup')])
+    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_3])
+    carbon_change_tC = pd.concat([carbon_change_tC_2, carbon_change_tC])
     # land-management- lifetime-lagged [ha]
     land_management_lifetime_lagged_ha = use_variable(input_table=out_688_1, selected_variable='land-management_lifetime-lagged[ha]')
     # land-management- lifetime-lagged [ha]
@@ -1403,10 +1403,10 @@ def land_use(agriculture):
     carbon_change_tC_5 = group_by_dimensions(df=carbon_change_tC_5, groupby_dimensions=['Country', 'Years', 'land-use', 'land-age'], aggregation_method='Sum')
     # c-change-origin = mineral-soils
     carbon_change_tC_5['c-change-origin'] = "mineral-soils"
-    carbon_change_tC_4 = pd.concat([carbon_change_tC_4, carbon_change_tC_5.set_index(carbon_change_tC_5.index.astype(str) + '_dup')])
-    carbon_change_tC_3 = pd.concat([carbon_change_tC_3, carbon_change_tC_4.set_index(carbon_change_tC_4.index.astype(str) + '_dup')])
-    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_3.set_index(carbon_change_tC_3.index.astype(str) + '_dup')])
-    carbon_change_tC = pd.concat([carbon_change_tC, carbon_change_tC_2.set_index(carbon_change_tC_2.index.astype(str) + '_dup')])
+    carbon_change_tC_4 = pd.concat([carbon_change_tC_4, carbon_change_tC_5])
+    carbon_change_tC_3 = pd.concat([carbon_change_tC_3, carbon_change_tC_4])
+    carbon_change_tC_2 = pd.concat([carbon_change_tC_2, carbon_change_tC_3])
+    carbon_change_tC = pd.concat([carbon_change_tC, carbon_change_tC_2])
 
     # Emissions linked to carbon dynamics
     # 
@@ -1502,9 +1502,9 @@ def land_use(agriculture):
     land_management_share_ha_per_ha = mcd(input_table_1=land_management_ha, input_table_2=land_management_ha_2, operation_selection='x / y', output_name='land-management-share[ha/ha]')
     # Set 0
     land_management_share_ha_per_ha = missing_value(df=land_management_share_ha_per_ha, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
-    land = pd.concat([land_change_percent, land_management_share_ha_per_ha.set_index(land_management_share_ha_per_ha.index.astype(str) + '_dup')])
-    land = pd.concat([land_management_ha, land.set_index(land.index.astype(str) + '_dup')])
-    out_9533_1 = pd.concat([land, capex_new_forest_MEUR.set_index(capex_new_forest_MEUR.index.astype(str) + '_dup')])
+    land = pd.concat([land_change_percent, land_management_share_ha_per_ha])
+    land = pd.concat([land_management_ha, land])
+    out_9533_1 = pd.concat([land, capex_new_forest_MEUR])
     out_9187_1 = add_trigram(module_name=module_name, df=out_9533_1)
     # Module = Pathway Explorer
     out_9187_1 = column_filter(df=out_9187_1, pattern='^.*$')

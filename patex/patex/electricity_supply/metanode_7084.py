@@ -34,7 +34,7 @@ def metanode_7084(port_01):
     _, out_0_2, out_0_3 = calibration(input_table=out_6374_1_2, cal_table=fossil_energy_demand_TWh, data_to_be_cal='energy-demand[TWh]', data_cal='fossil-energy-demand[TWh]')
     # energy-demand[TWh] (replace) = energy-demand[TWh] * cal_rate
     energy_demand_TWh = mcd(input_table_1=out_6374_1, input_table_2=out_0_2, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh])
 
     # Keep Calibration rate
 

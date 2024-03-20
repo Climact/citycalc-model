@@ -231,7 +231,7 @@ def agriculture(lifestyle):
     energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = food-wastes
     energy_production_TWh_2['origin'] = "food-wastes"
-    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh])
     # food-demand [kcal] (from lifestyle)
     food_demand_kcal = use_variable(input_table=lifestyle, selected_variable='food-demand[kcal]')
     # overall-food-demand[kcal] = food-demand[kcal] + food-waste[kcal]
@@ -260,7 +260,7 @@ def agriculture(lifestyle):
     out_9593_1 = row_filter(df=food_net_import_product_kcal_2, filter_type='RangeVal_RowFilter', that_column='food-net-import-product[kcal]', include=False, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)
     # * -1 (convert in positive values)
     food_net_import_product_kcal_2 = out_9593_1.assign(**{'food-net-import-product[kcal]': out_9593_1['food-net-import-product[kcal]']*(-1.0)})
-    food_net_import_product_kcal_2 = pd.concat([food_net_import_product_kcal_3, food_net_import_product_kcal_2.set_index(food_net_import_product_kcal_2.index.astype(str) + '_dup')])
+    food_net_import_product_kcal_2 = pd.concat([food_net_import_product_kcal_3, food_net_import_product_kcal_2])
     # Group by  Country, Years, product (sum)
     food_net_import_product_kcal_2 = group_by_dimensions(df=food_net_import_product_kcal_2, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # domestic production[kcal] = overall-food-demand[kcal] + food-net-import-product[kcal]
@@ -582,7 +582,7 @@ def agriculture(lifestyle):
 
     # cal_rate for livestock-population[lsu]
     cal_rate_livestock_population_lsu = use_variable(input_table=out_9208_3, selected_variable='cal_rate_livestock-population[lsu]')
-    out_9426_1 = pd.concat([out_9433_1, cal_rate_livestock_population_lsu.set_index(cal_rate_livestock_population_lsu.index.astype(str) + '_dup')])
+    out_9426_1 = pd.concat([out_9433_1, cal_rate_livestock_population_lsu])
     # livestock-population [lsu]
     livestock_population_lsu = export_variable(input_table=livestock_population_lsu, selected_variable='livestock-population[lsu]')
     # livestock-population [lsu]
@@ -620,7 +620,7 @@ def agriculture(lifestyle):
     energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = livestock-residues
     energy_production_TWh_2['origin'] = "livestock-residues"
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_2, energy_production_TWh])
     livestock_population_lsu = livestock_population_lsu_2.loc[~livestock_population_lsu_2['product'].isin(['abp-dairy-milk', 'abp-hens-egg'])].copy()
 
     # Emissions
@@ -764,7 +764,7 @@ def agriculture(lifestyle):
 
     # cal_rate for remaining-feed-demand[kcal]
     cal_rate_remaining_feed_demand_kcal = use_variable(input_table=out_9209_3, selected_variable='cal_rate_remaining-feed-demand[kcal]')
-    out_9428_1 = pd.concat([out_9426_1, cal_rate_remaining_feed_demand_kcal.set_index(cal_rate_remaining_feed_demand_kcal.index.astype(str) + '_dup')])
+    out_9428_1 = pd.concat([out_9426_1, cal_rate_remaining_feed_demand_kcal])
     # remaining-feed-demand [kcal]
     remaining_feed_demand_kcal = export_variable(input_table=remaining_feed_demand_kcal, selected_variable='remaining-feed-demand[kcal]')
     # remaining-feed-demand [kcal]
@@ -824,9 +824,9 @@ def agriculture(lifestyle):
     crop_demand_kcal_2 = mcd(input_table_1=remaining_feed_demand_kcal, input_table_2=processing_yield_percent, operation_selection='x / y', output_name='crop-demand[kcal]')
     # Group by  Country, Years,  raw-material (sum)
     crop_demand_kcal_2 = group_by_dimensions(df=crop_demand_kcal_2, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
-    crop_demand_kcal = pd.concat([crop_demand_kcal, crop_demand_kcal_2.set_index(crop_demand_kcal_2.index.astype(str) + '_dup')])
+    crop_demand_kcal = pd.concat([crop_demand_kcal, crop_demand_kcal_2])
     crop_demand_kcal = crop_demand_kcal.loc[~crop_demand_kcal['raw-material'].isin(['oil-crop'])].copy()
-    out_8894_1 = pd.concat([crop_demand_kcal, out_8899_1.set_index(out_8899_1.index.astype(str) + '_dup')])
+    out_8894_1 = pd.concat([crop_demand_kcal, out_8899_1])
     # Keep  origin = crop
     beverage_by_product_kcal = beverage_by_product_kcal.loc[beverage_by_product_kcal['origin'].isin(['crop'])].copy()
 
@@ -849,8 +849,8 @@ def agriculture(lifestyle):
     overall_food_demand_kcal = group_by_dimensions(df=overall_food_demand_kcal, groupby_dimensions=['Country', 'Years', 'product'], aggregation_method='Sum')
     # product => raw-material ovaerall-food-demand => crop-demand
     out_8890_1 = overall_food_demand_kcal.rename(columns={'product': 'raw-material', 'overall-food-demand[kcal]': 'crop-demand[kcal]'})
-    out_1 = pd.concat([out_8890_1, out_8891_1.set_index(out_8891_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_8894_1.set_index(out_8894_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_8890_1, out_8891_1])
+    out_1 = pd.concat([out_1, out_8894_1])
     # Group by  Country, Years,  raw-material (sum)
     out_1 = group_by_dimensions(df=out_1, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # crop-demand[kcal] (replace) = crop-demand[kcal] + crops-consumption-bioenergy [kcal]  LEFT JOIN => If missing set 0 (no additional crop demand for this raw-material)
@@ -891,10 +891,10 @@ def agriculture(lifestyle):
     out_9597_1 = row_filter(df=food_net_import_kcal_2, filter_type='RangeVal_RowFilter', that_column='food-net-import[kcal]', include=False, lower_bound_bool=True, upper_bound_bool=False, lower_bound='0.0', upper_bound=0)
     # * -1 (convert in positive values)
     food_net_import_kcal_2 = out_9597_1.assign(**{'food-net-import[kcal]': out_9597_1['food-net-import[kcal]']*(-1.0)})
-    food_net_import_kcal_2 = pd.concat([food_net_import_kcal_3, food_net_import_kcal_2.set_index(food_net_import_kcal_2.index.astype(str) + '_dup')])
+    food_net_import_kcal_2 = pd.concat([food_net_import_kcal_3, food_net_import_kcal_2])
     # Group by  Country, Years, raw-material (sum)
     food_net_import_kcal_2 = group_by_dimensions(df=food_net_import_kcal_2, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
-    food_net_import_kcal_2 = pd.concat([food_net_import_kcal_2, food_net_import_product_kcal_2.set_index(food_net_import_product_kcal_2.index.astype(str) + '_dup')])
+    food_net_import_kcal_2 = pd.concat([food_net_import_kcal_2, food_net_import_product_kcal_2])
     # Module = Scope 2/3
     food_net_import_kcal_2 = column_filter(df=food_net_import_kcal_2, pattern='^.*$')
     # domestic-crop-production[kcal] = domestic-crop-demand[kcal] + food-net-import[kcal]
@@ -906,7 +906,7 @@ def agriculture(lifestyle):
     # Group by  Country, Years,  raw-material (sum)
     domestic_crop_production_kcal = group_by_dimensions(df=domestic_crop_production_kcal, groupby_dimensions=['Country', 'Years', 'raw-material'], aggregation_method='Sum')
     # add crops for alt-proteins
-    out_8197_1 = pd.concat([domestic_crop_production_kcal, out_8909_1.set_index(out_8909_1.index.astype(str) + '_dup')])
+    out_8197_1 = pd.concat([domestic_crop_production_kcal, out_8909_1])
     # cal domestic-crop-production [kcal]
     domestic_crop_production_kcal = import_data(trigram='agr', variable_name='domestic-crop-production', variable_type='Calibration')
 
@@ -920,7 +920,7 @@ def agriculture(lifestyle):
 
     # cal_rate for domestic-crop-production[kcal]
     cal_rate_domestic_crop_production_kcal = use_variable(input_table=out_9210_3, selected_variable='cal_rate_domestic-crop-production[kcal]')
-    out_9430_1 = pd.concat([out_9428_1, cal_rate_domestic_crop_production_kcal.set_index(cal_rate_domestic_crop_production_kcal.index.astype(str) + '_dup')])
+    out_9430_1 = pd.concat([out_9428_1, cal_rate_domestic_crop_production_kcal])
     # domestic-crop-production [kcal]   (all crops demand + calibrated)
     domestic_crop_production_kcal = export_variable(input_table=out_8197_1, selected_variable='domestic-crop-production[kcal]')
     # domestic-crop-production [kcal]
@@ -931,7 +931,7 @@ def agriculture(lifestyle):
 
     # domestic-crop-production [kcal]
     domestic_crop_production_kcal_2 = use_variable(input_table=domestic_crop_production_kcal, selected_variable='domestic-crop-production[kcal]')
-    out_9579_1 = pd.concat([domestic_crop_production_kcal_2, livestock_population_lsu_3.set_index(livestock_population_lsu_3.index.astype(str) + '_dup')])
+    out_9579_1 = pd.concat([domestic_crop_production_kcal_2, livestock_population_lsu_3])
     # Module = Water
     out_9579_1 = column_filter(df=out_9579_1, pattern='^.*$')
     # Group by Country, Years (sum)
@@ -1190,7 +1190,7 @@ def agriculture(lifestyle):
     energy_production_TWh_3 = group_by_dimensions(df=energy_production_TWh_3, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = dedicated-double-crops
     energy_production_TWh_3['origin'] = "dedicated-double-crops"
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2])
 
     # Biomass coming from crops co-products
 
@@ -1218,13 +1218,13 @@ def agriculture(lifestyle):
     energy_production_TWh_3 = group_by_dimensions(df=energy_production_TWh_3, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = crops-co-product
     energy_production_TWh_3['origin'] = "crops-co-product"
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
-    energy_production_TWh = pd.concat([energy_production_TWh, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2])
+    energy_production_TWh = pd.concat([energy_production_TWh, energy_production_TWh_2])
     # cal_rate for land-management[ha] for cropland
     cal_rate_land_management_ha_2 = use_variable(input_table=out_9212_3, selected_variable='cal_rate_land-management[ha]')
-    cal_rate_land_management_ha = pd.concat([cal_rate_land_management_ha_2, cal_rate_land_management_ha.set_index(cal_rate_land_management_ha.index.astype(str) + '_dup')])
-    out_9434_1 = pd.concat([out_9430_1, cal_rate_land_management_ha.set_index(cal_rate_land_management_ha.index.astype(str) + '_dup')])
-    land_management_ha = pd.concat([land_management_ha_3, land_management_ha.set_index(land_management_ha.index.astype(str) + '_dup')])
+    cal_rate_land_management_ha = pd.concat([cal_rate_land_management_ha_2, cal_rate_land_management_ha])
+    out_9434_1 = pd.concat([out_9430_1, cal_rate_land_management_ha])
+    land_management_ha = pd.concat([land_management_ha_3, land_management_ha])
     # land-management [ha]
     land_management_ha = export_variable(input_table=land_management_ha, selected_variable='land-management[ha]')
 
@@ -1270,7 +1270,7 @@ def agriculture(lifestyle):
     energy_demand_TWh = energy_demand_TWh.loc[~energy_demand_TWh['energy-carrier'].isin(['gaseous-ff-lpg'])].copy()
     # energy-carrier = gaseous-ff-natural
     energy_demand_TWh_excluded['energy-carrier'] = "gaseous-ff-natural"
-    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_excluded])
     # Group by  Country, Years,  energy-carrier
     energy_demand_TWh = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # cal energy-demand [TWh]
@@ -1280,7 +1280,7 @@ def agriculture(lifestyle):
     energy_demand_TWh_2 = energy_demand_TWh_2.loc[~energy_demand_TWh_2['energy-carrier'].isin(['gaseous-ff-lpg'])].copy()
     # energy-carrier = gaseous-ff-natural
     energy_demand_TWh_excluded['energy-carrier'] = "gaseous-ff-natural"
-    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh_excluded])
     # Group by  Country, Years,  energy-carrier
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
 
@@ -1294,7 +1294,7 @@ def agriculture(lifestyle):
 
     # cal_rate for energy-demand[TWh]
     cal_rate_energy_demand_TWh = use_variable(input_table=out_9214_3, selected_variable='cal_rate_energy-demand[TWh]')
-    out_9439_1 = pd.concat([out_9434_1, cal_rate_energy_demand_TWh.set_index(cal_rate_energy_demand_TWh.index.astype(str) + '_dup')])
+    out_9439_1 = pd.concat([out_9434_1, cal_rate_energy_demand_TWh])
 
     # Apply cliamte smart crop levers (reduce ?)
     # => Determine the % of gaseous-ff-natural than can be converted to gaseous-bio
@@ -1397,7 +1397,7 @@ def agriculture(lifestyle):
     energy_production_TWh_2 = group_by_dimensions(df=energy_production_TWh_2, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
     # origin = grass-pasture
     energy_production_TWh_2['origin'] = "grass-pasture"
-    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh])
     # energy-production [TWh]
     energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
@@ -1408,7 +1408,7 @@ def agriculture(lifestyle):
     energy_production_TWh = use_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
     # Module = Bioenergy
     energy_production_TWh = column_filter(df=energy_production_TWh, pattern='^.*$')
-    out_9090_1 = pd.concat([land_management_ha, out_9094_1.set_index(out_9094_1.index.astype(str) + '_dup')])
+    out_9090_1 = pd.concat([land_management_ha, out_9094_1])
     # Module = Land-use
     out_9090_1 = column_filter(df=out_9090_1, pattern='^.*$')
 
@@ -1438,7 +1438,7 @@ def agriculture(lifestyle):
     amendment_application_rate_t_per_ha_excluded = amendment_application_rate_t_per_ha.loc[~amendment_application_rate_t_per_ha['amendment-type'].isin(['nitrogen', 'phosphore', 'potash'])].copy()
     # Same as last available year
     amendment_application_rate_t_per_ha_excluded = add_missing_years(df_data=amendment_application_rate_t_per_ha_excluded)
-    amendment_application_rate_t_per_ha_2 = pd.concat([amendment_application_rate_t_per_ha_2, amendment_application_rate_t_per_ha_excluded.set_index(amendment_application_rate_t_per_ha_excluded.index.astype(str) + '_dup')])
+    amendment_application_rate_t_per_ha_2 = pd.concat([amendment_application_rate_t_per_ha_2, amendment_application_rate_t_per_ha_excluded])
     # amendment-application[t]  = land-management[ha] * amendment-application-rate[t/ha]
     amendment_application_t = mcd(input_table_1=land_management_ha, input_table_2=amendment_application_rate_t_per_ha_2, operation_selection='x * y', output_name='amendment-application[t]')
     # amendment-application [t]
@@ -1507,7 +1507,7 @@ def agriculture(lifestyle):
     out_9481_1, _, out_9456_3 = calibration(input_table=out_9481_1, cal_table=emissions_Mt_excluded, data_to_be_cal='emissions[Mt]', data_cal='emissions[Mt]')
     # Group by  Country, Years, gaes, emission-type
     out_9481_1 = group_by_dimensions(df=out_9481_1, groupby_dimensions=['Country', 'Years', 'gaes', 'emission-type'], aggregation_method='Sum')
-    out_9477_1 = pd.concat([emissions_Mt_6, out_9481_1.set_index(out_9481_1.index.astype(str) + '_dup')])
+    out_9477_1 = pd.concat([emissions_Mt_6, out_9481_1])
     # Set "" if missing
     out_9477_1 = missing_value(df=out_9477_1, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='')
     # emissions [Mt]
@@ -1543,14 +1543,14 @@ def agriculture(lifestyle):
     emissions_tCO2e_2 = group_by_dimensions(df=emissions_tCO2e_2, groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')
     # emissions-per-fermland[tCO2e/ha] = emissions[tCO2e] / land-management[ha]
     emissions_per_fermland_tCO2e_per_ha_2 = mcd(input_table_1=land_management_ha_2, input_table_2=emissions_tCO2e_2, operation_selection='y / x', output_name='emissions-per-fermland[tCO2e/ha]')
-    emissions_per_fermland_tCO2e_per_ha = pd.concat([emissions_per_fermland_tCO2e_per_ha_2, emissions_per_fermland_tCO2e_per_ha.set_index(emissions_per_fermland_tCO2e_per_ha.index.astype(str) + '_dup')])
+    emissions_per_fermland_tCO2e_per_ha = pd.concat([emissions_per_fermland_tCO2e_per_ha_2, emissions_per_fermland_tCO2e_per_ha])
     # Group by Country, Years, gaes (sum)
     emissions_tCO2e = group_by_dimensions(df=emissions_tCO2e, groupby_dimensions=['Country', 'Years', 'gaes'], aggregation_method='Sum')
     # Convert Unit t to g
     emissions_gCO2e = emissions_tCO2e.drop(columns='emissions[tCO2e]').assign(**{'emissions[gCO2e]': emissions_tCO2e['emissions[tCO2e]'] * 1000000.0})
     # emissions-per-food-production[gCO2e/kcal] = emissions[gCO2e] / total-domestic-production[kcal]
     emissions_per_food_production_gCO2e_per_kcal = mcd(input_table_1=emissions_gCO2e, input_table_2=total_domestic_production_kcal, operation_selection='x / y', output_name='emissions-per-food-production[gCO2e/kcal]')
-    emissions_per_per = pd.concat([emissions_per_fermland_tCO2e_per_ha, emissions_per_food_production_gCO2e_per_kcal.set_index(emissions_per_food_production_gCO2e_per_kcal.index.astype(str) + '_dup')])
+    emissions_per_per = pd.concat([emissions_per_fermland_tCO2e_per_ha, emissions_per_food_production_gCO2e_per_kcal])
 
     # Cal_rate for emissions[Mt]
 
@@ -1569,15 +1569,15 @@ def agriculture(lifestyle):
         return output_table
     # Remove empty strings
     out_18_1 = helper_18(input_table=out_9456_3)
-    out = pd.concat([out_9471_3, out_18_1.set_index(out_18_1.index.astype(str) + '_dup')])
+    out = pd.concat([out_9471_3, out_18_1])
     # cal_rate for emissions[Mt]
     cal_rate_emissions_Mt = use_variable(input_table=out, selected_variable='cal_rate_emissions[Mt]')
-    out_9441_1 = pd.concat([out_9439_1, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
+    out_9441_1 = pd.concat([out_9439_1, cal_rate_emissions_Mt])
     # Module = Calibration
     out_9441_1 = column_filter(df=out_9441_1, pattern='^.*$')
-    out_9603_1 = pd.concat([amendment_application_t, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
-    out_9604_1 = pd.concat([livestock_population_lsu_2, out_9603_1.set_index(out_9603_1.index.astype(str) + '_dup')])
-    out_9605_1 = pd.concat([out_9604_1, N_manure_quantity_kgN_2.set_index(N_manure_quantity_kgN_2.index.astype(str) + '_dup')])
+    out_9603_1 = pd.concat([amendment_application_t, energy_demand_TWh])
+    out_9604_1 = pd.concat([livestock_population_lsu_2, out_9603_1])
+    out_9605_1 = pd.concat([out_9604_1, N_manure_quantity_kgN_2])
     # Module = Air Pollution
     out_9605_1 = column_filter(df=out_9605_1, pattern='^.*$')
     # Keep amendment-type = nitrogen, phosphore, potash
@@ -1636,7 +1636,7 @@ def agriculture(lifestyle):
     fertilizer_application_Mt = column_filter(df=fertilizer_application_Mt, pattern='^Country$|^Years$')
     # Group by Country, Years (sum)
     fertilizer_application_t = group_by_dimensions(df=fertilizer_application_t, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    t = pd.concat([food_demand_t, fertilizer_application_t.set_index(fertilizer_application_t.index.astype(str) + '_dup')])
+    t = pd.concat([food_demand_t, fertilizer_application_t])
     # Module = Industry Ammonia
     t = column_filter(df=t, pattern='^.*$')
 
@@ -1653,12 +1653,12 @@ def agriculture(lifestyle):
     amendment_application_rate_t_per_ha = group_by_dimensions(df=amendment_application_rate_t_per_ha, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # Convert Unit t/ha to kg/ha (*1000)
     amendment_application_rate_kg_per_ha = amendment_application_rate_t_per_ha.drop(columns='amendment-application-rate[t/ha]').assign(**{'amendment-application-rate[kg/ha]': amendment_application_rate_t_per_ha['amendment-application-rate[t/ha]'] * 1000.0})
-    amendment_application = pd.concat([amendment_application_rate_kg_per_ha, amendment_application_t.set_index(amendment_application_t.index.astype(str) + '_dup')])
-    out_9557_1 = pd.concat([amendment_application, emissions_per_per.set_index(emissions_per_per.index.astype(str) + '_dup')])
+    amendment_application = pd.concat([amendment_application_rate_kg_per_ha, amendment_application_t])
+    out_9557_1 = pd.concat([amendment_application, emissions_per_per])
     # Module = Pathway Explorer (KPIs)
     out_9557_1 = column_filter(df=out_9557_1, pattern='^.*$')
     # KPI's + graphs metrics
-    out_9558_1 = pd.concat([out_9557_1, fertilizer_application_Mt.set_index(fertilizer_application_Mt.index.astype(str) + '_dup')])
+    out_9558_1 = pd.concat([out_9557_1, fertilizer_application_Mt])
     out_9337_1 = add_trigram(module_name=module_name, df=out_9558_1)
 
     return out_9337_1, out_9441_1, t, out_9090_1, energy_demand_TWh_2, energy_production_TWh, emissions_Mt_2, out_9605_1, out_8605_1, food_net_import_kcal_2, out_9579_1

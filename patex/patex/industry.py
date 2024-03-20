@@ -140,7 +140,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     fertilizer_application_t['product'] = "fertilizer"
     # fertilizer-application[t] as product-demand[unit]
     out_9274_1 = fertilizer_application_t.rename(columns={'fertilizer-application[t]': 'product-demand[unit]'})
-    out_1 = pd.concat([out_9275_1, out_9274_1.set_index(out_9274_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9275_1, out_9274_1])
 
     def helper_9733(input_table) -> pd.DataFrame:
         # Copy input to output
@@ -195,9 +195,9 @@ def industry(lifestyle, buildings, transport, agriculture):
         return output_table
     # remove "-same" rail to trains  => REMOVE THIS AND APPLY CHANGES IN INDUSTRY GOOGLE SHEET
     out_8157_1 = helper_8157(input_table=out_8128_1)
-    out_1 = pd.concat([out_8157_1, out_8158_1.set_index(out_8158_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_9733_1.set_index(out_9733_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1, out_9771_1.set_index(out_9771_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_8157_1, out_8158_1])
+    out_1 = pd.concat([out_1, out_9733_1])
+    out_1 = pd.concat([out_1, out_9771_1])
 
     # Data from buildings
 
@@ -270,10 +270,10 @@ def industry(lifestyle, buildings, transport, agriculture):
         return output_table
     # pipes ==> infrastructure-pipes
     out_9801_1 = helper_9801(input_table=out_8111_1)
-    out_1_2 = pd.concat([out_9801_1, out_6732_1.set_index(out_6732_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1_2, out_8156_1.set_index(out_8156_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([lifestyle, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9801_1, out_6732_1])
+    out_1_2 = pd.concat([out_1_2, out_8156_1])
+    out_1_2 = pd.concat([lifestyle, out_1_2])
+    out_1 = pd.concat([out_1_2, out_1])
     # product-demand [unit]
     product_demand_unit = export_variable(input_table=out_1, selected_variable='product-demand[unit]')
 
@@ -370,7 +370,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # keep battery
     subproduct_import_unit_2 = subproduct_import_unit_2.loc[subproduct_import_unit_2['subproduct'].isin(['battery'])].copy()
     # Concatenate
-    import_unit = pd.concat([subproduct_import_unit_2, product_import_unit_2.set_index(product_import_unit_2.index.astype(str) + '_dup')])
+    import_unit = pd.concat([subproduct_import_unit_2, product_import_unit_2])
     # OTS/FTS subproduct-export-share [%]
     subproduct_export_share_percent = import_data(trigram='ind', variable_name='subproduct-export-share')
     # Same as last available year
@@ -491,7 +491,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     out_7866_1 = joiner(df_left=out_7965_1, df_right=out_7861_1, joiner='inner', left_input=['Country', 'Years'], right_input=['Country', 'Years'])
     out_7872_1 = joiner(df_left=out_7866_1, df_right=out_7847_1, joiner='inner', left_input=['Country', 'Years'], right_input=['Country', 'Years'])
     # Concatenate to Pathway Explorer
-    product_share_percent_demand = pd.concat([product_import_share_percent_demand, product_export_share_percent_demand.set_index(product_export_share_percent_demand.index.astype(str) + '_dup')])
+    product_share_percent_demand = pd.concat([product_import_share_percent_demand, product_export_share_percent_demand])
 
     # Calibration RATES
 
@@ -527,7 +527,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     fuel_switch_percent_2['fuel-switch[%]'] = 1.0+fuel_switch_percent_2['fuel-switch[%]']
     # product-demand[unit] = fuel-switch[%] (only elec) * product-demand[unit]
     product_demand_unit = mcd(input_table_1=product_demand_unit_excluded, input_table_2=fuel_switch_percent_2, operation_selection='x * y', output_name='product-demand[unit]')
-    product_demand_unit = pd.concat([product_demand_unit_3, product_demand_unit.set_index(product_demand_unit.index.astype(str) + '_dup')])
+    product_demand_unit = pd.concat([product_demand_unit_3, product_demand_unit])
 
     # Material demand evolution : this profile is applied on exogenous product to give the same trends to their projected values
 
@@ -547,10 +547,10 @@ def industry(lifestyle, buildings, transport, agriculture):
     material_demand_t_3 = group_by_dimensions(df=material_demand_t_3, groupby_dimensions=['Country'], aggregation_method='Sum')
     # profile-evolution[%] = material-demand[t] / material-demand[t] base year
     profile_evolution_percent_2 = mcd(input_table_1=material_demand_t_3, input_table_2=material_demand_t_2, operation_selection='y / x', output_name='profile-evolution[%]')
-    profile_evolution_percent = pd.concat([profile_evolution_percent_2, profile_evolution_percent.set_index(profile_evolution_percent.index.astype(str) + '_dup')])
+    profile_evolution_percent = pd.concat([profile_evolution_percent_2, profile_evolution_percent])
     # product-demand[unit] = product-demand[unit] * profile-evolution[%]
     product_demand_unit = mcd(input_table_1=product_demand_unit, input_table_2=profile_evolution_percent, operation_selection='x * y', output_name='product-demand[unit]')
-    product_demand_unit_2 = pd.concat([product_demand_unit_2, product_demand_unit.set_index(product_demand_unit.index.astype(str) + '_dup')])
+    product_demand_unit_2 = pd.concat([product_demand_unit_2, product_demand_unit])
 
     # Concatenate all product demand and production (endogenous and exogenous products)
 
@@ -570,10 +570,10 @@ def industry(lifestyle, buildings, transport, agriculture):
     product_demand_unit_3 = product_demand_unit_excluded.drop(columns='product-demand[unit]').assign(**{'product-demand[unit]': product_demand_unit_excluded['product-demand[unit]'] * 0.001})
     # Set unit to kt
     product_demand_unit_3['unit'] = "kt"
-    product_demand_unit_2 = pd.concat([product_demand_unit_2, product_demand_unit_3.set_index(product_demand_unit_3.index.astype(str) + '_dup')])
+    product_demand_unit_2 = pd.concat([product_demand_unit_2, product_demand_unit_3])
     # product-demand[unit] to product-production[unit]
     out_9799_1 = product_demand_unit.rename(columns={'product-demand[unit]': 'product-production[unit]'})
-    out_9795_1 = pd.concat([product_production_unit, out_9799_1.set_index(out_9799_1.index.astype(str) + '_dup')])
+    out_9795_1 = pd.concat([product_production_unit, out_9799_1])
     # product-production [unit]
     product_production_unit = export_variable(input_table=out_9795_1, selected_variable='product-production[unit]')
 
@@ -590,11 +590,11 @@ def industry(lifestyle, buildings, transport, agriculture):
     product_production_unit_2 = product_production_unit_excluded.drop(columns='product-production[unit]').assign(**{'product-production[unit]': product_production_unit_excluded['product-production[unit]'] * 0.001})
     # Set unit to kt
     product_production_unit_2['unit'] = "kt"
-    product_production_unit = pd.concat([product_production_unit, product_production_unit_2.set_index(product_production_unit_2.index.astype(str) + '_dup')])
+    product_production_unit = pd.concat([product_production_unit, product_production_unit_2])
     # Concatenate to Pathway Explorer
-    product_unit = pd.concat([product_production_unit, product_demand_unit_2.set_index(product_demand_unit_2.index.astype(str) + '_dup')])
+    product_unit = pd.concat([product_production_unit, product_demand_unit_2])
     # Concatenate to Pathway Explorer
-    product = pd.concat([product_unit, product_share_percent_demand.set_index(product_share_percent_demand.index.astype(str) + '_dup')])
+    product = pd.concat([product_unit, product_share_percent_demand])
     # subproduct-demand[unit] = product-production[unit] * product-to-subproduct-demand [unit/unit]
     subproduct_demand_unit = mcd(input_table_1=out_9799_1, input_table_2=product_to_subproduct_demand_unit_per_unit, operation_selection='x * y', output_name='subproduct-demand[unit]')
     # subproduct-demand[unit] to subproduct-production[unit]
@@ -604,7 +604,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # material-demand [t] (only from  exogenous product)
     material_demand_t_2 = export_variable(input_table=material_demand_t_2, selected_variable='material-demand[t]')
     # Add exogenous demand
-    material_demand_t = pd.concat([material_demand_t, material_demand_t_2.set_index(material_demand_t_2.index.astype(str) + '_dup')])
+    material_demand_t = pd.concat([material_demand_t, material_demand_t_2])
 
     # Sum material demand from endogenous and exogenous products
 
@@ -630,7 +630,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     primary_material_demand_t = group_by_dimensions(df=primary_material_demand_t, groupby_dimensions=['Country', 'Years', 'primary-material'], aggregation_method='Sum')
     # group by country, years, material
     material_demand_t = group_by_dimensions(df=material_demand_t, groupby_dimensions=['Country', 'Years', 'material'], aggregation_method='Sum')
-    material_demand_t = pd.concat([material_demand_t, primary_material_demand_t.set_index(primary_material_demand_t.index.astype(str) + '_dup')])
+    material_demand_t = pd.concat([material_demand_t, primary_material_demand_t])
     # bottom: every non-ferrous
     material_demand_t_excluded = material_demand_t_2.loc[material_demand_t_2['material'].isin(['cobalt', 'copper', 'graphite', 'lithium', 'manganese', 'nickel', 'platinium', 'ree-dysprosium', 'ree-neodymium', 'ree-praseodymium', 'silicon'])].copy()
     material_demand_t_2 = material_demand_t_2.loc[~material_demand_t_2['material'].isin(['cobalt', 'copper', 'graphite', 'lithium', 'manganese', 'nickel', 'platinium', 'ree-dysprosium', 'ree-neodymium', 'ree-praseodymium', 'silicon'])].copy()
@@ -641,7 +641,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     material_demand_t_excluded = group_by_dimensions(df=material_demand_t_excluded, groupby_dimensions=['Country', 'Years', 'product', 'unit', 'subproduct'], aggregation_method='Sum')
     # Add material = non-ferrous
     material_demand_t_excluded['material'] = "non-ferrous"
-    material_demand_t_2 = pd.concat([material_demand_t_2, material_demand_t_excluded.set_index(material_demand_t_excluded.index.astype(str) + '_dup')])
+    material_demand_t_2 = pd.concat([material_demand_t_2, material_demand_t_excluded])
     # material-demand [t]  (grouping non-ferrous)
     material_demand_t_2 = export_variable(input_table=material_demand_t_2, selected_variable='material-demand[t]')
 
@@ -691,7 +691,7 @@ def industry(lifestyle, buildings, transport, agriculture):
 
     # Cal rate for material-production [kt]
     cal_rate_material_production_kt = use_variable(input_table=out_7957_3, selected_variable='cal_rate_material-production[kt]')
-    cal_rate = pd.concat([cal_rate_product_demand_unit, cal_rate_material_production_kt.set_index(cal_rate_material_production_kt.index.astype(str) + '_dup')])
+    cal_rate = pd.concat([cal_rate_product_demand_unit, cal_rate_material_production_kt])
     # cal-rate
     cal_rate_material_production_kt = use_variable(input_table=out_7957_2, selected_variable='cal_rate_material-production[kt]')
     # material-import[t] (replace) = material-import[t] * cal_rate[%]
@@ -701,7 +701,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # material-import [t]
     material_import_t = use_variable(input_table=material_import_t, selected_variable='material-import[t]')
     # Concatenate
-    import_ = pd.concat([material_import_t, import_unit.set_index(import_unit.index.astype(str) + '_dup')])
+    import_ = pd.concat([material_import_t, import_unit])
     # Module = Scope 2 and 3
     import_ = column_filter(df=import_, pattern='^.*$')
     # material-demand[t] (replace) = material-demand[t] * cal_rate[%]
@@ -726,9 +726,9 @@ def industry(lifestyle, buildings, transport, agriculture):
     # Rename variable to material-demand-by-material[kt]
     out_9262_1 = material_demand_kt_2.rename(columns={'material-demand[kt]': 'material-demand-by-material[kt]'})
     # Concatenate to Pathway Explorer
-    out_1 = pd.concat([out_9262_1, out_9234_1.set_index(out_9234_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9262_1, out_9234_1])
     # Concatenate to Pathway Explorer
-    out_9224_1 = pd.concat([out_1, product.set_index(product.index.astype(str) + '_dup')])
+    out_9224_1 = pd.concat([out_1, product])
 
     # KPI's requiring computing
 
@@ -854,7 +854,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # Top: only e-MTO and e-dehydratation
     material_production_Mt_excluded_2 = material_production_Mt_excluded.loc[material_production_Mt_excluded['technology'].isin(['e-MTO', 'e-dehydration'])].copy()
     material_production_Mt_excluded_excluded = material_production_Mt_excluded.loc[~material_production_Mt_excluded['technology'].isin(['e-MTO', 'e-dehydration'])].copy()
-    material_production_Mt_5 = pd.concat([material_production_Mt_4, material_production_Mt_excluded_2.set_index(material_production_Mt_excluded_2.index.astype(str) + '_dup')])
+    material_production_Mt_5 = pd.concat([material_production_Mt_4, material_production_Mt_excluded_2])
     # Top: all exept food and other-indusitries
     material_production_Mt_3 = material_production_Mt.loc[material_production_Mt['material'].isin(['aluminium', 'cement', 'ceramic-and-others', 'chemical-ammonia', 'chemical-olefin', 'chemical-other', 'glass', 'lime', 'non-ferrous', 'paper', 'steel', 'wood'])].copy()
     # Group by country, years, (sum)
@@ -866,7 +866,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # material-foot-print-production [t/cap]
     material_foot_print_production_t_per_cap = export_variable(input_table=material_foot_print_production_t_per_cap, selected_variable='material-foot-print-production[t/cap]')
     # KPI's
-    material_foot_print_t_per_cap = pd.concat([material_foot_print_demand_t_per_cap, material_foot_print_production_t_per_cap.set_index(material_foot_print_production_t_per_cap.index.astype(str) + '_dup')])
+    material_foot_print_t_per_cap = pd.concat([material_foot_print_demand_t_per_cap, material_foot_print_production_t_per_cap])
 
     # For : Air quality
     # 
@@ -910,13 +910,13 @@ def industry(lifestyle, buildings, transport, agriculture):
     # Rename variable to material-production-by-route-tech[kt]
     out_9232_1 = material_production_kt_2.rename(columns={'material-production[kt]': 'material-production-by-route-tech[kt]'})
     # Concatenate to Pathway Explorer
-    out_1 = pd.concat([out_9263_1, out_9232_1.set_index(out_9232_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9263_1, out_9232_1])
     # Group by  material, ets (sum)
     material_production_kt_2 = group_by_dimensions(df=material_production_kt, groupby_dimensions=['Country', 'Years', 'material', 'ets-or-not'], aggregation_method='Sum')
     # Rename variable to material-production-by-ets[kt]
     out_9233_1 = material_production_kt_2.rename(columns={'material-production[kt]': 'material-production-by-tech-ets[kt]'})
     # Concatenate to Pathway Explorer
-    out_1 = pd.concat([out_1, out_9233_1.set_index(out_9233_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1, out_9233_1])
 
     # Pivot
 
@@ -1017,7 +1017,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # share-route-material-production[%] = material-production[Mt] (only 2nd) / material-production[Mt] (total)
     share_route_material_production_percent_2 = mcd(input_table_1=material_production_Mt_9, input_table_2=material_production_Mt_8, operation_selection='x / y', output_name='share-route-material-production[%]')
     # KPI's
-    share_route_material_production_percent = pd.concat([share_route_material_production_percent_2, share_route_material_production_percent.set_index(share_route_material_production_percent.index.astype(str) + '_dup')])
+    share_route_material_production_percent = pd.concat([share_route_material_production_percent_2, share_route_material_production_percent])
     # share-route-material-production[%]
     share_route_material_production_percent = export_variable(input_table=share_route_material_production_percent, selected_variable='share-route-material-production[%]')
     # Split logic for cement
@@ -1058,7 +1058,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     co2_specific_Mt_per_Mt = mcd(input_table_1=co2_specific_Mt_per_Mt, input_table_2=co2_curing_for_cement_percent, operation_selection='x * y', output_name='co2-specific[Mt/Mt]')
     # ccu[Mt] = material-production[Mt] * co2-specific[Mt/Mt]  (only cement)
     CCU_Mt = mcd(input_table_1=material_production_Mt_excluded, input_table_2=co2_specific_Mt_per_Mt, operation_selection='x * y', output_name='CCU[Mt]')
-    CCU_Mt = pd.concat([CCU_Mt_2, CCU_Mt.set_index(CCU_Mt.index.astype(str) + '_dup')])
+    CCU_Mt = pd.concat([CCU_Mt_2, CCU_Mt])
     # CCU[Mt]
     CCU_Mt = export_variable(input_table=CCU_Mt, selected_variable='CCU[Mt]')
 
@@ -1166,11 +1166,11 @@ def industry(lifestyle, buildings, transport, agriculture):
     _, out_9960_2, out_9960_3 = calibration(input_table=energy_demand_TWh_excluded_2, cal_table=energy_demand_total_TWh, data_to_be_cal='energy-demand[TWh]', data_cal='energy-demand-total[TWh]')
     # Cal rate for energy-demand total [TWh]
     cal_rate_energy_demand_TWh = use_variable(input_table=out_9960_3, selected_variable='cal_rate_energy-demand[TWh]')
-    cal_rate_energy_demand_TWh = pd.concat([cal_rate_energy_demand_TWh_2, cal_rate_energy_demand_TWh.set_index(cal_rate_energy_demand_TWh.index.astype(str) + '_dup')])
-    cal_rate = pd.concat([cal_rate, cal_rate_energy_demand_TWh.set_index(cal_rate_energy_demand_TWh.index.astype(str) + '_dup')])
+    cal_rate_energy_demand_TWh = pd.concat([cal_rate_energy_demand_TWh_2, cal_rate_energy_demand_TWh])
+    cal_rate = pd.concat([cal_rate, cal_rate_energy_demand_TWh])
     # energy-demand[TWh] (replace) = energy-demand[TWh] * cal_rate[%]
     energy_demand_TWh = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=out_9960_2, operation_selection='x * y', output_name='energy-demand[TWh]')
-    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
     # Remove calibration-type, group
     energy_demand_TWh = column_filter(df=energy_demand_TWh, columns_to_drop=['calibration-type', 'RowIDs', 'group'])
     # energy-demand [TWh]
@@ -1269,7 +1269,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # Fuel Switch ff to syn (same phase)
     out_9457_1 = x_switch(demand_table=out_9802_1, switch_table=fuel_switch_percent, correlation_table=ratio, category_to_selected='synfuels')
     # fuels demand as feedstock and excl-feedstock (send to Power) without CC demand We add CC demand further in the model !
-    out_1_2 = pd.concat([out_8088_1, out_9457_1.set_index(out_9457_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_8088_1, out_9457_1])
     # energy-demand [TWh] without CC demand
     energy_demand_TWh = export_variable(input_table=out_1_2, selected_variable='energy-demand[TWh]')
     # energy-demand [TWh]
@@ -1290,7 +1290,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     share_alt_fuel_feedstock_TWh_per_TWh = mcd(input_table_1=energy_demand_TWh_3, input_table_2=energy_demand_TWh_2, operation_selection='x / y', output_name='share-alt-fuel-feedstock[TWh/TWh]')
     # material-production[Mt] (only alternative fuel) = share-alt-fuel-feedstock[TWh/TWh] * material-production[Mt]
     material_production_Mt_8 = mcd(input_table_1=material_production_Mt_excluded_excluded, input_table_2=share_alt_fuel_feedstock_TWh_per_TWh, operation_selection='x * y', output_name='material-production[Mt]')
-    material_production_Mt_5 = pd.concat([material_production_Mt_5, material_production_Mt_8.set_index(material_production_Mt_8.index.astype(str) + '_dup')])
+    material_production_Mt_5 = pd.concat([material_production_Mt_5, material_production_Mt_8])
     # Group by country, years, (sum)
     material_production_Mt_5 = group_by_dimensions(df=material_production_Mt_5, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
     # share-alt-plastics[t/t] = material-production[Mt] (alternative plastics only) / material-production[Mt]
@@ -1339,10 +1339,10 @@ def industry(lifestyle, buildings, transport, agriculture):
     energy_demand_TWh_excluded['energy-carrier-category'] = "biofuels"
     # energy-carrier-category = synfuels
     energy_demand_TWh_excluded_excluded['energy-carrier-category'] = "synfuels"
-    energy_demand_TWh_excluded = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh_excluded_excluded.set_index(energy_demand_TWh_excluded_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_excluded = pd.concat([energy_demand_TWh_excluded, energy_demand_TWh_excluded_excluded])
     # energy-carrier-category = ffuels
     energy_demand_TWh_2['energy-carrier-category'] = "ffuels"
-    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh_excluded.set_index(energy_demand_TWh_excluded.index.astype(str) + '_dup')])
+    energy_demand_TWh_2 = pd.concat([energy_demand_TWh_2, energy_demand_TWh_excluded])
 
     # IN-SITU EMISSIONS (for carbon capture)
     # For carbon-capture and energy required for carbon capture : apply emission factor of fossil fuels !
@@ -1373,7 +1373,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     emissions_Mt_2 = mcd(input_table_1=energy_demand_TWh_2, input_table_2=ind_combustion_emission_factor_Mt_per_TWh, operation_selection='x * y', output_name='emissions[Mt]')
     # Group by  Country, Years, material, technology, emission-type, energy-carrier-category, ets-or-not, gaes, route
     emissions_Mt_2 = group_by_dimensions(df=emissions_Mt_2, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology', 'ets-or-not', 'energy-carrier-category', 'emission-type', 'gaes'], aggregation_method='Sum')
-    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_2.set_index(emissions_Mt_2.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_2])
 
     # Calibration
     # Calibration is executed in two stages (on group and then on total). This is done for a difference in granularity of calibration data from UNFCCC, depending on Annex I and non-Annex I.
@@ -1426,8 +1426,8 @@ def industry(lifestyle, buildings, transport, agriculture):
     _, out_9364_2, out_9364_3 = calibration(input_table=emissions_Mt_2, cal_table=emissions_total_Mt, data_to_be_cal='emissions[Mt]', data_cal='emissions-total[Mt]')
     # Cal rate for emissions-total
     cal_rate_emissions_Mt = use_variable(input_table=out_9364_3, selected_variable='cal_rate_emissions[Mt]')
-    cal_rate_emissions_Mt = pd.concat([cal_rate_emissions_Mt_2, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
-    cal_rate = pd.concat([cal_rate, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
+    cal_rate_emissions_Mt = pd.concat([cal_rate_emissions_Mt_2, cal_rate_emissions_Mt])
+    cal_rate = pd.concat([cal_rate, cal_rate_emissions_Mt])
     # Module = CALIBRATION
     cal_rate = column_filter(df=cal_rate, pattern='^.*$')
     # emissions[Mt] (replace) = emissions[Mt] * cal_rate[%]
@@ -1498,7 +1498,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     out_9853_1 = insitu_emissions_Mt_2.rename(columns={'insitu-emissions[Mt]': 'CCU[Mt]'})
     # CCU[Mt] from efuels / biofuels used as feedstock
     CCU_Mt_2 = use_variable(input_table=out_9853_1, selected_variable='CCU[Mt]')
-    CCU_Mt_2 = pd.concat([CCU_Mt_2, CCU_Mt_3.set_index(CCU_Mt_3.index.astype(str) + '_dup')])
+    CCU_Mt_2 = pd.concat([CCU_Mt_2, CCU_Mt_3])
     # RCP ind-ccu-emission-factor [Mt/Mt]
     ind_ccu_emission_factor_Mt_per_Mt = import_data(trigram='ind', variable_name='ind-ccu-emission-factor', variable_type='RCP')
     # CCU[Mt] feedstock only = in-situ-emissions[Mt] * ind-ccu-emission-factor [Mt/Mt]
@@ -1512,7 +1512,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     # emissions [Mt]
     emissions_Mt_2 = use_variable(input_table=emissions_Mt_2, selected_variable='emissions[Mt]')
     # Add CCU emissions (embedded feedstcok)
-    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_2.set_index(emissions_Mt_2.index.astype(str) + '_dup')])
+    emissions_Mt = pd.concat([emissions_Mt, emissions_Mt_2])
     # Group by material, tech, ets-or-not, feedstock-type, emission-type, gaes, energy-carrier-category, route (sum)
     emissions_Mt = group_by_dimensions(df=emissions_Mt, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology', 'ets-or-not', 'feedstock-type', 'energy-carrier-category', 'emission-type', 'gaes'], aggregation_method='Sum')
     # Missing dimensions (string) set to " "
@@ -1578,7 +1578,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     capex_MEUR_2 = mcd(input_table_1=capex_MEUR, input_table_2=industry_energy_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by  Country, Years material, technology, route (SUM)
     capex_MEUR = group_by_dimensions(df=capex_MEUR_2, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology'], aggregation_method='Sum')
-    MEUR_3 = pd.concat([capex_MEUR, opex_MEUR.set_index(opex_MEUR.index.astype(str) + '_dup')])
+    MEUR_3 = pd.concat([capex_MEUR, opex_MEUR])
     # Switch variable to double
     gwp_100 = math_formula(df=clt_gwp, convert_to_int=False, replaced_column='gwp-100[-]', splitted='$gwp-100[-]$')
 
@@ -1624,7 +1624,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     industry_CC_cost_user_ = import_data(trigram='ind', variable_name='industry-CC-cost-user', variable_type='RCP')
     # capex[MEUR] = capex[MEUR] * industry-CC-cost-user
     capex_MEUR = mcd(input_table_1=capex_MEUR, input_table_2=industry_CC_cost_user_, operation_selection='x * y', output_name='capex[MEUR]')
-    capex_MEUR_2 = pd.concat([capex_MEUR, capex_MEUR_2.set_index(capex_MEUR_2.index.astype(str) + '_dup')])
+    capex_MEUR_2 = pd.concat([capex_MEUR, capex_MEUR_2])
 
     # Cost by user
 
@@ -1638,16 +1638,16 @@ def industry(lifestyle, buildings, transport, agriculture):
     out_9624_1 = compute_costs(df_activity=CC_tCO2eq, df_unit_costs=costs_for_industry_CC_EUR_per_tCO2e, df_price_indices=price_indices_, df_wacc=wacc_percent, module_name=module_name, activity_variable='CC[tCO2eq]', cost_type='OPEX')
     # opex[MEUR] = opex[MEUR] * industry-CC-cost-user
     opex_MEUR = mcd(input_table_1=out_9624_1, input_table_2=industry_CC_cost_user_, operation_selection='x * y', output_name='opex[MEUR]')
-    opex_MEUR_2 = pd.concat([opex_MEUR, opex_MEUR_2.set_index(opex_MEUR_2.index.astype(str) + '_dup')])
+    opex_MEUR_2 = pd.concat([opex_MEUR, opex_MEUR_2])
 
     # OPEX
 
     # Group by  Country, Years, material, technology, route (SUM)
     opex_MEUR_2 = group_by_dimensions(df=opex_MEUR_2, groupby_dimensions=['Country', 'Years', 'cost-user'], aggregation_method='Sum')
-    MEUR_2 = pd.concat([opex_MEUR_2, capex_MEUR_2.set_index(capex_MEUR_2.index.astype(str) + '_dup')])
+    MEUR_2 = pd.concat([opex_MEUR_2, capex_MEUR_2])
     # Group by  Country, Years material, technology, route (SUM)
     opex_MEUR = group_by_dimensions(df=opex_MEUR, groupby_dimensions=['Country', 'Years', 'material', 'technology', 'route'], aggregation_method='Sum')
-    MEUR = pd.concat([capex_MEUR, opex_MEUR.set_index(opex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([capex_MEUR, opex_MEUR])
     # opex [MEUR]
     opex_MEUR = use_variable(input_table=MEUR, selected_variable='opex[MEUR]')
     # replace opex[MEUR] by opex-CC[MEUR]
@@ -1660,7 +1660,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     out_10076_1 = capex_MEUR.rename(columns={'capex[MEUR]': 'capex-CC[MEUR]'})
     # Group by  Country, Years (SUM)
     out_10076_1 = group_by_dimensions(df=out_10076_1, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    out_1_2 = pd.concat([out_10076_1, out_10077_1.set_index(out_10077_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_10076_1, out_10077_1])
     # CP co2-concentration-mapping
     ind_co2_concentration_mapping = import_data(trigram='ind', variable_name='ind_co2-concentration-mapping', variable_type='CP')
     # Remove data_type and module
@@ -1693,7 +1693,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     EE_saving_TWh_2 = missing_value(df=EE_saving_TWh_2, DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedDoubleValueMissingCellHandlerFactory']], FixedValue='0.0')
     # EE-saving [TWh] from CC
     EE_saving_TWh_2 = use_variable(input_table=EE_saving_TWh_2, selected_variable='EE-saving[TWh]')
-    EE_saving_TWh = pd.concat([EE_saving_TWh, EE_saving_TWh_2.set_index(EE_saving_TWh_2.index.astype(str) + '_dup')])
+    EE_saving_TWh = pd.concat([EE_saving_TWh, EE_saving_TWh_2])
     # Group by  Country, Years, material, technology, energy-carrier, feedstock-type, route (sum)
     EE_saving_TWh = group_by_dimensions(df=EE_saving_TWh, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology', 'energy-carrier', 'feedstock-type'], aggregation_method='Sum')
     # Lag EE-saving[TWh]
@@ -1724,15 +1724,15 @@ def industry(lifestyle, buildings, transport, agriculture):
     primary_energy_costs_MEUR_per_TWh = primary_energy_costs_EUR_per_MWh.drop(columns='primary-energy-costs[EUR/MWh]').assign(**{'primary-energy-costs[MEUR/TWh]': primary_energy_costs_EUR_per_MWh['primary-energy-costs[EUR/MWh]'] * 1.0})
     # capex[MEUR] = EE-saving-delta[TWh] * capex-EE
     capex_MEUR_2 = mcd(input_table_1=EE_saving_delta_TWh, input_table_2=primary_energy_costs_MEUR_per_TWh, operation_selection='x * y', output_name='capex[MEUR]')
-    capex_MEUR = pd.concat([capex_MEUR_2, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    capex_MEUR = pd.concat([capex_MEUR_2, capex_MEUR])
     # Assumption lifetime = 25 years
     out_9998_1 = spread_capital(output_table=capex_MEUR, df_wacc=wacc_percent)
     # Group by  Country, Years, material, technology, route (SUM)
     out_9998_1 = group_by_dimensions(df=out_9998_1, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology'], aggregation_method='Sum')
     # Keep Years >= baseyear
     out_9998_1, _ = filter_dimension(df=out_9998_1, dimension='Years', operation_selection='=', value_years=Globals.get().base_year)
-    out_9643_1 = pd.concat([MEUR_3, out_9998_1.set_index(out_9998_1.index.astype(str) + '_dup')])
-    out_9642_1 = pd.concat([MEUR, out_9643_1.set_index(out_9643_1.index.astype(str) + '_dup')])
+    out_9643_1 = pd.concat([MEUR_3, out_9998_1])
+    out_9642_1 = pd.concat([MEUR, out_9643_1])
     # opex [MEUR]
     opex_MEUR = use_variable(input_table=out_9642_1, selected_variable='opex[MEUR]')
     # Group by  Country, Years material, technology, route (SUM)
@@ -1741,9 +1741,9 @@ def industry(lifestyle, buildings, transport, agriculture):
     capex_MEUR = use_variable(input_table=out_9642_1, selected_variable='capex[MEUR]')
     # Group by  Country, Years material, technology, route (SUM)
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'Years', 'material', 'technology', 'route'], aggregation_method='Sum')
-    MEUR = pd.concat([opex_MEUR, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
-    out_10081_1 = pd.concat([MEUR, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
-    out_9990_1 = pd.concat([out_10081_1, MEUR_2.set_index(MEUR_2.index.astype(str) + '_dup')])
+    MEUR = pd.concat([opex_MEUR, capex_MEUR])
+    out_10081_1 = pd.concat([MEUR, out_1_2])
+    out_9990_1 = pd.concat([out_10081_1, MEUR_2])
 
     # For : Climate
     # 
@@ -1761,7 +1761,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     out_9579_1_excluded['emissions-or-capture'] = "embedded-feedstock"
     # Add emissions-or-capture = emissions
     out_9579_1['emissions-or-capture'] = "emissions"
-    out_9579_1 = pd.concat([out_9579_1, out_9579_1_excluded.set_index(out_9579_1_excluded.index.astype(str) + '_dup')])
+    out_9579_1 = pd.concat([out_9579_1, out_9579_1_excluded])
     # emissions[MtCO2e] = emissions[Mt] x gwp[unit]
     emissions_MtCO2eq = mcd(input_table_1=gwp_100_2, input_table_2=emissions_Mt, operation_selection='x * y', output_name='emissions[MtCO2eq]')
     # emissions[MtCO2e]
@@ -1782,7 +1782,7 @@ def industry(lifestyle, buildings, transport, agriculture):
     energy_demand_TWh = energy_demand_TWh.loc[~energy_demand_TWh['feedstock-type'].isin(['excl-feedstock'])].copy()
     # energy-demand[TWh] (replace) = energy-demand[TWh] + energy-demand[TWh] (for CC)  LEFT JOIN set to 0 if missing
     energy_demand_TWh_2 = mcd(input_table_1=energy_demand_TWh_excluded, input_table_2=energy_demand_TWh_3, operation_selection='x + y', output_name='energy-demand[TWh]', fill_value_bool='Left [x] Outer Join')
-    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2.set_index(energy_demand_TWh_2.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh, energy_demand_TWh_2])
     # energy-demand [TWh] (including for CC)
     energy_demand_TWh = export_variable(input_table=energy_demand_TWh, selected_variable='energy-demand[TWh]')
     # energy-demand [TWh]
@@ -1797,13 +1797,13 @@ def industry(lifestyle, buildings, transport, agriculture):
     emission_per_energy_consumption_tCO2_per_TWh = export_variable(input_table=emission_per_energy_consumption_tCO2_per_TWh, selected_variable='emission-per-energy-consumption[tCO2/TWh]')
     # Group by  gaes, energy-carrier-category (sum)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'material', 'route', 'technology', 'energy-carrier', 'feedstock-type'], aggregation_method='Sum')
-    out_9995_1 = pd.concat([energy_demand_TWh_2, material_production_Mt_3.set_index(material_production_Mt_3.index.astype(str) + '_dup')])
+    out_9995_1 = pd.concat([energy_demand_TWh_2, material_production_Mt_3])
     # Module = Air Quality
     out_9995_1 = column_filter(df=out_9995_1, pattern='^.*$')
     # Group by Country, Years, energy-carrier (sum)
     energy_demand_TWh_2 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'energy-carrier'], aggregation_method='Sum')
-    out_9497_1 = pd.concat([energy_demand_TWh_2, out_9571_1.set_index(out_9571_1.index.astype(str) + '_dup')])
-    out_9516_1 = pd.concat([out_9497_1, CCU_Mt.set_index(CCU_Mt.index.astype(str) + '_dup')])
+    out_9497_1 = pd.concat([energy_demand_TWh_2, out_9571_1])
+    out_9516_1 = pd.concat([out_9497_1, CCU_Mt])
     # Module = Power
     out_9516_1 = column_filter(df=out_9516_1, pattern='^.*$')
     # LEFT join on materials
@@ -1841,21 +1841,21 @@ def industry(lifestyle, buildings, transport, agriculture):
     # alternative-fuel-share[kWh/kWh] = energy-demand-by- carrier-feedstock[TWh] (only alternative fuel) / energy-demand-by- carrier-feedstock[TWh]
     alternative_fuel_share_kWh_per_kWh_2 = mcd(input_table_1=energy_demand_by_carrier_feedstock_TWh_3, input_table_2=energy_demand_by_carrier_feedstock_TWh, operation_selection='x / y', output_name='alternative-fuel-share[kWh/kWh]')
     # KPI's
-    alternative_fuel_share_kWh_per_kWh = pd.concat([alternative_fuel_share_kWh_per_kWh_2, alternative_fuel_share_kWh_per_kWh.set_index(alternative_fuel_share_kWh_per_kWh.index.astype(str) + '_dup')])
+    alternative_fuel_share_kWh_per_kWh = pd.concat([alternative_fuel_share_kWh_per_kWh_2, alternative_fuel_share_kWh_per_kWh])
     # alternative-fuel-share[kWh/kWh]
     alternative_fuel_share_kWh_per_kWh = export_variable(input_table=alternative_fuel_share_kWh_per_kWh, selected_variable='alternative-fuel-share[kWh/kWh]')
     # KPI's
-    share_per = pd.concat([share_alt_plastics_t_per_t, alternative_fuel_share_kWh_per_kWh.set_index(alternative_fuel_share_kWh_per_kWh.index.astype(str) + '_dup')])
+    share_per = pd.concat([share_alt_plastics_t_per_t, alternative_fuel_share_kWh_per_kWh])
     # KPI's
-    per = pd.concat([share_per, material_saved_t_per_t.set_index(material_saved_t_per_t.index.astype(str) + '_dup')])
+    per = pd.concat([share_per, material_saved_t_per_t])
     # KPI's
-    per = pd.concat([per, material_foot_print_t_per_cap.set_index(material_foot_print_t_per_cap.index.astype(str) + '_dup')])
+    per = pd.concat([per, material_foot_print_t_per_cap])
     # KPI's
-    per = pd.concat([per, emission_per_energy_consumption_tCO2_per_TWh.set_index(emission_per_energy_consumption_tCO2_per_TWh.index.astype(str) + '_dup')])
+    per = pd.concat([per, emission_per_energy_consumption_tCO2_per_TWh])
     # KPI's
-    out_10007_1 = pd.concat([per, capex_ratio_percent.set_index(capex_ratio_percent.index.astype(str) + '_dup')])
+    out_10007_1 = pd.concat([per, capex_ratio_percent])
     # KPI's
-    out_9701_1 = pd.concat([out_10007_1, share_route_material_production_percent.set_index(share_route_material_production_percent.index.astype(str) + '_dup')])
+    out_9701_1 = pd.concat([out_10007_1, share_route_material_production_percent])
     # Top: only elec
     energy_demand_by_carrier_feedstock_TWh_2 = energy_demand_by_carrier_feedstock_TWh_2.loc[energy_demand_by_carrier_feedstock_TWh_2['energy-carrier'].isin(['electricity'])].copy()
 
@@ -1866,10 +1866,10 @@ def industry(lifestyle, buildings, transport, agriculture):
     # share-elec-energy- demand-by-carrier[%]
     share_elec_energy_demand_by_carrier_percent = export_variable(input_table=share_elec_energy_demand_by_carrier_percent, selected_variable='share-elec-energy-demand-by-carrier[%]')
     # KPI's
-    out_9609_1 = pd.concat([out_9701_1, share_elec_energy_demand_by_carrier_percent.set_index(share_elec_energy_demand_by_carrier_percent.index.astype(str) + '_dup')])
+    out_9609_1 = pd.concat([out_9701_1, share_elec_energy_demand_by_carrier_percent])
     # KPI's
-    out_9608_1 = pd.concat([out_9609_1, emissions_per_produtction_tCO2e_per_t.set_index(emissions_per_produtction_tCO2e_per_t.index.astype(str) + '_dup')])
-    out_9980_1 = pd.concat([out_9608_1, material_demand_t.set_index(material_demand_t.index.astype(str) + '_dup')])
+    out_9608_1 = pd.concat([out_9609_1, emissions_per_produtction_tCO2e_per_t])
+    out_9980_1 = pd.concat([out_9608_1, material_demand_t])
     # Group by  material (sum)
     energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'material'], aggregation_method='Sum')
     # Rename variable to energy-demand -by-material[TWh]
@@ -1879,15 +1879,15 @@ def industry(lifestyle, buildings, transport, agriculture):
     # Rename variable to energy-demand -by-material-feedstock[TWh]
     out_9257_1 = energy_demand_TWh_3.rename(columns={'energy-demand[TWh]': 'energy-demand-by-material-feedstock[TWh]'})
     # Concatenate to Pathway Explorer
-    out_1_2 = pd.concat([out_9258_1, out_9257_1.set_index(out_9257_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9258_1, out_9257_1])
     # Group by  material, technology, feedstock-type (sum)
     energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'material', 'technology', 'feedstock-type'], aggregation_method='Sum')
     # Rename variable to energy-demand -by-material-tech -feedstock[TWh]
     out_9259_1 = energy_demand_TWh_3.rename(columns={'energy-demand[TWh]': 'energy-demand-by-material-tech-feedstock[TWh]'})
     # Concatenate to Pathway Explorer
-    out_1_2 = pd.concat([out_9259_1, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_9259_1, out_1_2])
     # Concatenate to Pathway Explorer
-    out_1_2 = pd.concat([out_1_2, out_9261_1.set_index(out_9261_1.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_1_2, out_9261_1])
     # Group by  energy-carrier, ets (sum)
     energy_demand_TWh_3 = group_by_dimensions(df=energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'ets-or-not', 'energy-carrier'], aggregation_method='Sum')
     # Rename variable to energy-demand -by-carrier-ets[TWh]
@@ -1897,35 +1897,35 @@ def industry(lifestyle, buildings, transport, agriculture):
     # Rename variable to energy-demand -by-material-ets[TWh]
     out_9254_1 = energy_demand_TWh_3.rename(columns={'energy-demand[TWh]': 'energy-demand-by-material-ets[TWh]'})
     # Concatenate to Pathway Explorer
-    out_1_4 = pd.concat([out_9253_1, out_9254_1.set_index(out_9254_1.index.astype(str) + '_dup')])
+    out_1_4 = pd.concat([out_9253_1, out_9254_1])
     # Rename variable to energy-demand -by-carrier[TWh]
     out_9255_1 = energy_demand_TWh_2.rename(columns={'energy-demand[TWh]': 'energy-demand-by-carrier[TWh]'})
     # Concatenate to Pathway Explorer
-    out_1_3 = pd.concat([out_9255_1, out_9256_1.set_index(out_9256_1.index.astype(str) + '_dup')])
+    out_1_3 = pd.concat([out_9255_1, out_9256_1])
     # Concatenate to Pathway Explorer
-    out_1_3 = pd.concat([out_1_3, out_1_4.set_index(out_1_4.index.astype(str) + '_dup')])
+    out_1_3 = pd.concat([out_1_3, out_1_4])
     # Concatenate to Pathway Explorer
-    out_1_2 = pd.concat([out_1_3, out_1_2.set_index(out_1_2.index.astype(str) + '_dup')])
+    out_1_2 = pd.concat([out_1_3, out_1_2])
     # Concatenate to Pathway Explorer
-    out_1_3 = pd.concat([out_1_2, out_9583_1.set_index(out_9583_1.index.astype(str) + '_dup')])
-    out_9654_1 = pd.concat([energy_demand_TWh, material_production_Mt.set_index(material_production_Mt.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_9654_1, out_9579_1.set_index(out_9579_1.index.astype(str) + '_dup')])
+    out_1_3 = pd.concat([out_1_2, out_9583_1])
+    out_9654_1 = pd.concat([energy_demand_TWh, material_production_Mt])
+    out_1_2 = pd.concat([out_9654_1, out_9579_1])
     # Module = Climate
     out_1_2 = column_filter(df=out_1_2, pattern='^.*$')
     # material-import-share [%]
     material_import_share_percent_demand = use_variable(input_table=material_import_share_percent_demand, selected_variable='material-import-share[%demand]')
     # Concatenate to Pathway Explorer
-    material_share_percent_demand = pd.concat([material_import_share_percent_demand, material_export_share_percent_demand.set_index(material_export_share_percent_demand.index.astype(str) + '_dup')])
+    material_share_percent_demand = pd.concat([material_import_share_percent_demand, material_export_share_percent_demand])
     # Concatenate to Pathway Explorer
-    out_9225_1 = pd.concat([out_9224_1, material_share_percent_demand.set_index(material_share_percent_demand.index.astype(str) + '_dup')])
+    out_9225_1 = pd.concat([out_9224_1, material_share_percent_demand])
     # Concatenate to Pathway Explorer
-    out_1 = pd.concat([out_1, out_9225_1.set_index(out_9225_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1, out_9225_1])
     # Concatenate to Pathway Explorer
-    out_1 = pd.concat([out_1_3, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1_3, out_1])
     # KPI's
-    out_1 = pd.concat([out_9980_1, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9980_1, out_1])
     # Costs
-    out_1 = pd.concat([out_1, out_9990_1.set_index(out_9990_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_1, out_9990_1])
     out_9251_1 = add_trigram(module_name=module_name, df=out_1)
     # Module = Pathway Explorer
     out_9251_1 = column_filter(df=out_9251_1, pattern='^.*$')

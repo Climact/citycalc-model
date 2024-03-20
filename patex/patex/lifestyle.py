@@ -58,11 +58,11 @@ def lifestyle():
     ### Household number
     households_total_num = use_variable(input_table=output_bld, selected_variable='households-total[num]')
 
-    concat = pd.concat([food_demand_kcal, population_cap.set_index(population_cap.index.astype(str) + '_dup')])
-    concat = pd.concat([concat, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
-    concat = pd.concat([concat, food_demand_per_cap_kcal_per_cap_per_day.set_index(food_demand_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
-    concat = pd.concat([concat, food_waste_per_cap_kcal_per_cap_per_day.set_index(food_waste_per_cap_kcal_per_cap_per_day.index.astype(str) + '_dup')])
-    concat = pd.concat([concat, households_total_num.set_index(households_total_num.index.astype(str) + '_dup')])
+    concat = pd.concat([food_demand_kcal, population_cap])
+    concat = pd.concat([concat, food_waste_kcal])
+    concat = pd.concat([concat, food_demand_per_cap_kcal_per_cap_per_day])
+    concat = pd.concat([concat, food_waste_per_cap_kcal_per_cap_per_day])
+    concat = pd.concat([concat, households_total_num])
     output_interface = add_trigram(module_name=module_name, df=concat)
     output_interface = column_filter(df=output_interface, pattern='^.*$')
 
@@ -90,7 +90,7 @@ def building(pop):
     # Appliances use [h]
     appliance_use_h_per_year_times_num = import_data(trigram='lfs', variable_name='appliance-use')
     appliance_use_h = mcd(input_table_1=appliance_own_num, input_table_2=appliance_use_h_per_year_times_num, operation_selection='x * y', output_name='appliance-use[h]')
-    appliance = pd.concat([appliance_own_num, appliance_use_h.set_index(appliance_use_h.index.astype(str) + '_dup')])
+    appliance = pd.concat([appliance_own_num, appliance_use_h])
 
     # Heating and Cooling behaviour 
     ## INFO:
@@ -103,14 +103,11 @@ def building(pop):
     heatcool_behaviour_deg_celsius_baseyear = group_by_dimensions(df=heatcool_behaviour_deg_celsius_baseyear, groupby_dimensions=['Country'], aggregation_method='Sum')
     heating_behaviour_index = mcd(input_table_1=heatcool_behaviour_deg_celsius_baseyear, input_table_2=heatcool_behaviour_deg_celsius, operation_selection='y / x', output_name='heating-cooling-behaviour-index[-]')
     cooling_behaviour_index = heating_behaviour_index.assign(**{'end-use': "cooling"})
-    heating_cooling_behaviour_index = pd.concat([cooling_behaviour_index, heating_behaviour_index.set_index(heating_behaviour_index.index.astype(str) + '_dup')])
+    heating_cooling_behaviour_index = pd.concat([cooling_behaviour_index, heating_behaviour_index])
     heating_cooling_behaviour_index = export_variable(input_table=heating_cooling_behaviour_index, selected_variable='heating-cooling-behaviour-index[-]')
 
     # Output
-    concat_1 = pd.concat([households_total_num, pop.set_index(pop.index.astype(str) + '_dup')])
-    concat_2 = pd.concat([appliance, product_substitution_rate_percent.set_index(product_substitution_rate_percent.index.astype(str) + '_dup')])
-    concat_3 = pd.concat([concat_2, heating_cooling_behaviour_index.set_index(heating_cooling_behaviour_index.index.astype(str) + '_dup')])
-    output_bld = pd.concat([concat_1, concat_3.set_index(concat_3.index.astype(str) + '_dup')])
+    output_bld = pd.concat([households_total_num, pop, appliance, product_substitution_rate_percent, heating_cooling_behaviour_index])
     output_bld = column_filter(df=output_bld, pattern='^.*$')
 
     return output_bld
@@ -147,12 +144,12 @@ def transport(pop):
     
     ## Urban + Non-urban
     distance_traveled_nonurb_pkm = distance_traveled_nonurb_pkm.assign(**{'distance-type': "nonurban"})
-    distance_traveled_pkm = pd.concat([distance_traveled_nonurb_pkm, distance_traveled_urb_pkm.set_index(distance_traveled_urb_pkm.index.astype(str) + '_dup')])
+    distance_traveled_pkm = pd.concat([distance_traveled_nonurb_pkm, distance_traveled_urb_pkm])
     distance_traveled_pkm = export_variable(input_table=distance_traveled_pkm, selected_variable='distance-traveled[pkm]')
-    pkm = pd.concat([distance_traveled_pkm, transport_demand_pkm.set_index(transport_demand_pkm.index.astype(str) + '_dup')])
+    pkm = pd.concat([distance_traveled_pkm, transport_demand_pkm])
 
     ## Output
-    output_tra = pd.concat([pop, pkm.set_index(pkm.index.astype(str) + '_dup')])
+    output_tra = pd.concat([pop, pkm])
     output_tra = column_filter(df=output_tra, pattern='^.*$')
 
     return output_tra
@@ -223,9 +220,9 @@ def afolu(pop):
     food_waste_kcal = mcd(input_table_1=food_waste_kcal, input_table_2=food_waste_percent, operation_selection='x * y', output_name='food-waste[kcal]')
     food_waste_kcal = export_variable(input_table=food_waste_kcal, selected_variable='food-waste[kcal]')
 
-    output_afo = pd.concat([food_demand_kcal, food_waste_kcal.set_index(food_waste_kcal.index.astype(str) + '_dup')])
-    output_afo = pd.concat([energy_production_TWh, output_afo.set_index(output_afo.index.astype(str) + '_dup')])
-    output_afo = pd.concat([calibration_factor_food_supply, output_afo.set_index(output_afo.index.astype(str) + '_dup')])
+    output_afo = pd.concat([food_demand_kcal, food_waste_kcal])
+    output_afo = pd.concat([energy_production_TWh, output_afo])
+    output_afo = pd.concat([calibration_factor_food_supply, output_afo])
     output_afo = column_filter(df=output_afo, pattern='^.*$')
 
     return output_afo

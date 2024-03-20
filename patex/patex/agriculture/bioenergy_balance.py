@@ -92,7 +92,7 @@ def bioenergy_balance(industry, agriculture, land_use, power):
     forest_m3_to_t_conv_factor_t_per_m3 = import_data(trigram='agr', variable_name='forest-m3-to-t-conv-factor', variable_type='RCP')
     # potential-production-for-industry[t] = potential-energy-production[m3] * forest-m3-to-t-conv-factor [t/m3]
     potential_production_for_industry_t_2 = mcd(input_table_1=potential_production_for_industry_m3, input_table_2=forest_m3_to_t_conv_factor_t_per_m3, operation_selection='x * y', output_name='potential-production-for-industry[t]')
-    potential_production_for_industry_t = pd.concat([potential_production_for_industry_t_2, potential_production_for_industry_t.set_index(potential_production_for_industry_t.index.astype(str) + '_dup')])
+    potential_production_for_industry_t = pd.concat([potential_production_for_industry_t_2, potential_production_for_industry_t])
     # potential-production-for-industry [t]
     potential_production_for_industry_t = export_variable(input_table=potential_production_for_industry_t, selected_variable='potential-production-for-industry[t]')
 
@@ -122,9 +122,9 @@ def bioenergy_balance(industry, agriculture, land_use, power):
     energy_production_TWh = group_by_dimensions(df=energy_production_TWh, groupby_dimensions=['Country', 'Years', 'origin', 'energy-carrier'], aggregation_method='Sum')
     # energy-production [TWh]
     energy_production_TWh_4 = use_variable(input_table=agriculture, selected_variable='energy-production[TWh]')
-    energy_production_TWh_3 = pd.concat([energy_production_TWh_4, energy_production_TWh_3.set_index(energy_production_TWh_3.index.astype(str) + '_dup')])
-    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2.set_index(energy_production_TWh_2.index.astype(str) + '_dup')])
-    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    energy_production_TWh_3 = pd.concat([energy_production_TWh_4, energy_production_TWh_3])
+    energy_production_TWh_2 = pd.concat([energy_production_TWh_3, energy_production_TWh_2])
+    energy_production_TWh = pd.concat([energy_production_TWh_2, energy_production_TWh])
     # energy-production [TWh]
     energy_production_TWh = export_variable(input_table=energy_production_TWh, selected_variable='energy-production[TWh]')
 
@@ -147,7 +147,7 @@ def bioenergy_balance(industry, agriculture, land_use, power):
     energy_demand_TWh_2['sector'] = "export"
     # energy-demand [TWh]
     energy_demand_TWh_2 = export_variable(input_table=energy_demand_TWh_2, selected_variable='energy-demand[TWh]')
-    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh.set_index(energy_demand_TWh.index.astype(str) + '_dup')])
+    energy_demand_TWh = pd.concat([energy_demand_TWh_2, energy_demand_TWh])
 
     # Aggregate all energy demand (including export)
 
@@ -172,8 +172,8 @@ def bioenergy_balance(industry, agriculture, land_use, power):
     energy_demand_TWh = energy_demand_TWh.loc[~energy_demand_TWh['sector'].isin(['dhg'])].copy()
     # Rename variable to energy-demand-by-sector[TWh]
     out_9007_1 = energy_demand_TWh.rename(columns={'energy-demand[TWh]': 'energy-demand-by-sector[TWh]'})
-    out_1 = pd.concat([out_9007_1, out_9009_1.set_index(out_9009_1.index.astype(str) + '_dup')])
-    out_1_2 = pd.concat([out_1, out_9506_1.set_index(out_9506_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9007_1, out_9009_1])
+    out_1_2 = pd.concat([out_1, out_9506_1])
     # energy-production[TWh] = buffer If < 0 => set 0  (IMPORT)
     energy_production_TWh_3 = buffer_TWh.copy()
     mask = energy_production_TWh_3['buffer[TWh]']<0
@@ -211,8 +211,8 @@ def bioenergy_balance(industry, agriculture, land_use, power):
     pct_bioenergy_imported_percent = mcd(input_table_1=energy_production_TWh_4, input_table_2=total_energy_supply_TWh, operation_selection='x / y', output_name='pct-bioenergy-imported[%]')
     # pct-bioenergy-imported [%]
     pct_bioenergy_imported_percent = use_variable(input_table=pct_bioenergy_imported_percent, selected_variable='pct-bioenergy-imported[%]')
-    pct_bioenergy_percent = pd.concat([pct_bioenergy_imported_percent, pct_bioenergy_produced_percent.set_index(pct_bioenergy_produced_percent.index.astype(str) + '_dup')])
-    energy_production_TWh = pd.concat([energy_production_TWh_3, energy_production_TWh.set_index(energy_production_TWh.index.astype(str) + '_dup')])
+    pct_bioenergy_percent = pd.concat([pct_bioenergy_imported_percent, pct_bioenergy_produced_percent])
+    energy_production_TWh = pd.concat([energy_production_TWh_3, energy_production_TWh])
 
     # Aggregate all energy production (including export)
 
@@ -251,10 +251,10 @@ def bioenergy_balance(industry, agriculture, land_use, power):
     material_production_t = use_variable(input_table=material_production_t, selected_variable='material-production[t]')
     # Rename variable to bio-material-demand[t]
     out_9434_1 = material_production_t.rename(columns={'material-production[t]': 'bio-material-demand[t]'})
-    out_9339_1 = pd.concat([out_9434_1, potential_production_for_industry_t.set_index(potential_production_for_industry_t.index.astype(str) + '_dup')])
-    out_9436_1 = pd.concat([pct_bioenergy_percent, out_9339_1.set_index(out_9339_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_9431_1, out_9436_1.set_index(out_9436_1.index.astype(str) + '_dup')])
-    out_1 = pd.concat([out_1_2, out_1.set_index(out_1.index.astype(str) + '_dup')])
+    out_9339_1 = pd.concat([out_9434_1, potential_production_for_industry_t])
+    out_9436_1 = pd.concat([pct_bioenergy_percent, out_9339_1])
+    out_1 = pd.concat([out_9431_1, out_9436_1])
+    out_1 = pd.concat([out_1_2, out_1])
     out_9342_1 = add_trigram(module_name=module_name, df=out_1)
     # Module = Pathway Explorer
     out_9342_1 = column_filter(df=out_9342_1, pattern='^.*$')

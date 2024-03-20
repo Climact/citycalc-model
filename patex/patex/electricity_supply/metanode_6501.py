@@ -102,7 +102,7 @@ def metanode_6501(port_01, port_02, port_03, port_04):
     port_01 = group_by_dimensions(df=port_01_2, groupby_dimensions=['Country', 'Years', 'sector'], aggregation_method='Sum')
     # energy-carrier-cat = liquid-syn
     port_01['energy-carrier-cat'] = "liquid-syn"
-    port_01 = pd.concat([port_01, port_01_excluded.set_index(port_01_excluded.index.astype(str) + '_dup')])
+    port_01 = pd.concat([port_01, port_01_excluded])
     # final-energy-costs[MEUR] = fuel-price[MEUR/TWh] * energy-demand[TWh]
     final_energy_costs_MEUR = mcd(input_table_1=port_01, input_table_2=fuel_price_MEUR_per_TWh, operation_selection='x * y', output_name='final-energy-costs[MEUR]')
 

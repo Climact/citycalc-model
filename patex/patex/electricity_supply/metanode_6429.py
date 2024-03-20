@@ -124,7 +124,7 @@ def metanode_6429(port_01, port_02):
     capex_MEUR = mcd(input_table_1=efuels_cost_user_, input_table_2=out_9527_1, operation_selection='x * y', output_name='capex[MEUR]')
     # Group by  Country, Years (sum)
     capex_MEUR = group_by_dimensions(df=capex_MEUR, groupby_dimensions=['Country', 'cost-user', 'Years'], aggregation_method='Sum')
-    MEUR = pd.concat([opex_MEUR, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([opex_MEUR, capex_MEUR])
 
     # Capex / Opex
 
@@ -185,7 +185,7 @@ def metanode_6429(port_01, port_02):
     # gaes = CO2
     out_7558_1['gaes'] = "CO2"
     # Node 5876
-    out_7540_1 = pd.concat([CCU_Mt, out_7558_1.set_index(out_7558_1.index.astype(str) + '_dup')])
+    out_7540_1 = pd.concat([CCU_Mt, out_7558_1])
 
     # Apply direct-air-capture levers 
     # => Determine the % of CO2 used produced by DAC.
@@ -233,7 +233,7 @@ def metanode_6429(port_01, port_02):
     efficiency_imp_DAC_ = import_data(trigram='elc', variable_name='efficiency-imp-DAC')
     # primary-energy-demand[TWh] (replace) = primary-energy-demand[TWh] * (1 - efficiency-imp-DAC[%])
     primary_energy_demand_TWh_2 = mcd(input_table_1=primary_energy_demand_TWh_2, input_table_2=efficiency_imp_DAC_, operation_selection='x * (1-y)', output_name='primary-energy-demand[TWh]')
-    primary_energy_demand_TWh = pd.concat([primary_energy_demand_TWh_2, primary_energy_demand_TWh.set_index(primary_energy_demand_TWh.index.astype(str) + '_dup')])
+    primary_energy_demand_TWh = pd.concat([primary_energy_demand_TWh_2, primary_energy_demand_TWh])
     # Group by  Country, Years, primary-energy-carrier, way-of-production, sector
     primary_energy_demand_TWh = group_by_dimensions(df=primary_energy_demand_TWh, groupby_dimensions=['Country', 'Years', 'way-of-production', 'primary-energy-carrier', 'sector'], aggregation_method='Sum')
 

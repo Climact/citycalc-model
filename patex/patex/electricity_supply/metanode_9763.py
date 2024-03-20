@@ -666,7 +666,7 @@ def metanode_9763(port_01, port_02):
     cal_rate_primary_energy_demand_TWh = use_variable(input_table=out_7489_3, selected_variable='cal_rate_primary-energy-demand[TWh]')
     # Add way-of-production = elec-plant
     cal_rate_primary_energy_demand_TWh['way-of-production'] = "elec-plant"
-    cal_rate = pd.concat([cal_rate_primary_energy_demand_TWh, cal_rate_emissions_Mt.set_index(cal_rate_emissions_Mt.index.astype(str) + '_dup')])
+    cal_rate = pd.concat([cal_rate_primary_energy_demand_TWh, cal_rate_emissions_Mt])
 
     # Calibration
 
@@ -679,7 +679,7 @@ def metanode_9763(port_01, port_02):
     gross_production_TWh_excluded = missing_value(df=gross_production_TWh_excluded, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='res')
     # primary-energy-carrier = non-res
     gross_production_TWh = missing_value(df=gross_production_TWh_2, dimension_rx='^.*\\[.*•\\]$', DTS_DT_O=[['org.knime.core.data.def.IntCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory'], ['org.knime.core.data.def.StringCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.FixedStringValueMissingCellHandlerFactory'], ['org.knime.core.data.def.DoubleCell', 'org.knime.base.node.preproc.pmml.missingval.handlers.DoNothingMissingCellHandlerFactory']], FixedValue='non-res')
-    gross_production_TWh = pd.concat([gross_production_TWh, gross_production_TWh_excluded.set_index(gross_production_TWh_excluded.index.astype(str) + '_dup')])
+    gross_production_TWh = pd.concat([gross_production_TWh, gross_production_TWh_excluded])
 
     # gross production
     # [TWh]
@@ -1010,7 +1010,7 @@ def metanode_9763(port_01, port_02):
     # way-of-production = elec-import
     out_6300_1['way-of-production'] = "elec-import"
     # Node 5876
-    out_6301_1 = pd.concat([out_6300_1, net_energy_production_TWh.set_index(net_energy_production_TWh.index.astype(str) + '_dup')])
+    out_6301_1 = pd.concat([out_6300_1, net_energy_production_TWh])
     # Unit conversion TWh to GW x 1000 / (365 x 24)
     energy_imported_GW = energy_imported_TWh.drop(columns='energy-imported[TWh]').assign(**{'energy-imported[GW]': energy_imported_TWh['energy-imported[TWh]'] * 0.114077116130504})
     # Group by  country, years
@@ -1258,11 +1258,11 @@ def metanode_9763(port_01, port_02):
     # Keep Years >= baseyear
     capex_MEUR_2, _ = filter_dimension(df=capex_MEUR_2, dimension='Years', operation_selection='≥', value_years=Globals.get().base_year)
     # CAPEX
-    capex_MEUR = pd.concat([capex_MEUR, capex_MEUR_2.set_index(capex_MEUR_2.index.astype(str) + '_dup')])
+    capex_MEUR = pd.concat([capex_MEUR, capex_MEUR_2])
     # CAPEX
-    out_9548_1 = pd.concat([out_9537_1, capex_MEUR.set_index(capex_MEUR.index.astype(str) + '_dup')])
+    out_9548_1 = pd.concat([out_9537_1, capex_MEUR])
     # CAPEX
-    out_1 = pd.concat([out_9530_1, out_9548_1.set_index(out_9548_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9530_1, out_9548_1])
     # RCP energy-production-cost-user [-]
     energy_production_cost_user_ = import_data(trigram='elc', variable_name='energy-production-cost-user', variable_type='RCP')
     # capex[MEUR] = capex[MEUR] * energy-production-cost-user[-]
@@ -1278,18 +1278,18 @@ def metanode_9763(port_01, port_02):
     # Keep Years >= baseyear
     opex_MEUR_3, _ = filter_dimension(df=opex_MEUR_3, dimension='Years', operation_selection='≥', value_years=Globals.get().base_year)
     # OPEX
-    opex_MEUR_2 = pd.concat([opex_MEUR_2, opex_MEUR_3.set_index(opex_MEUR_3.index.astype(str) + '_dup')])
+    opex_MEUR_2 = pd.concat([opex_MEUR_2, opex_MEUR_3])
     # OPEX
-    opex_MEUR = pd.concat([opex_MEUR, opex_MEUR_2.set_index(opex_MEUR_2.index.astype(str) + '_dup')])
+    opex_MEUR = pd.concat([opex_MEUR, opex_MEUR_2])
     # OPEX
-    out_9551_1 = pd.concat([out_9538_1, opex_MEUR.set_index(opex_MEUR.index.astype(str) + '_dup')])
+    out_9551_1 = pd.concat([out_9538_1, opex_MEUR])
     # OPEX
-    out_1 = pd.concat([out_9527_1, out_9551_1.set_index(out_9551_1.index.astype(str) + '_dup')])
+    out_1 = pd.concat([out_9527_1, out_9551_1])
     # opex[MEUR] = opex[MEUR] * energy-production-cost-user[-]
     opex_MEUR = mcd(input_table_1=energy_production_cost_user_, input_table_2=out_1, operation_selection='x * y', output_name='opex[MEUR]')
     # Group by  Country, Years, way-of-prooduction (sum)
     opex_MEUR = group_by_dimensions(df=opex_MEUR, groupby_dimensions=['Country', 'cost-user', 'Years', 'way-of-production'], aggregation_method='Sum')
-    MEUR = pd.concat([capex_MEUR, opex_MEUR.set_index(opex_MEUR.index.astype(str) + '_dup')])
+    MEUR = pd.concat([capex_MEUR, opex_MEUR])
 
     # Capex / Opex
 
