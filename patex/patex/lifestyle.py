@@ -48,8 +48,8 @@ def lifestyle():
     ### Food waste
     food_waste_kcal = use_variable(input_table=output_afo, selected_variable='food-waste[kcal]')
     food_waste_kcal_grouped = group_by_dimensions(df=food_waste_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
-    food_waste_per_cap_kcal_per_cap = mcd(input_table_1=food_waste_kcal_grouped, input_table_2=population_cap, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
-    food_waste_per_cap_kcal_per_cap_per_day = food_waste_per_cap_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_per_cap_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
+    food_waste_kcal_per_cap = mcd(input_table_1=food_waste_kcal_grouped, input_table_2=population_cap, operation_selection='x / y', output_name='food-waste-per-cap[kcal/cap]')
+    food_waste_per_cap_kcal_per_cap_per_day = food_waste_kcal_per_cap.drop(columns='food-waste-per-cap[kcal/cap]').assign(**{'food-waste-per-cap[kcal/cap/day]': food_waste_kcal_per_cap['food-waste-per-cap[kcal/cap]'] * 0.00274})
     ### Food demand
     food_demand_kcal = use_variable(input_table=output_afo, selected_variable='food-demand[kcal]')
     food_demand_kcal_2 = group_by_dimensions(df=food_demand_kcal, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
@@ -74,7 +74,7 @@ def lifestyle():
 
 
 def building(pop):
-    # Total number of household [num], from the the household size and the total population
+    # Total number of household [num], from the household size and the total population
     household_size_cap_per_household = import_data(trigram='lfs', variable_name='household-size') # OTS/FTS
     households_total_num = mcd(input_table_1=pop, input_table_2=household_size_cap_per_household, operation_selection='x / y', output_name='households-total[num]')
     

@@ -27,7 +27,7 @@ import pandas as pd
 
 def group_by_dimensions(
     df: pd.DataFrame,
-    groupby_dimensions: str,
+    groupby_dimensions: list[str],
     aggregation_method: str,
 ) -> pd.DataFrame:
     # Define constants
