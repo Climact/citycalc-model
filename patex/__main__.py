@@ -41,6 +41,14 @@ parser.add_argument(
     help='a JSON file with lever settings, formatted like `{"lever_name": 1.8, ...}`',
 )
 parser.add_argument(
+    "-ldyn",
+    "--levers-dynamic-file",
+    type=Path,
+    required=False,
+    help='a JSON file with dynamic lever settings, formatted like `{"lever_name": {"start_year": 2019, "end_year": 2050'
+         ', "target": 1.1, "curve_type": "s-curve"}, ...}`',
+)
+parser.add_argument(
     "-y",
     "--max-year",
     type=int,
@@ -84,6 +92,16 @@ if args.levers_file is not None:
     with open(args.levers_file, "r") as f:
         levers.update(json.load(f))
 
+# Set dynamic levers to their default value
+dyn_levers = {}
+
+# Hydrate with optional dynamic levers file
+if args.levers_dynamic_file is not None:
+    import json
+
+    with open(args.levers_dynamic_file, "r") as f:
+        dyn_levers.update(json.load(f))
+
 # Run the model
 logging.info("executing the model...")
 start = time.time()
@@ -93,7 +111,7 @@ outputs = patex(
     max_year=args.max_year,
     country_filter="EU28|" + args.region,
     levers=levers,
-    dynamic_levers={},
+    dynamic_levers=dyn_levers,
 )
 logging.info(f"time = {time.time() - start:.2f}s")
 
