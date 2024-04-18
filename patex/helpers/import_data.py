@@ -19,6 +19,8 @@
 """
 
 from pathlib import Path
+import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -29,6 +31,7 @@ from patex.utils import get_lever_value, import_fts_ots, read_memoized
 
 
 DEFAULT_FOLDER = "_interactions"
+RX_dim = re.compile(r"dimension_.*")
 
 
 def linear_projection(
@@ -106,6 +109,7 @@ def calculate_lever_projections(ots, fts, dynamic_lever_params):
     # Parameters
     start_year = dynamic_lever_params["start_year"]
     end_year = dynamic_lever_params["end_year"]
+    ref_year = dynamic_lever_params['reference_year']
     curve_type = dynamic_lever_params["curve_type"]
     relative = dynamic_lever_params["relative"]
     if "target" in dynamic_lever_params:
@@ -153,13 +157,11 @@ def calculate_lever_projections(ots, fts, dynamic_lever_params):
         ].values[0]
         year_list = metric_df.index
 
-        # FIXME: relative year HARDCODED
         if relative == 1:
-            # In relative mode, value is expressed based on 2015 value
-            ambition_value = (
-                ambition
-                * metrics_ots[metrics_ots["Years"] == 2015][metric_name].values[0]
-            )
+            # In relative mode, value is expressed based on reference year value (default = 2015)
+            if math.isnan(ref_year):
+                ref_year = 2015
+            ambition_value = ambition * metrics_ots[metrics_ots['Years'] == int(ref_year)][metric_name].values[0]
         else:
             ambition_value = ambition
 
@@ -308,8 +310,9 @@ def import_data(
                 not_dim_cols = [
                     "Region",
                     "Year",
-                    "lever-name",
                     "metric-name",
+                    "lever-name",
+                    "reference_year",
                     "level_1",
                     "level_2",
                     "level_3",
@@ -323,14 +326,7 @@ def import_data(
                 input_table_fts = create_validation_key(
                     input_table_fts, "metric-name", dimensions=dim_cols_fts
                 )
-                dim_cols_level_data = [
-                    "dimension_1",
-                    "dimension_2",
-                    "dimension_3",
-                    "dimension_4",
-                    "dimension_5",
-                    "dimension_6",
-                ]
+                dim_cols_level_data = [c for c in input_table_level_data.columns if re.match(RX_dim, c)]
                 input_table_level_data = create_validation_key(
                     input_table_level_data,
                     "metric-name",
@@ -355,17 +351,18 @@ def import_data(
                             # if we specify a target instead of a couple 'ambition'-'relative' we need to
                             # retrieve the definition of the targets (Tx) and the relative value
                             if "target" in metric:
-                                tmp_level_data = input_table_level_data[
-                                    input_table_level_data["key_metric-name-dim"]
-                                    == metric_dim
-                                ]
-                                Tx = tmp_level_data.loc[
-                                    tmp_level_data.index[0],
-                                    ["T1", "T2", "T3", "T4"],
-                                ].values
-                                relative = 0  # all data in the df_level_data are already calculated so relative = 0 //tmp_level_data.loc[tmp_level_data.index[0], 'relative']
+                                dft = input_table_level_data[
+                                    input_table_level_data['key_metric-name-dim'] == metric_dim]
+                                dft = dft.sort_values(by=["ambition_level"], ascending=True)
+                                Tx = dft['target'].values.tolist()
+                                relative = dft['relative'].tolist()[
+                                    0]  # relative is the same for all level, take the first
+                                reference_year = dft['reference_year'].tolist()[
+                                    0]  # ref year is the same for all level, take the first
+                                # value here then
                                 metric["relative"] = int(relative)
-                                metric["Tx"] = Tx.tolist()
+                                metric["Tx"] = Tx
+                                metric["reference_year"] = reference_year
                             df_dyn_levers = pd.concat(
                                 [
                                     df_dyn_levers,
@@ -387,16 +384,20 @@ def import_data(
                             # When specifying the lever as dynamic at a lever scale, we need to retrieve the
                             # definition of the targets (Tx) and the relative value to apply them to all the
                             # metrics of the lever
-                            tmp_level_data = input_table_level_data[
+                            dft = input_table_level_data[
                                 input_table_level_data["key_metric-name-dim"]
                                 == metric_dim
                             ]
-                            Tx = tmp_level_data.loc[
-                                tmp_level_data.index[0], ["T1", "T2", "T3", "T4"]
-                            ].values
-                            relative = 0  # all data in the df_level_data are already calculated so relative = 0 //tmp_level_data.loc[tmp_level_data.index[0], 'relative']
+                            dft = dft.sort_values(by=["ambition_level"], ascending=True)
+                            Tx = dft['target'].values.tolist()
+                            relative = dft['relative'].tolist()[
+                                0]  # relative is the same for all level, take the first
+                            reference_year = dft['reference_year'].tolist()[
+                                0]  # ref year is the same for all level, take the first
+                            # value here then
                             metric["relative"] = int(relative)
-                            metric["Tx"] = Tx.tolist()
+                            metric["Tx"] = Tx
+                            metric["reference_year"] = reference_year
                             df_dyn_levers = pd.concat(
                                 [
                                     df_dyn_levers,
