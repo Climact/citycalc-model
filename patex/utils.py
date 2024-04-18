@@ -170,15 +170,17 @@ def import_fts_ots(
 
             # Read level data
             df_t = read_memoized(Path(path_level_data, file_name_level_data))
-            if "Years" in df_t.columns:
-                df_t = df_t[df_t["Years"] <= int(max_year)]
+            values = df_t["ambition_level"].unique().tolist()
+            RX = re.compile(r"level_.*")
+            if not [c for c in values if re.match(RX, str(c))]:  # If values of ambition_level != level_[0-9]
+                df_t["ambition_level"] = df_t["ambition_level"].astype(int).astype(str)
+                df_t["ambition_level"] = "level_" + df_t["ambition_level"]
+            df_t = df_t.rename(columns={"key_metric-name": "metric-name"})  # In any case ; rename this
             if rename_level_data:
-                df_t = df_t.rename(
-                    columns={
-                        "controlled_by": "lever_name",
-                        "ambition_level": "level_name",
-                    }
-                )
+                df_t = df_t.rename(columns={
+                    "ambition_level": "level_name",
+                    "associated_lever": "lever_name"
+                })
             df_level_data = pd.concat([df_level_data, df_t], ignore_index=True)
 
     return df_ots, df_fts, df_level_data
