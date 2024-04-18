@@ -14,6 +14,8 @@ import typing
 
 import pandas as pd
 
+from patex.constants import MISSING_YEARS
+
 
 class Globals:
     local: str
@@ -32,6 +34,7 @@ class Globals:
         country_filter: str,
         levers: dict[str, float],
         dynamic_levers: dict[str, typing.Any],
+        missing_years: list[int] | None = None,
     ):
         self.local = local
         self.base_year = base_year
@@ -39,12 +42,8 @@ class Globals:
         self.country_filter = country_filter
         self.levers = levers
         self.dynamic_levers = dynamic_levers
-
-        # TODO don't hardcode this
-        PATH_YEARS_LIST = Path(self.local, "_common", "reference", "ref_years.xlsx")
-        ref_years = pd.read_excel(PATH_YEARS_LIST)
-        self.missing_years = list(
-            ref_years[ref_years["cds_optional"]]["Years"].astype(int)
+        self.missing_years = (
+            missing_years if missing_years is not None else MISSING_YEARS
         )
 
     @classmethod
@@ -52,19 +51,19 @@ class Globals:
         global _globals
         assert _globals, "Globals not set"
         return _globals[-1]
-    
+
     def __enter__(self):
         Globals.push(self)
         return self
-    
+
     def __exit__(self, *args):
         Globals.pop()
-    
+
     @classmethod
     def push(cls, globals):
         global _globals
         _globals.append(globals)
-    
+
     @classmethod
     def pop(cls):
         global _globals
