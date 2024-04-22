@@ -4,6 +4,73 @@ from patex.helpers.globals import Globals
 from patex.helpers import *
 
 
+def compute_wei(name, numerator):
+    # Apply region share :
+    # ----------------------------------------------------------------------------------- #
+    # CP (wat_)region-share [%]
+    region_share_percent = import_data(trigram='wat', variable_name='wat_region-share', variable_type='CP')
+    # Group by  Country, water-use, sub-region (sum)  Remove unused columns
+    region_share_percent = group_by_dimensions(df=region_share_percent,
+                                               groupby_dimensions=['water-use', 'sub-region', 'Country'],
+                                               aggregation_method='Sum')
+
+    # water-consumption[m3] (replace) = water-consumption[m3] * region-share[%]
+    # LEFT JOIN : If missing : set 1 (no split into sub-region)
+    numerator = numerator.copy()
+    reg_water_consumption_m3 = mcd(input_table_1=numerator, input_table_2=region_share_percent,
+                                   operation_selection='x * y', output_name='demand[m3]',
+                                   fill_value_bool='Left [x] Outer Join', fill_value=1.0)
+    # Missing string = full-region (for sub-region)
+    mask = (reg_water_consumption_m3["sub-region"].isna())
+    reg_water_consumption_m3.loc[mask, "sub-region"] = 'full-region'
+
+    # Apply semester share :
+    # ----------------------------------------------------------------------------------- #
+    # CP (wat_)winter-share [%] (details for sub-region)
+    reg_winter_share_percent = import_data(trigram='wat', variable_name='wat_winter-share', variable_type='CP')
+    # Group by  Country, water-use, sub-region (sum)  Remove unused columns
+    wat_winter_share_percent = group_by_dimensions(df=reg_winter_share_percent,
+                                                   groupby_dimensions=['water-use', 'sub-region', 'Country'],
+                                                   aggregation_method='Sum')
+    # RCP winter-share [%] (values for full-region)
+    winter_share_percent = import_data(trigram='wat', variable_name='winter-share', variable_type='RCP')
+
+    # winter-share[%] (replace) = winter-share[%] (full-region) * winter-share[%] (details for sub-region)
+    # LEFT JOIN : If missing : set 1 (no split into sub-region)
+    winter_share_percent = mcd(input_table_1=winter_share_percent, input_table_2=wat_winter_share_percent,
+                               operation_selection='x * y', output_name='winter-share[%]',
+                               fill_value_bool='Left [x] Outer Join', fill_value=1.0)
+    # Missing string = full-region (for sub-region)
+    mask = (winter_share_percent["sub-region"].isna())
+    winter_share_percent.loc[mask, "sub-region"] = 'full-region'
+
+    # water-consumption[m3] (replace) (winter) = water-consumption[m3] * winter-share[%]
+    winter_water_consumption_m3 = mcd(input_table_1=reg_water_consumption_m3, input_table_2=winter_share_percent,
+                                      operation_selection='x * y', output_name='demand[m3]',
+                                      fill_value_bool='Inner Join', fill_value=1.0)
+    # water-consumption[m3] (replace) (summer) = water-consumption[m3] * (1-winter-share[%])
+    summer_water_consumption_m3 = mcd(input_table_1=reg_water_consumption_m3, input_table_2=winter_share_percent,
+                                      operation_selection='x * (1-y)', output_name='demand[m3]',
+                                      fill_value_bool='Inner Join')
+    summer_water_consumption_m3['semester'] = "summer"
+    # Aggregate summer and winter
+    reg_water_consumption_m3 = pd.concat([winter_water_consumption_m3, summer_water_consumption_m3])
+    # Group by Country, Years, semester, sub-region (sum)
+    reg_water_consumption_m3 = group_by_dimensions(df=reg_water_consumption_m3,
+                                                   groupby_dimensions=['Country', 'Years', 'sub-region', 'semester'],
+                                                   aggregation_method='Sum')
+
+    # Apply global warming levers
+    # ----------------------------------------------------------------------------------- #
+    # Determine the amount of available water according to the RCP level
+    # OTS/FTS water-availability [m3]
+    water_availability_m3 = import_data(trigram='wat', variable_name='water-availability')
+    # water-exploitation-index[%] = water-consumption[m3] / water-availability[m3]
+    wei = mcd(input_table_1=reg_water_consumption_m3, input_table_2=water_availability_m3,
+                      operation_selection='x / y', output_name=name)
+    return wei
+
+
 def water_demand(name, activity, requirement, group_by, ots_only=True):
     """
 
@@ -267,67 +334,8 @@ def water(lifestyle, industry, agriculture, power):
     # Southern France) and season (water needs for irrigation only occurs during summer for example).
     # Then, we compare this need to the availability (which also depends on seasons and sub-regions)
 
-    # Apply region share :
-    # ----------------------------------------------------------------------------------- #
-    # CP (wat_)region-share [%]
-    region_share_percent = import_data(trigram='wat', variable_name='wat_region-share', variable_type='CP')
-    # Group by  Country, water-use, sub-region (sum)  Remove unused columns
-    region_share_percent = group_by_dimensions(df=region_share_percent,
-                                               groupby_dimensions=['water-use', 'sub-region', 'Country'],
-                                               aggregation_method='Sum')
-    # water-consumption[m3] (replace) = water-consumption[m3] * region-share[%]
-    # LEFT JOIN : If missing : set 1 (no split into sub-region)
-    reg_water_consumption_m3 = mcd(input_table_1=water_consumption_m3, input_table_2=region_share_percent,
-                                   operation_selection='x * y', output_name='water-consumption[m3]',
-                                   fill_value_bool='Left [x] Outer Join', fill_value=1.0)
-    # Missing string = full-region (for sub-region)
-    mask = (reg_water_consumption_m3["sub-region"].isna())
-    reg_water_consumption_m3.loc[mask, "sub-region"] = 'full-region'
-
-    # Apply semester share :
-    # ----------------------------------------------------------------------------------- #
-    # CP (wat_)winter-share [%] (details for sub-region)
-    reg_winter_share_percent = import_data(trigram='wat', variable_name='wat_winter-share', variable_type='CP')
-    # Group by  Country, water-use, sub-region (sum)  Remove unused columns
-    wat_winter_share_percent = group_by_dimensions(df=reg_winter_share_percent,
-                                                   groupby_dimensions=['water-use', 'sub-region', 'Country'],
-                                                   aggregation_method='Sum')
-    # RCP winter-share [%] (values for full-region)
-    winter_share_percent = import_data(trigram='wat', variable_name='winter-share', variable_type='RCP')
-
-    # winter-share[%] (replace) = winter-share[%] (full-region) * winter-share[%] (details for sub-region)
-    # LEFT JOIN : If missing : set 1 (no split into sub-region)
-    winter_share_percent = mcd(input_table_1=winter_share_percent, input_table_2=wat_winter_share_percent,
-                               operation_selection='x * y', output_name='winter-share[%]',
-                               fill_value_bool='Left [x] Outer Join', fill_value=1.0)
-    # Missing string = full-region (for sub-region)
-    mask = (winter_share_percent["sub-region"].isna())
-    winter_share_percent.loc[mask, "sub-region"] = 'full-region'
-
-    # water-consumption[m3] (replace) (winter) = water-consumption[m3] * winter-share[%]
-    winter_water_consumption_m3 = mcd(input_table_1=reg_water_consumption_m3, input_table_2=winter_share_percent,
-                                      operation_selection='x * y', output_name='water-consumption[m3]',
-                                      fill_value_bool='Inner Join', fill_value=1.0)
-    # water-consumption[m3] (replace) (summer) = water-consumption[m3] * (1-winter-share[%])
-    summer_water_consumption_m3 = mcd(input_table_1=reg_water_consumption_m3, input_table_2=winter_share_percent,
-                                      operation_selection='x * (1-y)', output_name='water-consumption[m3]',
-                                      fill_value_bool='Inner Join')
-    summer_water_consumption_m3['semester'] = "summer"
-    # Aggregate summer and winter
-    reg_water_consumption_m3 = pd.concat([winter_water_consumption_m3, summer_water_consumption_m3])
-    # Group by Country, Years, semester, sub-region (sum)
-    reg_water_consumption_m3 = group_by_dimensions(df=reg_water_consumption_m3,
-                                               groupby_dimensions=['Country', 'Years', 'sub-region', 'semester'],
-                                               aggregation_method='Sum')
-
-    # Apply global warming levers
-    # ----------------------------------------------------------------------------------- #
-    # Determine the amount of available water according to the RCP level
-    # OTS/FTS water-availability [m3]
-    water_availability_m3 = import_data(trigram='wat', variable_name='water-availability')
-    # water-exploitation-index[%] = water-consumption[m3] / water-availability[m3]
-    wei_percent = mcd(input_table_1=reg_water_consumption_m3, input_table_2=water_availability_m3,
-                      operation_selection='x / y', output_name='water-exploitation-index[%]')
+    wei_percent = compute_wei(name='water-exploitation-index[%]', numerator=water_withdrawal_m3)
+    wei_plus_percent = compute_wei(name='water-exploitation-index-plus[%]', numerator=water_consumption_m3)
 
     # Have marklines
     # ----------------------------------------------------------------------------------- #
@@ -341,7 +349,7 @@ def water(lifestyle, industry, agriculture, power):
     }
 
     # Group by Country, Years (sum)
-    wei_marklines = group_by_dimensions(df=wei_percent, groupby_dimensions=['Country', 'Years'],
+    wei_marklines = group_by_dimensions(df=wei_plus_percent, groupby_dimensions=['Country', 'Years'],
                                         aggregation_method='Sum')
     # semester = all-year
     wei_marklines["semester"] = "all-year"
@@ -349,12 +357,16 @@ def water(lifestyle, industry, agriculture, power):
     for i in values.keys():
         wei_marklines['sub-region'] = i
         wei_marklines['water-exploitation-index[%]'] = values[i]
+        wei_marklines['water-exploitation-index-plus[%]'] = values[i]
         marklines.append(wei_marklines.copy())
 
     wei_marklines = pd.concat(marklines, ignore_index=True)
 
-    # Add marklines to wei_percent
+    # Add marklines to wei
     wei_percent = pd.concat([wei_percent, wei_marklines], ignore_index=True)
+    del wei_percent['water-exploitation-index-plus[%]']
+    wei_plus_percent = pd.concat([wei_plus_percent, wei_marklines], ignore_index=True)
+    del wei_plus_percent['water-exploitation-index[%]']
 
     # ----------------------------------------------------------------------------------- #
     # Collect Calibration Rates
@@ -370,15 +382,15 @@ def water(lifestyle, industry, agriculture, power):
     # A) Water consumption [m3] per water-use
     water_consumption_m3 = use_variable(input_table=water_consumption_m3, selected_variable='water-consumption[m3]')
     # B) Water exploitation index [%] (and mark lines)
-    wei_percent = use_variable(input_table=wei_percent, selected_variable='water-exploitation-index[%]')
+    #wei_percent = use_variable(input_table=wei_percent, selected_variable='water-exploitation-index[%]')
+    wei_plus_percent = use_variable(input_table=wei_plus_percent, selected_variable='water-exploitation-index-plus[%]')
+    wei_plus_percent.rename(columns={'water-exploitation-index-plus[%]': 'water-exploitation-index[%]'}, inplace=True)
 
     # Concatenate all results
-    water = pd.concat([water_consumption_m3, wei_percent])
+    water = pd.concat([water_consumption_m3, wei_plus_percent]) # wei_percent
     wat_to_patex_output = add_trigram(module_name=module_name, df=water)
 
     # ----------------------------------------------------------------------------------- #
     # Return results (outputs and flags)
     # ----------------------------------------------------------------------------------- #
     return wat_to_patex_output, cal_flags_water_withdrawal_m3
-
-
