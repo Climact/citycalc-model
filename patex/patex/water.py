@@ -95,7 +95,6 @@ def water_demand(name, activity, requirement, group_by, ots_only=True):
     return demand
 
 
-
 def water(lifestyle, industry, agriculture, power):
 
     module_name = 'water'
@@ -382,12 +381,11 @@ def water(lifestyle, industry, agriculture, power):
     # A) Water consumption [m3] per water-use
     water_consumption_m3 = use_variable(input_table=water_consumption_m3, selected_variable='water-consumption[m3]')
     # B) Water exploitation index [%] (and mark lines)
-    #wei_percent = use_variable(input_table=wei_percent, selected_variable='water-exploitation-index[%]')
+    wei_percent = use_variable(input_table=wei_percent, selected_variable='water-exploitation-index[%]')
     wei_plus_percent = use_variable(input_table=wei_plus_percent, selected_variable='water-exploitation-index-plus[%]')
-    wei_plus_percent.rename(columns={'water-exploitation-index-plus[%]': 'water-exploitation-index[%]'}, inplace=True)
 
     # Concatenate all results
-    water = pd.concat([water_consumption_m3, wei_plus_percent]) # wei_percent
+    water = pd.concat([water_consumption_m3, wei_percent, wei_plus_percent])
     wat_to_patex_output = add_trigram(module_name=module_name, df=water)
 
     # ----------------------------------------------------------------------------------- #
