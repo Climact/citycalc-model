@@ -17,7 +17,7 @@
     KNIME options implemented:
         - All
 """
-
+import logging
 from pathlib import Path
 import math
 import re
@@ -242,6 +242,56 @@ def calculate_lever_projections(ots, fts, dynamic_lever_params):
     return df_out.drop(["lever-name", "metric-name"], axis=1).reset_index()
 
 
+def dynamic_levers_2_lever_projections(dynamic_levers, input_table, input_table_level_data, lever_name, metric_dim, df_fts, ambition_level_name="ambition_level"):
+    metric = dynamic_levers[lever_name].copy()
+    tmp_fts = df_fts[
+        df_fts["key_metric-name-dim"] == metric_dim
+        ]
+    # When specifying the lever as dynamic at a lever scale, we need to retrieve the
+    # definition of the targets (Tx) and the relative value to apply them to all the
+    # metrics of the lever
+    dft = input_table_level_data[
+        input_table_level_data["key_metric-name-dim"]
+        == metric_dim
+        ]
+    dft = dft.sort_values(by=[ambition_level_name], ascending=True)
+    Tx = dft['target'].values.tolist()
+    relative = dft['relative'].tolist()[
+        0]  # relative is the same for all level, take the first
+    reference_year = dft['reference_year'].tolist()[
+        0]  # ref year is the same for all level, take the first
+    # value here then
+    metric["relative"] = int(relative)
+    metric["Tx"] = Tx
+    metric["reference_year"] = reference_year
+    df_lever_projections = calculate_lever_projections(input_table, tmp_fts, metric)
+    return df_lever_projections
+
+
+def dynamic_metrics_2_lever_projections(input_table, input_table_level_data, metric, tmp_fts, ambition_level_name="ambition_level"):
+    metric_dim = metric["metrics"]
+    tmp_tmp_fts = tmp_fts[
+        tmp_fts["key_metric-name-dim"] == metric_dim
+        ]
+    # if we specify a target instead of a couple 'ambition'-'relative' we need to
+    # retrieve the definition of the targets (Tx) and the relative value
+    if "target" in metric:
+        dft = input_table_level_data[
+            input_table_level_data['key_metric-name-dim'] == metric_dim]
+        dft = dft.sort_values(by=[ambition_level_name], ascending=True)
+        Tx = dft['target'].values.tolist()
+        relative = dft['relative'].tolist()[
+            0]  # relative is the same for all level, take the first
+        reference_year = dft['reference_year'].tolist()[
+            0]  # ref year is the same for all level, take the first
+        # value here then
+        metric["relative"] = int(relative)
+        metric["Tx"] = Tx
+        metric["reference_year"] = reference_year
+    df_lever_projections = calculate_lever_projections(input_table, tmp_tmp_fts, metric)
+    return df_lever_projections, metric_dim
+
+
 def import_data(
     trigram: str,
     variable_name: str = "metric-name",
@@ -344,68 +394,20 @@ def import_data(
                     ].copy()
                     if dynamic_lever_by_metric:
                         for metric in dynamic_levers[lever]:
-                            metric_dim = metric["metrics"]
-                            tmp_tmp_fts = tmp_fts[
-                                tmp_fts["key_metric-name-dim"] == metric_dim
-                            ]
-                            # if we specify a target instead of a couple 'ambition'-'relative' we need to
-                            # retrieve the definition of the targets (Tx) and the relative value
-                            if "target" in metric:
-                                dft = input_table_level_data[
-                                    input_table_level_data['key_metric-name-dim'] == metric_dim]
-                                dft = dft.sort_values(by=["ambition_level"], ascending=True)
-                                Tx = dft['target'].values.tolist()
-                                relative = dft['relative'].tolist()[
-                                    0]  # relative is the same for all level, take the first
-                                reference_year = dft['reference_year'].tolist()[
-                                    0]  # ref year is the same for all level, take the first
-                                # value here then
-                                metric["relative"] = int(relative)
-                                metric["Tx"] = Tx
-                                metric["reference_year"] = reference_year
-                            df_dyn_levers = pd.concat(
-                                [
-                                    df_dyn_levers,
-                                    calculate_lever_projections(
-                                        input_table, tmp_tmp_fts, metric
-                                    ),
-                                ]
-                            )
+                            df_lever_projections, metric_dim = dynamic_metrics_2_lever_projections(input_table,
+                                                                                                   input_table_level_data,
+                                                                                                   metric, tmp_fts)
+                            df_dyn_levers = pd.concat([df_dyn_levers,df_lever_projections])
                             # remove data from input_table_fts if metric=metric
                             input_table_fts = input_table_fts[
                                 input_table_fts["key_metric-name-dim"] != metric_dim
                             ]
                     else:
                         for metric_dim in tmp_fts["key_metric-name-dim"].unique():
-                            metric = dynamic_levers[lever].copy()
-                            tmp_tmp_fts = tmp_fts[
-                                tmp_fts["key_metric-name-dim"] == metric_dim
-                            ]
-                            # When specifying the lever as dynamic at a lever scale, we need to retrieve the
-                            # definition of the targets (Tx) and the relative value to apply them to all the
-                            # metrics of the lever
-                            dft = input_table_level_data[
-                                input_table_level_data["key_metric-name-dim"]
-                                == metric_dim
-                            ]
-                            dft = dft.sort_values(by=["ambition_level"], ascending=True)
-                            Tx = dft['target'].values.tolist()
-                            relative = dft['relative'].tolist()[
-                                0]  # relative is the same for all level, take the first
-                            reference_year = dft['reference_year'].tolist()[
-                                0]  # ref year is the same for all level, take the first
-                            # value here then
-                            metric["relative"] = int(relative)
-                            metric["Tx"] = Tx
-                            metric["reference_year"] = reference_year
-                            df_dyn_levers = pd.concat(
-                                [
-                                    df_dyn_levers,
-                                    calculate_lever_projections(
-                                        input_table, tmp_tmp_fts, metric
-                                    ),
-                                ]
-                            )
+                            df_lever_projections = dynamic_levers_2_lever_projections(dynamic_levers, input_table,
+                                                                                      input_table_level_data, lever,
+                                                                                      metric_dim, tmp_fts)
+                            df_dyn_levers = pd.concat([df_dyn_levers, df_lever_projections])
                         input_table_fts = input_table_fts[
                             input_table_fts["lever-name"] != lever
                         ]
@@ -476,7 +478,7 @@ def import_data(
                 try:
                     del output_table[i]
                 except KeyError as e:
-                    logger.warning(
+                    logging.warning(
                         "The column {} does not exist in the dataframe for the and could not be deleted".format(
                             i
                         )
@@ -495,3 +497,4 @@ def import_data(
         df["Years"] = df["Years"].astype(int)
 
     return df
+
