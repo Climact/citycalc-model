@@ -474,6 +474,16 @@ def climate_emissions(buildings, transport, industry, agriculture, land_use, pow
     out_1 = pd.concat([out_1, out_1_2])
     out_1 = pd.concat([out_9485_1, out_1])
 
+    var = "clm_total-emissions[MtCO2e]"
+    out = use_variable(input_table=out_1, selected_variable=var)
+    out = group_by_dimensions(df=out, groupby_dimensions=['Country', 'Years'], aggregation_method='Sum')
+    out_ref = filter_dimension(df=out, dimension="Years", operation_selection='=', value_years=2005)[0]
+    out_ref = add_missing_years(out_ref, fill_value=out_ref)
+    out = mcd(input_table_1=out, input_table_2=out_ref, output_name="emission-reduction[%]", operation_selection="x / y")
+    out["emission-reduction[%]"] = out["emission-reduction[%]"] - 1
+
+    out_1 = pd.concat([out, out_1])
+
     return out_1, out_3774_1
 
 
