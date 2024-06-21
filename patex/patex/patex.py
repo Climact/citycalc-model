@@ -18,6 +18,9 @@ from .water import water
 
 def patex(
     local,
+    s3_ods,
+    s3_raw,
+    ref_years,
     country_filter,
     levers,
     dynamic_levers,
@@ -26,6 +29,9 @@ def patex(
 ):
     with Globals(
         local=local,
+        s3_ods=s3_ods,
+        s3_raw=s3_raw,
+        ref_years=ref_years,
         base_year=base_year,
         max_year=max_year,
         country_filter=country_filter,

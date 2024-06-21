@@ -27,8 +27,7 @@ import pandas as pd
 
 from patex.metrics import create_validation_key
 from patex.helpers.globals import Globals
-from patex.utils import get_lever_value, import_fts_ots, read_memoized
-
+from patex.utils import get_lever_value, import_fts_ots_s3, import_fts_ots_local, import_ods_s3, read_memoized
 
 DEFAULT_FOLDER = "_interactions"
 RX_dim = re.compile(r"dimension_.*")
@@ -297,10 +296,12 @@ def import_data(
     variable_name: str = "metric-name",
     variable_type: str = "OTS/FTS",
 ) -> pd.DataFrame:
+
     max_year = Globals.get().max_year
     country_filter = Globals.get().country_filter
     levers = Globals.get().levers
     dynamic_levers = Globals.get().dynamic_levers
+    path_ods = Globals.get().s3_ods
     local = Globals.get().local
     # --------------------------------------------------------#
     # IMPORT DATA
@@ -310,40 +311,60 @@ def import_data(
     input_table_level_data = pd.DataFrame()
     # Get variable
     naming_dict = {
-        "OTS (only)": "_ots",
-        "OTS/FTS": "_fts",
-        "Calibration": "_cal",
-        "CP": "_cp",
-        "RCP": "_rcp",
-        "HTS": "_hts",
+        "OTS (only)": "ots",
+        "OTS/FTS": "fts",
+        "Calibration": "cal",
+        "CP": "cp",
+        "RCP": "rcp",
+        "HTS": "hts",
     }
     var_type = naming_dict[variable_type]
-    # Define file path
-    path_data = Path(local, "_common", "_ods")
-    path_level_data = Path(local, "_common", "_level_data")
+
+    # Define local file path
+    path_level_data = None
+    if local:
+        path_ods = Path(local, "_common", "_ods")
+        path_level_data = Path(local, "_common", "_level_data")
 
     # Initialize dynamic levers dataframe
     df_dyn_levers = pd.DataFrame()
 
     ## ------------- CP --------------- ##
     if variable_type == "CP":
-        file_name = variable_name + var_type + ".csv"
-        input_table = read_memoized(Path(path_data, file_name))
+        file_name = variable_name + "_" + var_type
+        if local:
+            file_name += ".csv"
+            input_table = read_memoized(Path(path_ods, file_name))
+        else:
+            path = f'{path_ods}/{file_name}'
+            input_table = import_ods_s3(path,var_type)
 
     ## ------------- OTS/FTS --------------- ##
     elif variable_type == "OTS/FTS":
         # Get file names
-        input_table, input_table_fts, input_table_level_data = import_fts_ots(
-            input_table,
-            input_table_fts,
-            input_table_level_data,
-            path_data,
-            path_level_data,
-            country_filter,
-            max_year,
-            trigram,
-            variable_name,
-        )
+        if local:
+            input_table, input_table_fts, input_table_level_data = import_fts_ots_local(
+                input_table,
+                input_table_fts,
+                input_table_level_data,
+                path_ods,
+                path_level_data,
+                country_filter,
+                max_year,
+                trigram,
+                variable_name,
+            )
+        else:
+            input_table, input_table_fts, input_table_level_data = import_fts_ots_s3(
+                input_table,
+                input_table_fts,
+                input_table_level_data,
+                path_ods,
+                country_filter,
+                max_year,
+                trigram,
+                variable_name,
+            )
 
         # Get lever_name
         # It's possible to have more than one lever for a given variable
@@ -431,10 +452,13 @@ def import_data(
                     + trigram
                     + "_"
                     + variable_name
-                    + var_type
+                    + "_" + var_type
                     + ".csv"
                 )
-                df_t = read_memoized(Path(path_data, file_name))
+                if local:
+                    df_t = read_memoized(Path(path_ods, file_name))
+                else:
+                    df_t = import_ods_s3(path_ods, var_type, [trigram], [country], [variable_name])
                 # Filter data based on max year (if possible)
                 if "Years" in df_t.columns:
                     df_t = df_t[df_t["Years"] <= max_year]

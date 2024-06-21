@@ -19,6 +19,9 @@ from patex.constants import MISSING_YEARS
 
 class Globals:
     local: str
+    s3_ods: str
+    s3_raw: str
+    ref_years: dict[str, list[int]]
     base_year: int
     max_year: int
     country_filter: str
@@ -29,6 +32,9 @@ class Globals:
     def __init__(
         self,
         local: str,
+        s3_ods: str,
+        s3_raw: str,
+        ref_years: dict[str, list[int]],
         base_year: int,
         max_year: int,
         country_filter: str,
@@ -37,6 +43,9 @@ class Globals:
         missing_years: list[int] | None = None,
     ):
         self.local = local
+        self.s3_ods = s3_ods
+        self.s3_raw = s3_raw
+        self.ref_years = ref_years
         self.base_year = base_year
         self.max_year = max_year
         self.country_filter = country_filter
