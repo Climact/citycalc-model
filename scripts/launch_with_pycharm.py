@@ -9,7 +9,7 @@ WORKSPACE = Path(__file__).resolve().parents[2].joinpath("dev")  # path to the p
 # (default = dev)
 MAX_YEAR = 2050
 REGIONS = "FR0196"  # ex : BE|HU
-MODE = "local"  # "local" or "remote"
+MODE = "remote"  # "local" or "remote"
 LEVERS_DEFAULT_VALUE = 1
 DYN_LEVERS = {}
 BUCKET = "climact-dataset"
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     if MODE == "local":
         logging.info(f"Running in local mode : {WORKSPACE}")
         interfaces_path = WORKSPACE.joinpath("_common", "configuration", "interfaces.xlsx")
-        ref_years_path = WORKSPACE.joinpath("_common", "configuration", "ref_years.csv")
+        ref_years_path = WORKSPACE.joinpath("_common", "reference", "ref_years.csv")
     else:
         logging.info(f"Running in remote mode : {s3_path}")
         interfaces_path = f"{s3_raw}/configuration/interfaces.xlsx"

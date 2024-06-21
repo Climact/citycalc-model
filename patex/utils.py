@@ -10,7 +10,7 @@ import pandas as pd
 from patex.helpers.globals import Globals
 
 IDX = ["key_metric-name_wo-unit"]
-
+MEMO = {}
 
 def reduce_mem_usage(props):
     """Reduce the memory usage by converting the type of the dataframe columns
@@ -125,9 +125,6 @@ def get_lever_value(df, column_name, selected_levers):
     return df_tmp
 
 
-MEMO = {}
-
-
 def read_memoized(path):
     if path in MEMO:
         return MEMO[path]
@@ -137,7 +134,6 @@ def read_memoized(path):
         return df
 
 
-# TODO: instead of using 'path' as a key, use the hash of the file ?
 def read_parquet_memoized(path, regions=None, modules=None, dtype=None):
     """
     Read parquet file from memoized cache or S3, and apply preprocessing for 'ods' type data.
@@ -161,79 +157,52 @@ def read_parquet_memoized(path, regions=None, modules=None, dtype=None):
         else:
             logging.info(f"File from S3: {path}")
             df = pd.read_parquet(path)
-            MEMO[id_path] = df
+            MEMO[path] = df
 
             # Pre-processing specific to 'ods' type data
             if 'ods' in path:
                 df = preprocess_ods_data(df)
-                if 'Region' in df.columns and 'module' in df.columns and 'data_type' in df.columns:
-                    for region in df['Region'].unique():
-                        for module in df['module'].unique():
-                            for data_type in df['data_type'].unique():
-                                MEMO[f"{path}_{region}_{module}_{data_type}"] = df.loc[
-                                    (df['Region'].values == region) &
-                                    (df['module'].values == module) &
-                                    (df['data_type'].values == data_type)
-                                ]
-                elif 'Region' in df.columns and 'data_type' in df.columns:
-                    for region in df['Region'].unique():
-                        for data_type in df['data_type'].unique():
-                            MEMO[f"{path}_{region}_{data_type}"] = df.loc[
-                                (df['Region'].values == region) &
-                                (df['data_type'].values == data_type)
-                            ]
-                elif 'module' in df.columns and 'data_type' in df.columns:
-                    for module in df['module'].unique():
-                        for data_type in df['data_type'].unique():
-                            MEMO[f"{path}_{module}_{data_type}"] = df.loc[
-                                (df['module'].values == module) &
-                                (df['data_type'].values == data_type)
-                            ]
-                elif 'Region' in df.columns:
-                    for region in df['Region'].unique():
-                        MEMO[f"{path}_{region}"] = df.loc[df['Region'].values == region]
-                elif 'module' in df.columns:
-                    for module in df['module'].unique():
-                        MEMO[f"{path}_{module}"] = df.loc[df['module'].values == module]
-                elif 'data_type' in df.columns:
-                    for data_type in df['data_type'].unique():
-                        MEMO[f"{path}_{data_type}"] = df.loc[df['data_type'].values == data_type]
+                keys = [path]
+                regions_key = -1
+                module_key = -1
+                dtype_key = -1
+                if 'Region' in df.columns:
+                    keys = [f"{key}_{region}" for key in keys for region in df['Region'].unique()]
+                if 'module' in df.columns:
+                    keys = [f"{key}_{module}" for key in keys for module in df['module'].unique()]
+                    regions_key -= 1
+                if 'data_type' in df.columns:
+                    keys = [f"{key}_{dtype}" for key in keys for dtype in df['data_type'].unique()]
+                    module_key -= 1
+                    regions_key -= 1
+                for key in keys:
+                    condition = (df['Region'].values == key.split('_')[regions_key] if 'Region' in df.columns else True) & \
+                                (df['module'].values == key.split('_')[module_key] if 'module' in df.columns else True) & \
+                                (df['data_type'].values == key.split('_')[dtype_key] if 'data_type' in df.columns else True)
+                    # if condition is True (no Region, module or data_type in df), then the df is stored in MEMO
+                    if isinstance(condition, bool) and condition:
+                        MEMO[key] = df
+                    else:
+                        MEMO[key] = df.loc[condition]
 
             output_df.append(MEMO[id_path])
 
     return pd.concat(output_df)
 
 
-#PREFIOUS VERSION TO DELETE
-def generate_id_paths_to_delete(path, regions=None, modules=None, dtype=None):
-    id_paths = []
-    if regions is not None:
-        for region in regions:
-            if modules is not None:
-                for module in modules:
-                    if dtype is not None:
-                        id_paths.append(f"{path}_{region}_{module}_{dtype}")
-                    else:
-                        id_paths.append(f"{path}_{region}_{module}")
-            else:
-                if dtype is not None:
-                    id_paths.append(f"{path}_{region}_{dtype}")
-                else:
-                    id_paths.append(f"{path}_{region}")
-    elif modules is not None:
-        for module in modules:
-            if dtype is not None:
-                id_paths.append(f"{path}_{module}_{dtype}")
-            else:
-                id_paths.append(f"{path}_{module}")
-    elif dtype is not None:
-        id_paths = [f"{path}_{dtype}"]
-    else:
-        id_paths = [path]
-    return id_paths
-
-
 def generate_id_paths(path, regions, modules, dtype):
+    """ Generate id paths based on the path, regions, modules and dtype
+
+    Args:
+    - path (str): Path to the parquet file
+    - regions (list, optional): List of regions to process
+    - modules (list, optional): List of modules to process
+    - dtype (str, optional): Data type to process
+
+    Returns:
+    - list: List of id paths
+    """
+
     id_paths = [path]
     if regions:
         id_paths = [f"{id_path}_{region}" for id_path in id_paths for region in regions]
@@ -242,6 +211,7 @@ def generate_id_paths(path, regions, modules, dtype):
     if dtype:
         id_paths = [f"{id_path}_{dtype}" for id_path in id_paths]
     return id_paths
+
 
 def preprocess_ods_data(df, region=None):
     """
@@ -262,11 +232,17 @@ def preprocess_ods_data(df, region=None):
     return df
 
 
-def import_ods_s3(path_ods_folder, dtype: str, modules: list=None, regions: list=None, metrics: list = [""], ref_years: dict = None):
-    if ref_years is None:
-        ref_years = Globals.get().ref_years
+def handle_exceptions(metrics):
+    """
+    Processes the exceptions list and updates the metrics list accordingly.
+    FIXME: This function should be removed once the exceptions are removed from the model.
 
-    # EXCEPTIONS: to be removed in the model
+    Args:
+        metrics (list): List of metrics to filter by.
+
+    Returns:
+        tuple: A tuple containing the exceptions list and updated metrics list.
+    """
     exceptions_list = []
     dict_cdt = {
         "transport-demand-pkm": 'transport-demand',
@@ -274,147 +250,212 @@ def import_ods_s3(path_ods_folder, dtype: str, modules: list=None, regions: list
         "elec-emissions-Mt": 'emissions',
         "heat-emissions-Mt": 'emissions'
     }
+    updated_metrics = []
     for metric in metrics:
         if metric in dict_cdt.keys():
-            metrics.remove(metric)
-            metrics.append(dict_cdt[metric])
+            updated_metrics.append(dict_cdt[metric])
             exceptions_list.append(metric)
-    # END EXCEPTIONS
+        else:
+            updated_metrics.append(metric)
+    return exceptions_list, updated_metrics
 
-    if dtype == "fts":
-        path = f"{path_ods_folder}/projections"
-    elif dtype in ["ots", 'hts', 'rcp', 'cal']:
-        path = f"{path_ods_folder}/timeseries"
-    elif dtype == "level-data":
-        path = f"{path_ods_folder}/level_data"
-    elif dtype =="level-definition":
-        path = f"{path_ods_folder}/definitions"
-    elif dtype == "cp":
-        path = path_ods_folder
-    else:
+
+def determine_s3path(
+        path_ods_folder: str,
+        dtype: str):
+    """
+    Determines the correct path based on the data type.
+
+    Args:
+        path_ods_folder (str): The base path to the ODS folder.
+        dtype (str): The type of data to import (e.g., 'fts', 'ots', 'hts', etc.).
+
+    Returns:
+        str: The determined path for the given data type.
+
+    Raises:
+        ValueError: If the dtype is unknown.
+    """
+    paths = {
+        "fts": f"{path_ods_folder}/projections",
+        "ots": f"{path_ods_folder}/timeseries",
+        "hts": f"{path_ods_folder}/timeseries",
+        "rcp": f"{path_ods_folder}/timeseries",
+        "cal": f"{path_ods_folder}/timeseries",
+        "level-data": f"{path_ods_folder}/level_data",
+        "level-definition": f"{path_ods_folder}/definitions",
+        "cp": path_ods_folder
+    }
+    if dtype not in paths:
         raise ValueError(f"Unknown data type: {dtype}")
+    return paths[dtype]
+
+
+def handle_cp_dtype(
+        path: str,
+        dtype: str):
+    """
+    Processes the 'cp' data type separately.
+
+    Args:
+        path (str): The path to the 'cp' data.
+        dtype (str): The data type ('cp').
+
+    Returns:
+        pd.DataFrame: The processed data for 'cp' type.
+    """
+    values = read_parquet_memoized(path)
+    (module, name, dtype_file) = path.split("/")[-1].split("_")
+    if module == "ind":
+        values["module"] = module
+        values["data_type"] = dtype
+    return values
+
+
+def import_ods_s3(
+        path_ods_folder,
+        dtype: str,
+        modules: list[str] = None,
+        regions: list[str] = None,
+        metrics: list[str] = [""],
+        ref_years: dict[str, list[int]] = None):
+    """
+    Imports data from ODS files in S3 based on the specified data type and filters.
+
+    Args:
+        path_ods_folder (str): The base path to the ODS folder.
+        dtype (str): The type of data to import (e.g., 'fts', 'ots', 'hts', etc.).
+        modules (list, optional): List of modules to filter by. Defaults to None.
+        regions (list, optional): List of regions to filter by. Defaults to None.
+        metrics (list, optional): List of metrics to filter by. Defaults to [""].
+        ref_years (dict, optional): Dictionary of reference years. Defaults to None.
+
+    Returns:
+        pd.DataFrame: The combined data from the ODS files.
+    """
+    if ref_years is None:
+        ref_years = Globals.get().ref_years
+
+    exceptions_list, metrics = handle_exceptions(metrics)
+    path = determine_s3path(path_ods_folder,dtype)
 
     df_list = []
     if dtype == 'cp':
-        values = read_parquet_memoized(path)
-        (module, name, dtype_file) = path.split("/")[-1].split("_")
-        df = values
-        if module == "ind":
-            df["module"] = module
-            df["data_type"] = dtype
-        df_list.append(df)
-    else:
-        idx_t = IDX
+        df_list.append(handle_cp_dtype(path, dtype))
+    elif dtype in ['fts', 'ots', 'rcp', 'cal', 'hts']:
+        handle_other_dtype(path, dtype, regions, modules, metrics, ref_years, df_list, exceptions_list)
+    elif dtype == 'level-data':
+        df_list.append(handle_level_data_dtype(path, modules, regions, metrics))
+    elif dtype == 'level-definition':
+        df_list.append(handle_level_definition_dtype(path, regions, metrics))
 
-        if dtype == "fts":
-            values = read_parquet_memoized(path, regions, modules, dtype)
-            filtered_values = values.loc[
-                (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
-                ]
-            excluded_columns = ['hypothesis', 'Region_0', 'Source', 'source', 'key_metric-name-dim', 'Region_source', "module",
-                                "data_type"]
-            for id, df in filtered_values.groupby(level=idx_t):
-                # reset index
-                df = df.reset_index()
-
-                # Sort by values
-                df = df.sort_values(by=['key_metric-name-dim', 'Years'])
-                # Remove unused columns and nan values
-                df = df.dropna(how='all', axis=1)
-                kept_cols = [c for c in df.columns if c not in excluded_columns]
-                df = df[kept_cols]
-                # Rename columnValues
-                df = df.rename(columns={"key_metric-name": "metric-name"})
-                dims = sorted([c for c in df.columns if c not in ["Region", "Years", "metric-name", "lever-name",
-                                                                  "level_1", "level_2", "level_3", "level_4"]])
-                order = ["Region", "Years", "metric-name", "lever-name"] + dims + ["level_1", "level_2", "level_3", "level_4"]
-                df = df[order]
-                df_list.append(df)
-        elif dtype in ['ots', 'rcp', 'cal', 'hts']:
-            values = read_parquet_memoized(path, regions, modules, dtype)
-            filtered_values = values.loc[
-                (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
-                ]
-            excluded_columns_tec_costs = ['hypothesis', 'Region_0', 'Source', 'source', 'key_metric-name-dim', "module",
-                                          "data_type"]  # Keep Region_source
-            excluded_columns = excluded_columns_tec_costs + ['Region_source']
-
-            for id, df in filtered_values.groupby(level=idx_t):
-                # reset index
-                df = df.reset_index()
-
-                for exception in exceptions_list:
-                    if exception == "transport-demand-pkm":
-                        df = df.loc[df["key_metric-name"].values == "transport-demand[pkm]", :]
-                    elif exception == "transport-demand-tkm":
-                        df = df.loc[df["key_metric-name"].values == "transport-demand[bn_tkm]", :]
-                    elif exception == "elec-emissions-Mt":
-                        df = df.loc[df["way-of-production"].values == "elec-plant", :]
-                    elif exception == "heat-emissions-Mt":
-                        df = df.loc[df["way-of-production"].values != "elec-plant", :]
-
-                metric_w_unit = df['key_metric-name'].unique()[0]
-                # Sort by values
-                df = df.sort_values(by=['key_metric-name-dim', 'Years'])
-                # Remove unused columns and nan values
-                df = df.dropna(how='all', axis=1)
-                if df['module'].unique()[0] == 'tec' and df['key_metric-name_wo-unit'].unique()[0].startswith('cost'):
-                    kept_cols = [c for c in df.columns if c not in excluded_columns_tec_costs]
-                else:
-                    kept_cols = [c for c in df.columns if c not in excluded_columns]
-                df = df[kept_cols]
-
-                if dtype == "ots":
-                    df = df.rename(columns={"key_metric-name": "metric-name"})
-                    dims = sorted([c for c in df.columns if c not in ["Region", "Years", "metric-name", "ColumnValues"]])
-                    order = ["Region", "Years", "metric-name"] + dims + ["ColumnValues"]
-                    df = df[order]
-                else:
-                    df = df.rename(columns={"ColumnValues": metric_w_unit})
-                    del df["key_metric-name"]
-                    dims = sorted([c for c in df.columns if c not in ["Region", metric_w_unit]])
-                    order = ["Region"] + dims + [metric_w_unit]
-                    df = df[order]
-                if dtype == "rcp":
-                    if "Years" in df.columns:
-                        del df["Years"]
-                # Remove Years before 2000
-                if dtype != "rcp" and dtype != "hts":
-                    if ref_years is None:
-                        logging.error('ref_years is None')
-                        return None
-                    years = [y for y in ref_years['historical_full'] if y >= 2000]
-                    mask = (df["Years"].isin(years))
-                    df = df.loc[mask, :]
-                elif dtype == "hts":
-                    if ref_years is None:
-                        logging.error('ref_years is None')
-                        return None
-                    years = [y for y in list(set(ref_years['historical_full']) | set(ref_years['futur_full'])) if y >= 2000]
-                    mask = (df["Years"].isin(years))
-                    df = df.loc[mask, :]
-
-                df_list.append(df)
-        elif dtype == 'level-data':
-            values = read_parquet_memoized(path, regions)
-            filtered_values = values.loc[
-                (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
-                ]
-            RX_1 = re.compile("dimension_.*")
-            dims = sorted([c for c in values.columns if re.match(RX_1, c)])
-            df_list.append(filtered_values.sort_values(by=dims))
-        elif dtype == 'level-definition':
-            values = read_parquet_memoized(path, regions)
-            filtered_values = values.loc[
-                (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
-                ]
-            df = filtered_values.sort_values(by=['lever_name'])
-            del df["module"]
-            df_list.append(df)
     df_out = pd.concat(df_list, ignore_index=True)
     if "key_metric-name_wo-unit" in df_out.columns:
         df_out.drop(columns=["key_metric-name_wo-unit"], inplace=True)
     return df_out
+
+
+def handle_other_dtype(path, dtype, regions, modules, metrics, ref_years, df_list, exceptions_list):
+    """
+    Handle the import of data for ots, fts, hts, rcp and cal data types.
+    """
+    values = read_parquet_memoized(path, regions, modules, dtype)
+    filtered_values = values.loc[
+        (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
+    ]
+    excluded_columns_tec_costs = ['hypothesis', 'Region_0', 'Source', 'source', 'key_metric-name-dim', "module",
+                                  "data_type"]  # Keep Region_source
+    excluded_columns = excluded_columns_tec_costs + ['Region_source']
+
+    for id, df in filtered_values.groupby(level=IDX):
+        # reset index
+        df = df.reset_index()
+
+        if dtype != "fts":
+            df = apply_exceptions(df, exceptions_list)
+            # Sort by values
+        df = df.sort_values(by=['key_metric-name-dim', 'Years'])
+        # Remove unused columns and nan values
+        df = df.dropna(how='all', axis=1)
+        kept_cols = [c for c in df.columns if c not in excluded_columns]
+        if dtype != "fts" and df['module'].unique()[0] == 'tec' and df['key_metric-name_wo-unit'].unique()[
+            0].startswith('cost'):
+            kept_cols = [c for c in df.columns if c not in excluded_columns_tec_costs]
+        df = df[kept_cols]
+
+        if dtype in ["ots", "fts"]:
+            if dtype == "fts":
+                sort_cols = ["Region", "Years", "metric-name", "lever-name", "level_1", "level_2", "level_3", "level_4"]
+                order_cols_prefix = ["Region", "Years", "metric-name", "lever-name"]
+                order_cols_suffix = ["level_1", "level_2", "level_3", "level_4"]
+            else:
+                sort_cols = ["Region", "Years", "metric-name", "ColumnValues"]
+                order_cols_prefix = ["Region", "Years", "metric-name"]
+                order_cols_suffix = ["ColumnValues"]
+
+            df = df.rename(columns={"key_metric-name": "metric-name"})
+            dims = sorted([c for c in df.columns if c not in sort_cols])
+            order = order_cols_prefix + dims + order_cols_suffix
+            df = df[order]
+        else:
+            metric_w_unit = df['key_metric-name'].unique()[0]
+            df = df.rename(columns={"ColumnValues": metric_w_unit})
+            del df["key_metric-name"]
+            dims = sorted([c for c in df.columns if c not in ["Region", metric_w_unit]])
+            order = ["Region"] + dims + [metric_w_unit]
+            df = df[order]
+        if dtype == "rcp":
+            if "Years" in df.columns:
+                del df["Years"]
+        # Remove Years before 2000
+        if dtype not in ["rcp", "hts", "fts"]:
+            if ref_years is None:
+                logging.error('ref_years is None')
+                return None
+            years = [y for y in ref_years['historical_full'] if y >= 2000]
+            mask = (df["Years"].isin(years))
+            df = df.loc[mask, :]
+        elif dtype == "hts":
+            if ref_years is None:
+                logging.error('ref_years is None')
+                return None
+            years = [y for y in list(set(ref_years['historical_full']) | set(ref_years['futur_full'])) if y >= 2000]
+            mask = (df["Years"].isin(years))
+            df = df.loc[mask, :]
+
+        df_list.append(df)
+    return df_list
+
+def handle_level_definition_dtype(path, regions, metrics):
+    values = read_parquet_memoized(path, regions)
+    filtered_values = values.loc[
+        (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
+    ]
+    df = filtered_values.sort_values(by=['lever_name'])
+    del df["module"]
+    return df
+
+
+def handle_level_data_dtype(path, modules, regions, metrics):
+    values = read_parquet_memoized(path, regions, modules)
+    filtered_values = values.loc[
+        (values.index.get_level_values("key_metric-name_wo-unit").isin(metrics))
+    ]
+    RX_1 = re.compile("dimension_.*")
+    dims = sorted([c for c in values.columns if re.match(RX_1, c)])
+    return filtered_values.sort_values(by=dims)
+
+def apply_exceptions(df, exceptions_list):
+    for exception in exceptions_list:
+        if exception == "transport-demand-pkm":
+            df = df.loc[df["key_metric-name"].values == "transport-demand[pkm]", :]
+        elif exception == "transport-demand-tkm":
+            df = df.loc[df["key_metric-name"].values == "transport-demand[bn_tkm]", :]
+        elif exception == "elec-emissions-Mt":
+            df = df.loc[df["way-of-production"].values == "elec-plant", :]
+        elif exception == "heat-emissions-Mt":
+            df = df.loc[df["way-of-production"].values != "elec-plant", :]
+    return df
 
 
 def import_fts_ots_local(
@@ -518,6 +559,7 @@ def import_fts_ots_s3(
         })
 
     return df_ots, df_fts, df_level_data
+
 
 def patternreshape(pattern, case_sensitive="false"):
     """One of the biggest challenge in the converter is to use the REGEX of the Knime workflow the same way in
