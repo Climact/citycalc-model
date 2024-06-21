@@ -90,7 +90,7 @@ def compute_costs(
     dims_cols = [c for c in df_activity.select_dtypes(include=["object"]).columns if c in df_unit_costs.columns]
     dims_with_year = dims_cols.copy()
     dims_with_year.append("Years")
-    df_activity_sum = df_activity.groupby(by=dims_with_year).sum().reset_index()
+    df_activity_sum = df_activity.groupby(by=dims_with_year).sum(numeric_only=True).reset_index()
 
     ## Learning rate methodology
     ## -------------------------

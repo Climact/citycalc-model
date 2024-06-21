@@ -41,9 +41,9 @@ def missing_value(
             if df[col].isna().sum() != 0:
                 logging.debug("Some string columns contains Missing value. This case is not implemented in Missing Value node")
 
-    for list in missing_values_by_columns:
-        cols = list[0]
-        option = list[1]
+    for list_i in missing_values_by_columns:
+        cols = list_i[0]
+        option = list_i[1]
         if option == 'Previous':
             df[cols] = df[cols].fillna(method='ffill')
 
@@ -54,8 +54,8 @@ def missing_value(
             na_dimensions = [c for c in df.columns[df.isna().all()].to_list() if not dimension_rx.match(c)]
             string_columns = set(df.select_dtypes("object").columns.to_list() + na_dimensions)
             other_columns = [c for c in df.columns if c not in string_columns]
-            df = pd.concat([df[other_columns],
-                            df[string_columns].fillna((FixedValue))], axis=1)
+            df = pd.concat([df[list(other_columns) ],
+                            df[list(string_columns)].fillna((FixedValue))], axis=1)
         else:
             if "IntCell" in DTS[0]:
                 numerics = ['int16', 'int32', 'int64']

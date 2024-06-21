@@ -95,7 +95,7 @@ def metanode_9702(port_01, port_02):
         # ----------------------------------------------------------------------------------------------------------- #
         # CONCATENATE : res and non-res production and distribute remaining res between remaining demand
         production = pd.concat([res_production, nonres_production], ignore_index=True)
-        total_production = production.groupby(['Country', 'Years']).sum().reset_index()
+        total_production = production.groupby(['Country', 'Years']).sum(numeric_only=True).reset_index()
         total_production = total_production.rename(columns={energyProdCol: "total"})
         pct_production = production.merge(total_production, on=['Country', 'Years'], how='inner')
         pct_production["pct[-]"] = pct_production[energyProdCol] / pct_production["total"]

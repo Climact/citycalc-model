@@ -429,7 +429,7 @@ def land_use(agriculture):
             del df['concat-order']
             # Interpolate values (linear) by group of dimensions
             df = df.sort_values(by=dimensions_wt_years)
-            df = df.groupby(dimensions_wo_years).apply(lambda group: group.interpolate())
+            df = df.groupby(dimensions_wo_years, group_keys=False).apply(lambda group: group.interpolate())
             # Reset index and return
             df = df.reset_index(drop=True)
             return df

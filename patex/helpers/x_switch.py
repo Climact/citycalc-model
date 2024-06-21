@@ -113,10 +113,10 @@ def x_switch(
             if col != "carrier":
                 add_gpby.append(col)
     ### demand to be added => Group by on all column except carrier
-    add_table = add_table.groupby(by=add_gpby, as_index=False, dropna=False).sum()
+    add_table = add_table.groupby(by=add_gpby, as_index=False, dropna=False).sum(numeric_only=True)
     add_table = add_table.rename(columns={"retrieve[unit]": "add[unit]"})
     ### demand to be retrieve => Group by on all column except carrier-to
-    retrieved_table = change_table.groupby(by=retrieve_gpby, as_index=False).sum()
+    retrieved_table = change_table.groupby(by=retrieve_gpby, as_index=False).sum(numeric_only=True)
 
     # Apply switch to demand
     ## Get common cols
