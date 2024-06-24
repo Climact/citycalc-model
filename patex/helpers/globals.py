@@ -18,9 +18,9 @@ from patex.constants import MISSING_YEARS
 
 
 class Globals:
-    local: str
-    s3_ods: str
-    s3_raw: str
+    mode: str
+    ods_folder: str
+    level_data_folder : str
     ref_years: dict[str, list[int]]
     base_year: int
     max_year: int
@@ -31,9 +31,9 @@ class Globals:
 
     def __init__(
         self,
-        local: str,
-        s3_ods: str,
-        s3_raw: str,
+        mode: str,
+        ods_folder: str,
+        level_data_folder: str,
         ref_years: dict[str, list[int]],
         base_year: int,
         max_year: int,
@@ -42,9 +42,9 @@ class Globals:
         dynamic_levers: dict[str, typing.Any],
         missing_years: list[int] | None = None,
     ):
-        self.local = local
-        self.s3_ods = s3_ods
-        self.s3_raw = s3_raw
+        self.mode = mode
+        self.ods_folder = ods_folder
+        self.level_data_folder = level_data_folder
         self.ref_years = ref_years
         self.base_year = base_year
         self.max_year = max_year

@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from patex.patex.patex import patex
-from patex.utils import get_ref_years
+from patex.formating import get_ref_years
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -33,7 +33,7 @@ parser.add_argument(
     "--workspace",
     type=Path,
     default=Path("dev"),
-    help="path to the parent directory of '_common'",
+    help="path to the parent directory of '_common' folder",
 )
 parser.add_argument(
     "--bucket",
@@ -93,22 +93,24 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Read configuration file
-s3_path = f"s3://{args.bucket}/{args.project}/{args.version}"
-s3_ods = f"{s3_path}/ods"
-s3_raw = f"{s3_path}/raw"
-local_path = args.workspace
 if args.mode == "local":
     # Local mode
-    logging.info(f"Running in local mode : {args.workspace}")
+    local_path = args.workspace
+    logging.info(f"Running in local mode : {local_path}")
+    ods_folder = Path(local_path,"_common", "_ods")
+    level_data_folder = Path(local_path,'_common',"_level_data")
     # Set paths for local mode
-    ref_years_path = args.workspace / "_common/reference/ref_years.csv"
-    interfaces_path = args.workspace / "_common/configuration/interfaces.xlsx"
+    ref_years_path = "api/param/ref_years.csv"
+    interfaces_path = "api/param/interfaces.xlsx"
 elif args.mode == "remote":
     # Remote mode
+    s3_path = f"s3://{args.bucket}/{args.project}/{args.version}"
     logging.info(f"Running in remote mode : {s3_path}")
-    interfaces_path = f"{s3_raw}/configuration/interfaces.xlsx"
-    ref_years_path = f"{s3_raw}/reference/ref_years.csv"
-    logging.info("Running in remote mode")
+    raw_folder = f"{s3_path}/raw"
+    ods_folder = f"{s3_path}/ods"
+    level_data_folder = None
+    interfaces_path = f"{raw_folder}/configuration/interfaces.xlsx"
+    ref_years_path = f"{raw_folder}/reference/ref_years.csv"
 else:
     raise ValueError(f"Unknown mode: {args.mode}")
 
@@ -154,9 +156,9 @@ if args.levers_dynamic_file is not None:
 logging.info("executing the model...")
 start = time.time()
 outputs = patex(
-    local=args.workspace if args.mode == "local" else None,
-    s3_ods=s3_ods if args.mode == "remote" else None,
-    s3_raw=s3_raw if args.mode == "remote" else None,
+    mode = args.mode,
+    ods_folder = ods_folder,
+    level_data_folder= level_data_folder if args.mode == "local" else None,
     ref_years=ref_years,
     base_year=2021,
     max_year=args.max_year,

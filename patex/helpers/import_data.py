@@ -301,8 +301,9 @@ def import_data(
     country_filter = Globals.get().country_filter
     levers = Globals.get().levers
     dynamic_levers = Globals.get().dynamic_levers
-    path_ods = Globals.get().s3_ods
-    local = Globals.get().local
+    mode = Globals.get().mode
+    ods_folder = Globals.get().ods_folder
+    level_data_folder = Globals.get().level_data_folder
     # --------------------------------------------------------#
     # IMPORT DATA
     # Initialize tables
@@ -320,35 +321,29 @@ def import_data(
     }
     var_type = naming_dict[variable_type]
 
-    # Define local file path
-    path_level_data = None
-    if local:
-        path_ods = Path(local, "_common", "_ods")
-        path_level_data = Path(local, "_common", "_level_data")
-
     # Initialize dynamic levers dataframe
     df_dyn_levers = pd.DataFrame()
 
     ## ------------- CP --------------- ##
     if variable_type == "CP":
         file_name = variable_name + "_" + var_type
-        if local:
+        if mode == "local":
             file_name += ".csv"
-            input_table = read_memoized(Path(path_ods, file_name))
+            input_table = read_memoized(Path(ods_folder, file_name))
         else:
-            path = f'{path_ods}/{file_name}'
+            path = f'{ods_folder}/{file_name}'
             input_table = import_ods_s3(path,var_type)
 
     ## ------------- OTS/FTS --------------- ##
     elif variable_type == "OTS/FTS":
         # Get file names
-        if local:
+        if mode == "local":
             input_table, input_table_fts, input_table_level_data = import_fts_ots_local(
                 input_table,
                 input_table_fts,
                 input_table_level_data,
-                path_ods,
-                path_level_data,
+                ods_folder,
+                level_data_folder,
                 country_filter,
                 max_year,
                 trigram,
@@ -359,7 +354,7 @@ def import_data(
                 input_table,
                 input_table_fts,
                 input_table_level_data,
-                path_ods,
+                ods_folder,
                 country_filter,
                 max_year,
                 trigram,
@@ -412,7 +407,7 @@ def import_data(
                     )
                     tmp_fts = input_table_fts[
                         input_table_fts["lever-name"] == lever
-                    ].copy()
+                        ].copy()
                     if dynamic_lever_by_metric:
                         for metric in dynamic_levers[lever]:
                             df_lever_projections, metric_dim = dynamic_metrics_2_lever_projections(input_table,
@@ -422,7 +417,7 @@ def import_data(
                             # remove data from input_table_fts if metric=metric
                             input_table_fts = input_table_fts[
                                 input_table_fts["key_metric-name-dim"] != metric_dim
-                            ]
+                                ]
                     else:
                         for metric_dim in tmp_fts["key_metric-name-dim"].unique():
                             df_lever_projections = dynamic_levers_2_lever_projections(dynamic_levers, input_table,
@@ -431,7 +426,7 @@ def import_data(
                             df_dyn_levers = pd.concat([df_dyn_levers, df_lever_projections])
                         input_table_fts = input_table_fts[
                             input_table_fts["lever-name"] != lever
-                        ]
+                            ]
                         lever_name_list.remove(lever)
                 del input_table_fts["key_metric-name-dim"]
                 del df_dyn_levers["key_metric-name-dim"]
@@ -447,18 +442,18 @@ def import_data(
         for country in np.unique(country_filter.split("|")):
             if country != "EU28":
                 file_name = (
-                    country
-                    + "_"
-                    + trigram
-                    + "_"
-                    + variable_name
-                    + "_" + var_type
-                    + ".csv"
+                        country
+                        + "_"
+                        + trigram
+                        + "_"
+                        + variable_name
+                        + "_" + var_type
+                        + ".csv"
                 )
-                if local:
-                    df_t = read_memoized(Path(path_ods, file_name))
+                if mode == 'local':
+                    df_t = read_memoized(Path(ods_folder, file_name))
                 else:
-                    df_t = import_ods_s3(path_ods, var_type, [trigram], [country], [variable_name])
+                    df_t = import_ods_s3(ods_folder, var_type, [trigram], [country], [variable_name])
                 # Filter data based on max year (if possible)
                 if "Years" in df_t.columns:
                     df_t = df_t[df_t["Years"] <= max_year]
