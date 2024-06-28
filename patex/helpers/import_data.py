@@ -27,7 +27,8 @@ import pandas as pd
 
 from patex.metrics import create_validation_key
 from patex.helpers.globals import Globals
-from patex.utils import get_lever_value, import_fts_ots_s3, import_fts_ots_local, import_ods_s3, read_memoized
+from patex.utils import get_lever_value, import_fts_ots_s3, import_fts_ots_local, import_ods_s3
+from patex.memory import read_memoized
 
 DEFAULT_FOLDER = "_interactions"
 RX_dim = re.compile(r"dimension_.*")

@@ -29,11 +29,11 @@ parser.add_argument(
     help="mode to run the app: 'local' for workspace or 'remote' for S3",
 )
 parser.add_argument(
-    "-w",
-    "--workspace",
+    "-a",
+    "--assets",
     type=Path,
-    default=Path("dev"),
-    help="path to the parent directory of '_common' folder",
+    default=Path("assets"),
+    help="path to the parent directory of 'assets' folder",
 )
 parser.add_argument(
     "--bucket",
@@ -95,10 +95,10 @@ args = parser.parse_args()
 # Read configuration file
 if args.mode == "local":
     # Local mode
-    local_path = args.workspace
+    local_path = args.assets
     logging.info(f"Running in local mode : {local_path}")
-    ods_folder = Path(local_path,"_common", "_ods")
-    level_data_folder = Path(local_path,'_common',"_level_data")
+    ods_folder = Path(local_path, "_ods")
+    level_data_folder = Path(local_path,"_level_data")
     # Set paths for local mode
     ref_years_path = "api/param/ref_years.csv"
     interfaces_path = "api/param/interfaces.xlsx"

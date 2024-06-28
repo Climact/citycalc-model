@@ -20,8 +20,8 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     if MODE == "local":
         logging.info(f"Running in local mode : {WORKSPACE}")
-        ods_folder = Path(WORKSPACE,"dev","_common","_ods")
-        level_data_folder = Path(WORKSPACE,"dev", '_common', "_level_data")
+        ods_folder = Path(WORKSPACE,"assets","_ods")
+        level_data_folder = Path(WORKSPACE,"assets", "_level_data")
         interfaces_path = WORKSPACE.joinpath("api", "param", "interfaces.xlsx")
         ref_years_path = WORKSPACE.joinpath("api", "param", "ref_years.csv")
     else:
