@@ -1,0 +1,35 @@
+[project]
+name = "patex"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Xavier Lambein", email = "xla@climact.com" }
+]
+dependencies = [
+    "numpy~=1.23",
+    "pandas~=1.5",
+    "openpyxl~=3.1.2",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "coloredlogs>=15.0.1",
+    "pyyaml>=6.0.1",
+    "pymysql>=1.0.3",
+    "mysql-connector-python>=8.0.33",
+    "sqlalchemy>=1.4.23",
+    "vulture>=2.11",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["patex"]
