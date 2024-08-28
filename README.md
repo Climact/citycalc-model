@@ -18,6 +18,11 @@ python -m patex.compare_model_outputs --help
 
 If you're making modifications to the model which shouldn't affect its output, first run the `patex` script on at least one region and set of levers, saving the output somewhere (e.g., `output_master_be_1.pkl`). Then, after you've made a change, run `patex` again on the modified model, saving the output to a different file (e.g., `output_new_be_1`), then compare the two with `patex.compare_model_outputs` to ensure you haven't changed anything. Once you're done, make sure to delete those files. Do not to commit them to the Git repository.
 
+## Data
+
+When using the 'remote' version of the model, the patex is downloading the data from the s3 bucket associated to the project.
+Those data are stored in a parquet format and available [here](https://citycalc-public.s3.eu-central-1.amazonaws.com/index.html).
+
 ## Contribution guidelines
 
 - When contributing a function, make sure that it _does not modify its inputs_. For example, don't do the following:
